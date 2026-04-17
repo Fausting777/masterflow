@@ -1,40 +1,106 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import {
+  formatPrice,
+  formatDate,
+  STATUS_LABELS,
+  STATUS_COLORS,
+} from '@/lib/utils/format';
+import type { OrderWithClient } from '@/types/database';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [clientsCountRes, servicesCountRes, ordersActiveCountRes, recentOrdersRes] = await Promise.all([
+    supabase.from('clients').select('*', { count: 'exact', head: true }),
+    supabase.from('services').select('*', { count: 'exact', head: true }),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', ['new', 'in_progress']),
+    supabase
+      .from('orders_with_client')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ]);
 
-  const { count: clientsCount } = await supabase
-    .from('clients')
-    .select('*', { count: 'exact', head: true });
+  const recent = (recentOrdersRes.data ?? []) as OrderWithClient[];
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Рабочий стол</h1>
-      <p className="text-sm text-neutral-500 mb-6">
-        Добро пожаловать, {user!.email}
-      </p>
+      <h1 className="text-2xl font-semibold mb-1">Рабочий стол</h1>
+      <p className="text-sm text-neutral-500 mb-6">{user!.email}</p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/clients"
-          className="block bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 hover:border-blue-500 transition"
-        >
-          <div className="text-sm text-neutral-500 mb-1">Клиенты</div>
-          <div className="text-3xl font-semibold">{clientsCount ?? 0}</div>
-          <div className="text-xs text-blue-600 mt-2">Управлять →</div>
-        </Link>
-
-        <div className="block bg-neutral-100 dark:bg-neutral-900/50 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl p-5 text-neutral-400">
-          <div className="text-sm mb-1">Заказы</div>
-          <div className="text-3xl font-semibold">—</div>
-          <div className="text-xs mt-2">Скоро (Этап 7)</div>
-        </div>
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mb-6">
+        <StatCard href="/orders" label="Активные заказы" value={ordersActiveCountRes.count ?? 0} accent />
+        <StatCard href="/clients" label="Клиенты" value={clientsCountRes.count ?? 0} />
+        <StatCard href="/services" label="Услуги" value={servicesCountRes.count ?? 0} />
       </div>
+
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-medium text-neutral-500">Последние заказы</h2>
+        <Link href="/orders/new" className="text-sm text-blue-600 hover:underline">
+          + Новый заказ
+        </Link>
+      </div>
+
+      {recent.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-8 text-center text-sm text-neutral-500">
+          Пока нет заказов
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {recent.map((o) => (
+            <li key={o.id}>
+              <Link
+                href={`/orders/${o.id}`}
+                className="block bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 hover:border-blue-500 transition"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status]}`}>
+                        {STATUS_LABELS[o.status]}
+                      </span>
+                      <span className="text-xs text-neutral-500">{formatDate(o.created_at)}</span>
+                    </div>
+                    <div className="font-medium truncate">{o.client_name}</div>
+                    <div className="text-sm text-neutral-500 truncate">{o.custom_service_title ?? '—'}</div>
+                  </div>
+                  <div className="text-right font-semibold whitespace-nowrap">
+                    {formatPrice(o.custom_price)}
+                  </div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
+  );
+}
+
+function StatCard({
+  href,
+  label,
+  value,
+  accent = false,
+}: {
+  href: string;
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`block rounded-xl p-4 border transition ${
+        accent
+          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900 hover:border-blue-400'
+          : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-blue-500'
+      }`}
+    >
+      <div className="text-xs text-neutral-500 mb-1">{label}</div>
+      <div className="text-2xl font-semibold">{value}</div>
+    </Link>
   );
 }

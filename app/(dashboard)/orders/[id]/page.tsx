@@ -4,14 +4,23 @@ import { createClient } from '@/lib/supabase/server';
 import OrderForm from '@/components/forms/OrderForm';
 import OrderStatusSwitcher from '@/components/forms/OrderStatusSwitcher';
 import DeleteOrderButton from '@/components/forms/DeleteOrderButton';
+import PhotoUploader from '@/components/orders/PhotoUploader';
+import PhotoGallery from '@/components/orders/PhotoGallery';
 import { updateOrderAction } from '../actions';
+import { getSignedUrl, getSignedUrls } from '@/lib/supabase/storage';
 import {
   formatPrice,
   formatDateTime,
   STATUS_LABELS,
   STATUS_COLORS,
 } from '@/lib/utils/format';
-import type { Order, Client, Service, ActivityLog } from '@/types/database';
+import type {
+  Order,
+  Client,
+  Service,
+  ActivityLog,
+  OrderPhoto,
+} from '@/types/database';
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ edit?: string }>;
@@ -38,8 +47,15 @@ export default async function OrderPage({
   if (!order) notFound();
   const o = order as Order;
 
-  // Забираем связанные сущности параллельно
-  const [clientRes, serviceRes, logsRes, clientsListRes, servicesListRes] = await Promise.all([
+  // Все связанные данные параллельно
+  const [
+    clientRes,
+    serviceRes,
+    logsRes,
+    photosRes,
+    clientsListRes,
+    servicesListRes,
+  ] = await Promise.all([
     supabase.from('clients').select('*').eq('id', o.client_id).maybeSingle(),
     o.service_id
       ? supabase.from('services').select('*').eq('id', o.service_id).maybeSingle()
@@ -50,14 +66,39 @@ export default async function OrderPage({
       .eq('order_id', o.id)
       .order('created_at', { ascending: false })
       .limit(20),
-    // Списки для режима редактирования
-    isEditing ? supabase.from('clients').select('*').order('full_name') : Promise.resolve({ data: [] }),
-    isEditing ? supabase.from('services').select('*').order('title') : Promise.resolve({ data: [] }),
+    supabase
+      .from('order_photos')
+      .select('*')
+      .eq('order_id', o.id)
+      .order('created_at', { ascending: true }),
+    isEditing
+      ? supabase.from('clients').select('*').order('full_name')
+      : Promise.resolve({ data: [] }),
+    isEditing
+      ? supabase.from('services').select('*').order('title')
+      : Promise.resolve({ data: [] }),
   ]);
 
   const client = clientRes.data as Client | null;
   const service = serviceRes.data as Service | null;
   const logs = (logsRes.data ?? []) as ActivityLog[];
+  const photos = (photosRes.data ?? []) as OrderPhoto[];
+
+  // Получаем signed URLs одним запросом на бакет
+  const photoPaths = photos.map((p) => p.file_path);
+  const photoSignedUrls = await getSignedUrls(supabase, 'order-photos', photoPaths);
+  const photoUrlMap = new Map(photoSignedUrls.map((s) => [s.path, s.url]));
+
+  const beforePhotos = photos
+    .filter((p) => p.photo_type === 'before')
+    .map((p) => ({ id: p.id, url: photoUrlMap.get(p.file_path) ?? null }));
+  const afterPhotos = photos
+    .filter((p) => p.photo_type === 'after')
+    .map((p) => ({ id: p.id, url: photoUrlMap.get(p.file_path) ?? null }));
+
+  const signatureUrl = o.signature_file_path
+    ? await getSignedUrl(supabase, 'order-signatures', o.signature_file_path)
+    : null;
 
   const serviceTitle = service?.title ?? o.custom_service_title ?? '—';
   const priceToShow = o.custom_price ?? service?.default_price ?? null;
@@ -120,7 +161,13 @@ export default async function OrderPage({
                 </Link>
               ) : '—'
             } />
-            {client?.phone && <Row label="Телефон клиента" value={<a href={`tel:${client.phone}`} className="text-blue-600 hover:underline">{client.phone}</a>} />}
+            {client?.phone && (
+              <Row label="Телефон клиента" value={
+                <a href={`tel:${client.phone}`} className="text-blue-600 hover:underline">
+                  {client.phone}
+                </a>
+              } />
+            )}
             <Row label="Цена" value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
             <Row label="Адрес работы" value={o.order_address ?? client?.address ?? '—'} />
             <Row label="Запланирован" value={formatDateTime(o.scheduled_at)} />
@@ -131,6 +178,50 @@ export default async function OrderPage({
                 <div className="text-sm text-neutral-500 mb-1">Описание</div>
                 <p className="text-sm whitespace-pre-wrap">{o.description}</p>
               </div>
+            )}
+          </div>
+
+          {/* ФОТО ДО */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
+            <h2 className="text-sm font-medium text-neutral-500 mb-3">Фото до работы</h2>
+            <div className="mb-3">
+              <PhotoGallery photos={beforePhotos} />
+            </div>
+            <PhotoUploader orderId={o.id} photoType="before" label="Добавить фото «до»" />
+          </div>
+
+          {/* ФОТО ПОСЛЕ */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
+            <h2 className="text-sm font-medium text-neutral-500 mb-3">Фото после работы</h2>
+            <div className="mb-3">
+              <PhotoGallery photos={afterPhotos} />
+            </div>
+            <PhotoUploader orderId={o.id} photoType="after" label="Добавить фото «после»" />
+          </div>
+
+          {/* ПОДПИСЬ */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
+            <h2 className="text-sm font-medium text-neutral-500 mb-3">Подпись клиента</h2>
+            {signatureUrl ? (
+              <div>
+                <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white overflow-hidden mb-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={signatureUrl} alt="Подпись клиента" className="w-full" />
+                </div>
+                <Link
+                  href={`/orders/${o.id}/signature`}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Переподписать
+                </Link>
+              </div>
+            ) : (
+              <Link
+                href={`/orders/${o.id}/signature`}
+                className="inline-flex items-center justify-center w-full rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:border-blue-500 hover:text-blue-600 transition"
+              >
+                ✍️ Получить подпись клиента
+              </Link>
             )}
           </div>
 

@@ -25,12 +25,18 @@ export default async function DashboardLayout({
             MasterFlow
           </Link>
           <nav className="flex items-center gap-4 text-sm">
-            <Link
-              href="/dashboard"
-              className="text-neutral-700 dark:text-neutral-300 hover:text-blue-600"
-            >
-              Заказы
-            </Link>
+           <Link
+  href="/dashboard"
+  className="text-neutral-700 dark:text-neutral-300 hover:text-blue-600"
+>
+  Главная
+</Link>
+<Link
+  href="/clients"
+  className="text-neutral-700 dark:text-neutral-300 hover:text-blue-600"
+>
+  Клиенты
+</Link>
             <span className="text-neutral-400 dark:text-neutral-600">|</span>
             <span className="text-neutral-500 text-xs hidden sm:inline">
               {user.email}

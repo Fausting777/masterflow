@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function DashboardPage() {
@@ -7,45 +8,32 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Забираем профиль из public.profiles
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user!.id)
-    .single();
+  const { count: clientsCount } = await supabase
+    .from('clients')
+    .select('*', { count: 'exact', head: true });
 
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-4">Рабочий стол</h1>
+      <p className="text-sm text-neutral-500 mb-6">
+        Добро пожаловать, {user!.email}
+      </p>
 
-      <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 p-5 mb-4">
-        <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-3">
-          Аккаунт
-        </h2>
-        <dl className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-neutral-500">Email:</dt>
-            <dd className="font-medium">{user!.email}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-neutral-500">User ID:</dt>
-            <dd className="font-mono text-xs">{user!.id.slice(0, 8)}…</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-neutral-500">Профиль в БД:</dt>
-            <dd className="font-medium">
-              {profile ? (
-                <span className="text-green-600">✓ создан</span>
-              ) : (
-                <span className="text-red-600">✗ не найден</span>
-              )}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href="/clients"
+          className="block bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 hover:border-blue-500 transition"
+        >
+          <div className="text-sm text-neutral-500 mb-1">Клиенты</div>
+          <div className="text-3xl font-semibold">{clientsCount ?? 0}</div>
+          <div className="text-xs text-blue-600 mt-2">Управлять →</div>
+        </Link>
 
-      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl p-4 text-sm text-blue-800 dark:text-blue-300">
-        🚧 Следующий этап — управление клиентами. Пока это заглушка, чтобы убедиться, что авторизация работает.
+        <div className="block bg-neutral-100 dark:bg-neutral-900/50 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl p-5 text-neutral-400">
+          <div className="text-sm mb-1">Заказы</div>
+          <div className="text-3xl font-semibold">—</div>
+          <div className="text-xs mt-2">Скоро (Этап 7)</div>
+        </div>
       </div>
     </div>
   );

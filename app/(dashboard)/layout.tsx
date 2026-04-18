@@ -1,3 +1,5 @@
+import InstallButton from '@/components/ui/InstallButton';
+import IosInstallHint from '@/components/ui/IosInstallHint';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -61,6 +63,8 @@ export default async function DashboardLayout({
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
+      <InstallButton />           {/* ← новое */}
+      <IosInstallHint />
     </div>
   );
 }

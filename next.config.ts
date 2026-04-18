@@ -1,4 +1,11 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
+
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV !== "production",
+});
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: [
@@ -7,9 +14,11 @@ const nextConfig: NextConfig = {
   ],
   experimental: {
     serverActions: {
-      bodySizeLimit: "30mb",
+      bodySizeLimit: "15mb",
     },
   },
+  // Пустой объект — формально сигнализирует Turbopack-у, что конфиг есть
+  turbopack: {},
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);

@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useState } from 'react';
 import Link from 'next/link';
 import type { ClientFormState } from '@/app/(dashboard)/clients/actions';
-import MrzScanner from '@/components/clients/MrzScanner';
+
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
 
 type Props = {
@@ -50,10 +50,7 @@ export default function ClientForm({
   const [postalCode, setPostalCode] = useState(v.postal_code);
   const [city, setCity] = useState(v.city);
 
-  // Обрабатываем результат сканирования
-  const handleScanResult = useCallback(({ fullName }: { fullName: string }) => {
-    setFullName(fullName);
-  }, []);
+ 
 
   // Обрабатываем автоопределение города
   const handleCityDetected = useCallback((detectedCity: string) => {
@@ -66,8 +63,7 @@ export default function ClientForm({
 
   return (
     <form action={formAction} className="space-y-4">
-      {/* Сканер MRZ */}
-      <MrzScanner onResult={handleScanResult} />
+      
 
       {/* Имя */}
       <div>

@@ -8,6 +8,7 @@ import PhotoUploader from '@/components/orders/PhotoUploader';
 import PhotoGallery from '@/components/orders/PhotoGallery';
 import { updateOrderAction } from '../actions';
 import { getSignedUrl, getSignedUrls } from '@/lib/supabase/storage';
+import PdfSection from '@/components/orders/PdfSection';
 import {
   formatPrice,
   formatDateTime,
@@ -224,6 +225,12 @@ export default async function OrderPage({
               </Link>
             )}
           </div>
+
+          {/* PDF */}
+<div className="bg-white border border-neutral-200 rounded-xl p-5 mb-4">
+  <h2 className="text-sm font-medium text-neutral-500 mb-3">PDF-счёт</h2>
+  <PdfSection orderId={o.id} hasPdf={!!o.pdf_file_path} />
+</div>
 
           {/* История */}
           {logs.length > 0 && (

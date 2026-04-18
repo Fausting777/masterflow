@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
+/* Отключаем автоматическое применение dark: классов.
+   В Tailwind v4 это делается через кастомный variant. 
+   Мы привязываем dark: к селектору, которого никогда нет в DOM,
+   поэтому все dark: классы всегда неактивны. */
+@custom-variant dark (&:where(.dark-mode-enabled, .dark-mode-enabled *));
+
+/* Принудительно светлая схема для браузера */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light only;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  background: #ffffff;
+  color: #171717;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Инпуты — принудительно светлые */
+input, textarea, select {
+  background-color: #ffffff;
+  color: #171717;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:-webkit-autofill {
+  -webkit-text-fill-color: #171717;
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset;
 }

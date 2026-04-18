@@ -60,6 +60,7 @@ export interface Order {
   invoice_number: string | null;
   invoice_issued_at: string | null;
   service_date: string | null;
+  deleted_at: string | null;   // ← новое поле
   created_at: string;
   updated_at: string;
 }

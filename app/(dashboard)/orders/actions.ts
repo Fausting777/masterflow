@@ -112,11 +112,111 @@ export async function changeOrderStatusAction(
   revalidatePath(`/orders/${id}`);
 }
 
-export async function deleteOrderAction(id: string): Promise<void> {
+// Мягкое удаление (в корзину)
+export async function softDeleteOrderAction(id: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Не авторизован');
 
+  const { error } = await supabase
+    .from('orders')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw new Error(error.message);
+
+  // Логируем в activity_logs (тот же user, та же таблица логов)
+  await supabase.from('activity_logs').insert({
+    order_id: id,
+    user_id: user.id,
+    action_type: 'soft_deleted',
+    action_text: 'Перемещён в корзину',
+  });
+
+  revalidatePath('/orders');
+  revalidatePath('/orders/trash');
+  redirect('/orders');
+}
+
+// Восстановление из корзины
+export async function restoreOrderAction(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Не авторизован');
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ deleted_at: null })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw new Error(error.message);
+
+  await supabase.from('activity_logs').insert({
+    order_id: id,
+    user_id: user.id,
+    action_type: 'restored',
+    action_text: 'Восстановлен из корзины',
+  });
+
+  revalidatePath('/orders');
+  revalidatePath('/orders/trash');
+  revalidatePath(`/orders/${id}`);
+  redirect(`/orders/${id}`);
+}
+
+// Окончательное удаление (только для заказов БЕЗ invoice_number)
+export async function permanentDeleteOrderAction(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Не авторизован');
+
+  // Критическая проверка: нельзя удалять заказ со счётом
+  const { data: order } = await supabase
+    .from('orders')
+    .select('invoice_number, deleted_at')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!order) throw new Error('Заказ не найден');
+  if (order.invoice_number) {
+    throw new Error('Нельзя удалить: по заказу выставлен счёт (§14 UStG требует 10 лет хранения)');
+  }
+  if (!order.deleted_at) {
+    throw new Error('Сначала переместите в корзину');
+  }
+
+  // Удаляем связанные файлы из Storage
+  // 1. Фото
+  const { data: photos } = await supabase
+    .from('order_photos')
+    .select('file_path')
+    .eq('order_id', id);
+  
+  if (photos && photos.length > 0) {
+    await supabase.storage
+      .from('order-photos')
+      .remove(photos.map(p => p.file_path));
+  }
+
+  // 2. Подпись — получаем из заказа заново (теперь уже точно без invoice)
+  const { data: fullOrder } = await supabase
+    .from('orders')
+    .select('signature_file_path, pdf_file_path')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (fullOrder?.signature_file_path) {
+    await supabase.storage.from('order-signatures').remove([fullOrder.signature_file_path]);
+  }
+  if (fullOrder?.pdf_file_path) {
+    await supabase.storage.from('order-pdfs').remove([fullOrder.pdf_file_path]);
+  }
+
+  // 3. Удаляем заказ — activity_logs и order_photos удалятся каскадом (cascade в FK)
   const { error } = await supabase
     .from('orders')
     .delete()
@@ -126,5 +226,6 @@ export async function deleteOrderAction(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath('/orders');
-  redirect('/orders');
+  revalidatePath('/orders/trash');
+  redirect('/orders/trash');
 }

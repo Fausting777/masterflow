@@ -15,12 +15,15 @@ export default async function DashboardPage() {
   const [clientsCountRes, servicesCountRes, ordersActiveCountRes, recentOrdersRes] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }),
     supabase.from('services').select('*', { count: 'exact', head: true }),
-    supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', ['new', 'in_progress']),
+    supabase.from('orders').select('*', { count: 'exact', head: true })
+  .in('status', ['new', 'in_progress'])
+  .is('deleted_at', null),
     supabase
-      .from('orders_with_client')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5),
+  .from('orders_with_client')
+  .select('*')
+  .is('deleted_at', null)
+  .order('created_at', { ascending: false })
+  .limit(5),
   ]);
 
   const recent = (recentOrdersRes.data ?? []) as OrderWithClient[];
@@ -36,12 +39,17 @@ export default async function DashboardPage() {
         <StatCard href="/services" label="Услуги" value={servicesCountRes.count ?? 0} />
       </div>
 
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-medium text-neutral-500">Последние заказы</h2>
-        <Link href="/orders/new" className="text-sm text-blue-600 hover:underline">
-          + Новый заказ
-        </Link>
-      </div>
+      <div className="flex items-center justify-between mb-3 gap-3">
+  <h2 className="text-sm font-medium text-neutral-500">Последние заказы</h2>
+  <div className="flex items-center gap-3">
+    <Link href="/orders/trash" className="text-sm text-neutral-500 hover:text-neutral-700">
+      🗑 Корзина
+    </Link>
+    <Link href="/orders/new" className="text-sm text-blue-600 hover:underline">
+      + Новый
+    </Link>
+  </div>
+</div>
 
       {recent.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-8 text-center text-sm text-neutral-500">

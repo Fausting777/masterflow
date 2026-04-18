@@ -115,12 +115,19 @@ export async function updateClientAction(
 // -----------------------------------------------
 export async function deleteClientAction(id: string): Promise<void> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Не авторизован');
 
-  if (!user) {
-    throw new Error('Не авторизован');
+  // Проверяем, есть ли у клиента активные (не удалённые) заказы
+  const { count } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('client_id', id)
+    .eq('user_id', user.id)
+    .is('deleted_at', null);
+
+  if (count && count > 0) {
+    throw new Error(`Нельзя удалить: у клиента ${count} активных заказов`);
   }
 
   const { error } = await supabase
@@ -130,10 +137,9 @@ export async function deleteClientAction(id: string): Promise<void> {
     .eq('user_id', user.id);
 
   if (error) {
-    // Клиент может быть связан с заказами (у нас FK on delete restrict)
     throw new Error(
       error.message.includes('foreign key')
-        ? 'Нельзя удалить: у клиента есть заказы'
+        ? 'Нельзя удалить: у клиента есть заказы в корзине со счетами'
         : `Ошибка удаления: ${error.message}`
     );
   }

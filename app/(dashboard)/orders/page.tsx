@@ -23,10 +23,11 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   const activeFilter = (status ?? 'all') as OrderStatus | 'all';
 
   const supabase = await createClient();
-  let query = supabase
-    .from('orders_with_client')
-    .select('*')
-    .order('created_at', { ascending: false });
+ let query = supabase
+  .from('orders_with_client')
+  .select('*')
+  .is('deleted_at', null)
+  .order('created_at', { ascending: false });
 
   if (activeFilter !== 'all') {
     query = query.eq('status', activeFilter);
@@ -36,15 +37,24 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Заказы</h1>
-        <Link
-          href="/orders/new"
-          className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2"
-        >
-          + Новый
-        </Link>
-      </div>
+      <div className="flex items-center justify-between mb-4 gap-3">
+  <h1 className="text-2xl font-semibold">Заказы</h1>
+  <div className="flex items-center gap-2">
+    <Link 
+      href="/orders/trash" 
+      className="text-sm text-neutral-600 hover:text-neutral-900 px-3 py-2 rounded-lg hover:bg-neutral-100"
+      title="Корзина"
+    >
+      🗑
+    </Link>
+    <Link
+      href="/orders/new"
+      className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2"
+    >
+      + Новый
+    </Link>
+  </div>
+</div>
 
       <div className="flex flex-wrap gap-2 mb-4">
         {STATUS_FILTERS.map((f) => {

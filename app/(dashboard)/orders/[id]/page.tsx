@@ -1,3 +1,4 @@
+import TrashActions from '@/components/orders/TrashActions';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -138,6 +139,11 @@ export default async function OrderPage({
                 </span>
               </div>
               <h1 className="text-2xl font-semibold truncate">{serviceTitle}</h1>
+              {o.deleted_at && (
+  <div className="mt-2 text-xs bg-red-100 text-red-800 inline-block px-2 py-1 rounded font-medium">
+    🗑 В корзине
+  </div>
+)}
             </div>
             <Link
               href={`/orders/${o.id}?edit=1`}
@@ -255,7 +261,22 @@ export default async function OrderPage({
             </div>
           )}
 
-          <DeleteOrderButton orderId={o.id} />
+         {o.deleted_at ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+              <div className="flex items-start gap-2 mb-3">
+                <span className="text-xl">🗑</span>
+                <div>
+                  <div className="font-medium text-red-900">Заказ в корзине</div>
+                  <div className="text-xs text-red-700 mt-0.5">
+                    Удалён {new Date(o.deleted_at).toLocaleString('ru-RU')}
+                  </div>
+                </div>
+              </div>
+              <TrashActions orderId={o.id} hasInvoice={!!o.invoice_number} />
+            </div>
+          ) : (
+            <DeleteOrderButton orderId={o.id} />
+          )}
         </>
       )}
     </div>

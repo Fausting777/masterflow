@@ -2,13 +2,14 @@
 import { parsePriceInput } from '@/lib/utils/format';
 
 export type OrderInput = {
-  client_id: string;
-  service_id: string;          // '' если кастомная услуга
+  client_id: string;                // '' если быстрое имя
+  client_quick_name: string;        // имя для быстрого ввода
+  service_id: string;               // '' если кастомная услуга
   custom_service_title: string;
   custom_price: string;
   description: string;
   order_address: string;
-  scheduled_at: string;        // datetime-local string или ''
+  scheduled_at: string;
 };
 
 export type OrderValidationErrors = Partial<Record<keyof OrderInput, string>>;
@@ -16,8 +17,14 @@ export type OrderValidationErrors = Partial<Record<keyof OrderInput, string>>;
 export function validateOrder(data: OrderInput): OrderValidationErrors {
   const errors: OrderValidationErrors = {};
 
-  if (!data.client_id) {
-    errors.client_id = 'Выберите клиента';
+  const hasClientId = data.client_id.trim().length > 0;
+  const hasQuickName = data.client_quick_name.trim().length > 0;
+
+  if (!hasClientId && !hasQuickName) {
+    errors.client_id = 'Выберите клиента или введите имя';
+  }
+  if (hasQuickName && data.client_quick_name.trim().length > 200) {
+    errors.client_quick_name = 'Имя слишком длинное';
   }
 
   const hasService = data.service_id.trim().length > 0;
@@ -56,7 +63,8 @@ export function normalizeOrderInput(data: OrderInput) {
   const hasService = data.service_id.trim().length > 0;
 
   return {
-    client_id: data.client_id,
+    client_id: data.client_id.trim() || null,
+    client_quick_name: clean(data.client_quick_name),
     service_id: hasService ? data.service_id : null,
     custom_service_title: hasService ? null : clean(data.custom_service_title),
     custom_price: parsePriceInput(data.custom_price),

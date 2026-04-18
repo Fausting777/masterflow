@@ -43,6 +43,7 @@ export default function OrderForm({
 
   const v = state.values ?? {
     client_id: initial?.client_id ?? '',
+    client_quick_name: '',         // ← новое
     service_id: initial?.service_id ?? '',
     custom_service_title: initial?.custom_service_title ?? '',
     custom_price:
@@ -59,35 +60,72 @@ export default function OrderForm({
     !v.service_id && (v.custom_service_title.length > 0 || services.length === 0)
   );
 
+  const [useQuickClient, setUseQuickClient] = useState(
+  !v.client_id && (v.client_quick_name.length > 0 || clients.length === 0)
+);
+
   return (
     <form action={formAction} className="space-y-4">
-      <div>
-        <label htmlFor="client_id" className="block text-sm font-medium mb-1">
-          Клиент <span className="text-red-500">*</span>
-        </label>
-        <select
-          id="client_id"
-          name="client_id"
-          required
-          defaultValue={v.client_id}
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">— выберите клиента —</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.full_name}
-              {c.phone ? ` (${c.phone})` : ''}
-            </option>
-          ))}
-        </select>
-        {state.errors?.client_id && <p className="text-xs text-red-600 mt-1">{state.errors.client_id}</p>}
-        {clients.length === 0 && (
-          <p className="text-xs text-amber-600 mt-1">
-            У тебя ещё нет клиентов.{' '}
-            <Link href="/clients/new" className="underline">Добавить</Link>
-          </p>
-        )}
-      </div>
+      {/* Клиент: из базы ИЛИ быстрое имя */}
+<div className="space-y-2">
+  <div className="flex items-center justify-between">
+    <label className="block text-sm font-medium">
+      Клиент <span className="text-red-500">*</span>
+    </label>
+    <button
+      type="button"
+      onClick={() => setUseQuickClient(!useQuickClient)}
+      className="text-xs text-blue-600 hover:underline"
+    >
+      {useQuickClient ? 'Из базы' : 'Быстрое имя'}
+    </button>
+  </div>
+
+  {useQuickClient ? (
+    <>
+      {/* Пустой client_id, чтобы не отправлялся выбор */}
+      <input type="hidden" name="client_id" value="" />
+      <input
+        name="client_quick_name"
+        type="text"
+        defaultValue={v.client_quick_name}
+        placeholder="Например: Иван Петров"
+        className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <p className="text-xs text-neutral-500">
+        Клиент создастся автоматически с этим именем. Телефон, адрес и email можно дозаполнить позже в карточке клиента.
+      </p>
+      {state.errors?.client_quick_name && (
+        <p className="text-xs text-red-600">{state.errors.client_quick_name}</p>
+      )}
+    </>
+  ) : (
+    <>
+      <input type="hidden" name="client_quick_name" value="" />
+      <select
+        name="client_id"
+        defaultValue={v.client_id}
+        className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">— выберите клиента —</option>
+        {clients.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.full_name}
+            {c.phone ? ` (${c.phone})` : ''}
+          </option>
+        ))}
+      </select>
+      {clients.length === 0 && (
+        <p className="text-xs text-amber-600">
+          У тебя ещё нет клиентов. Нажми «Быстрое имя» чтобы ввести имя прямо сейчас.
+        </p>
+      )}
+    </>
+  )}
+  {state.errors?.client_id && (
+    <p className="text-xs text-red-600">{state.errors.client_id}</p>
+  )}
+</div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">

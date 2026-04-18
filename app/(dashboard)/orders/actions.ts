@@ -15,6 +15,7 @@ export type OrderFormState = {
   formError?: string;
   values?: {
     client_id: string;
+    client_quick_name: string;        // ← новое
     service_id: string;
     custom_service_title: string;
     custom_price: string;
@@ -27,6 +28,7 @@ export type OrderFormState = {
 function readFormData(formData: FormData): OrderFormState['values'] & object {
   return {
     client_id: String(formData.get('client_id') ?? ''),
+    client_quick_name: String(formData.get('client_quick_name') ?? ''),   // ← новое
     service_id: String(formData.get('service_id') ?? ''),
     custom_service_title: String(formData.get('custom_service_title') ?? ''),
     custom_price: String(formData.get('custom_price') ?? ''),
@@ -51,18 +53,63 @@ export async function createOrderAction(
 
   const normalized = normalizeOrderInput(raw);
 
-  const { data, error } = await supabase
-    .from('orders')
-    .insert({ user_id: user.id, status: 'new', ...normalized })
-    .select('id')
-    .single();
+  // Ветка 1: есть client_id — обычное создание
+  if (normalized.client_id) {
+    const { data, error } = await supabase
+      .from('orders')
+      .insert({
+        user_id: user.id,
+        status: 'new',
+        client_id: normalized.client_id,
+        service_id: normalized.service_id,
+        custom_service_title: normalized.custom_service_title,
+        custom_price: normalized.custom_price,
+        description: normalized.description,
+        order_address: normalized.order_address,
+        scheduled_at: normalized.scheduled_at,
+      })
+      .select('id')
+      .single();
 
-  if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
+    if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
+
+    revalidatePath('/orders');
+    redirect(`/orders/${data.id}`);
+  }
+
+  // Ветка 2: быстрое имя — создаём клиента и заказ за одну транзакцию
+  if (!normalized.client_quick_name) {
+    return { formError: 'Укажите клиента', values: raw };
+  }
+
+  const { data, error } = await supabase.rpc('create_order_with_new_client', {
+    p_full_name: normalized.client_quick_name,
+    p_service_id: normalized.service_id,
+    p_custom_service_title: normalized.custom_service_title,
+    p_custom_price: normalized.custom_price,
+    p_description: normalized.description,
+    p_order_address: normalized.order_address,
+    p_scheduled_at: normalized.scheduled_at,
+    p_service_date: null,
+  });
+
+  if (error) {
+    return { formError: `Ошибка создания: ${error.message}`, values: raw };
+  }
+
+  // RPC возвращает массив строк — берём первую
+  const orderId = Array.isArray(data) && data[0]?.order_id
+    ? data[0].order_id
+    : null;
+
+  if (!orderId) {
+    return { formError: 'Не удалось создать заказ', values: raw };
+  }
 
   revalidatePath('/orders');
-  redirect(`/orders/${data.id}`);
+  revalidatePath('/clients');
+  redirect(`/orders/${orderId}`);
 }
-
 export async function updateOrderAction(
   id: string,
   _prevState: OrderFormState,

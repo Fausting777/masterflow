@@ -27,6 +27,7 @@ export interface Client {
   user_id: string;
   full_name: string;
   phone: string | null;
+  email: string | null;           // ← новое
   address: string | null;
   note: string | null;
   created_at: string;
@@ -60,7 +61,9 @@ export interface Order {
   invoice_number: string | null;
   invoice_issued_at: string | null;
   service_date: string | null;
-  deleted_at: string | null;   // ← новое поле
+  invoice_sent_at: string | null;    // ← новое
+  invoice_sent_to: string | null;    // ← новое
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }

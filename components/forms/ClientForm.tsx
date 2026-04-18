@@ -12,6 +12,7 @@ type Props = {
   initial?: {
     full_name?: string | null;
     phone?: string | null;
+    email?: string | null;           // ← новое
     address?: string | null;
     note?: string | null;
   };
@@ -34,6 +35,7 @@ export default function ClientForm({
   const v = state.values ?? {
     full_name: initial?.full_name ?? '',
     phone: initial?.phone ?? '',
+    email: initial?.email ?? '',           // ← новое
     address: initial?.address ?? '',
     note: initial?.note ?? '',
   };
@@ -73,6 +75,25 @@ export default function ClientForm({
           <p className="text-xs text-red-600 mt-1">{state.errors.phone}</p>
         )}
       </div>
+      <div>
+  <label htmlFor="email" className="block text-sm font-medium mb-1">
+    Email
+  </label>
+  <input
+    id="email"
+    name="email"
+    type="email"
+    defaultValue={v.email}
+    placeholder="kunde@example.com"
+    className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  {state.errors?.email && (
+    <p className="text-xs text-red-600 mt-1">{state.errors.email}</p>
+  )}
+  <p className="text-xs text-neutral-500 mt-1">
+    Нужен для отправки счетов
+  </p>
+</div>
 
       <div>
         <label htmlFor="address" className="block text-sm font-medium mb-1">

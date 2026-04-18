@@ -13,12 +13,13 @@ import {
 export type ClientFormState = {
   errors?: ClientValidationErrors;
   formError?: string;
-  values?: {
-    full_name: string;
-    phone: string;
-    address: string;
-    note: string;
-  };
+ values?: {
+  full_name: string;
+  phone: string;
+  email: string;        // ← новое
+  address: string;
+  note: string;
+};
 };
 
 // -----------------------------------------------
@@ -31,6 +32,7 @@ export async function createClientAction(
   const raw = {
     full_name: String(formData.get('full_name') ?? ''),
     phone: String(formData.get('phone') ?? ''),
+    email: String(formData.get('email') ?? ''),
     address: String(formData.get('address') ?? ''),
     note: String(formData.get('note') ?? ''),
   };
@@ -75,6 +77,7 @@ export async function updateClientAction(
   const raw = {
     full_name: String(formData.get('full_name') ?? ''),
     phone: String(formData.get('phone') ?? ''),
+    email: String(formData.get('email') ?? ''),
     address: String(formData.get('address') ?? ''),
     note: String(formData.get('note') ?? ''),
   };

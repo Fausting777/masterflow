@@ -73,6 +73,7 @@ export default async function ClientPage({
 
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 space-y-3 mb-4">
             <InfoRow label="Телефон" value={c.phone} />
+            <InfoRow label="Email" value={c.email} />
             <InfoRow label="Адрес" value={c.address} />
             <InfoRow label="Заметка" value={c.note} multiline />
             <InfoRow

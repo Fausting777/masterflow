@@ -51,40 +51,46 @@ export default async function OrderPage({
 
   // Все связанные данные параллельно
   const [
-    clientRes,
-    serviceRes,
-    logsRes,
-    photosRes,
-    clientsListRes,
-    servicesListRes,
-  ] = await Promise.all([
-    supabase.from('clients').select('*').eq('id', o.client_id).maybeSingle(),
-    o.service_id
-      ? supabase.from('services').select('*').eq('id', o.service_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('order_id', o.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase
-      .from('order_photos')
-      .select('*')
-      .eq('order_id', o.id)
-      .order('created_at', { ascending: true }),
-    isEditing
-      ? supabase.from('clients').select('*').order('full_name')
-      : Promise.resolve({ data: [] }),
-    isEditing
-      ? supabase.from('services').select('*').order('title')
-      : Promise.resolve({ data: [] }),
-  ]);
+  clientRes,
+  serviceRes,
+  logsRes,
+  photosRes,
+  clientsListRes,
+  servicesListRes,
+  profileRes,                                                                 // ← новое
+] = await Promise.all([
+  supabase.from('clients').select('*').eq('id', o.client_id).maybeSingle(),
+  o.service_id
+    ? supabase.from('services').select('*').eq('id', o.service_id).maybeSingle()
+    : Promise.resolve({ data: null }),
+  supabase
+    .from('activity_logs')
+    .select('*')
+    .eq('order_id', o.id)
+    .order('created_at', { ascending: false })
+    .limit(20),
+  supabase
+    .from('order_photos')
+    .select('*')
+    .eq('order_id', o.id)
+    .order('created_at', { ascending: true }),
+  isEditing
+    ? supabase.from('clients').select('*').order('full_name')
+    : Promise.resolve({ data: [] }),
+  isEditing
+    ? supabase.from('services').select('*').order('title')
+    : Promise.resolve({ data: [] }),
+  supabase.from('profiles').select('full_name, company_name').eq('id', o.user_id).maybeSingle(),  // ← новое
+]);
 
   const client = clientRes.data as Client | null;
   const service = serviceRes.data as Service | null;
   const logs = (logsRes.data ?? []) as ActivityLog[];
   const photos = (photosRes.data ?? []) as OrderPhoto[];
+  const masterProfile = profileRes.data as {
+  full_name: string | null;
+  company_name: string | null;
+} | null;
 
   // Получаем signed URLs одним запросом на бакет
   const photoPaths = photos.map((p) => p.file_path);
@@ -185,6 +191,17 @@ export default async function OrderPage({
     value={<span className="font-mono font-semibold">{o.invoice_number}</span>}
   />
 )}
+{o.invoice_sent_at && (
+  <Row
+    label="Счёт отправлен"
+    value={
+      <span className="text-xs">
+        {formatDateTime(o.invoice_sent_at)}
+        {o.invoice_sent_to && <><br />на {o.invoice_sent_to}</>}
+      </span>
+    }
+  />
+)}
             <Row label="Создан" value={formatDateTime(o.created_at)} />
             {o.description && (
               <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
@@ -238,10 +255,20 @@ export default async function OrderPage({
             )}
           </div>
 
-          {/* PDF */}
+          
+{/* PDF */}
 <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-4">
   <h2 className="text-sm font-medium text-neutral-500 mb-3">PDF-счёт</h2>
-  <PdfSection orderId={o.id} hasPdf={!!o.pdf_file_path} />
+  <PdfSection
+    orderId={o.id}
+    hasPdf={!!o.pdf_file_path}
+    invoiceNumber={o.invoice_number}
+    clientEmail={client?.email ?? null}
+    clientName={client?.full_name ?? 'Kunde'}
+    masterName={masterProfile?.full_name ?? masterProfile?.company_name ?? 'Мастер'}
+    invoiceSentAt={o.invoice_sent_at}
+    invoiceSentTo={o.invoice_sent_to}
+  />
 </div>
 
           {/* История */}

@@ -173,6 +173,12 @@ export default async function OrderPage({
             <Row label="Адрес работы" value={o.order_address ?? client?.address ?? '—'} />
             <Row label="Запланирован" value={formatDateTime(o.scheduled_at)} />
             {o.completed_at && <Row label="Завершён" value={formatDateTime(o.completed_at)} />}
+            {o.invoice_number && (
+  <Row
+    label="Номер счёта"
+    value={<span className="font-mono font-semibold">{o.invoice_number}</span>}
+  />
+)}
             <Row label="Создан" value={formatDateTime(o.created_at)} />
             {o.description && (
               <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">

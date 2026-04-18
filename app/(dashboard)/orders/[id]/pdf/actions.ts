@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { generateInvoicePdf, type InvoiceData } from '@/lib/pdf/invoice';
 
-// Скачивает файл из Storage как Uint8Array
 async function downloadFile(
   supabase: Awaited<ReturnType<typeof createClient>>,
   bucket: string,
@@ -12,8 +11,7 @@ async function downloadFile(
 ): Promise<Uint8Array | null> {
   const { data, error } = await supabase.storage.from(bucket).download(path);
   if (error || !data) return null;
-  const arrBuf = await data.arrayBuffer();
-  return new Uint8Array(arrBuf);
+  return new Uint8Array(await data.arrayBuffer());
 }
 
 export async function generatePdfAction(orderId: string): Promise<{
@@ -24,7 +22,6 @@ export async function generatePdfAction(orderId: string): Promise<{
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Не авторизован' };
 
-  // 1. Заказ
   const { data: order } = await supabase
     .from('orders')
     .select('*')
@@ -33,14 +30,26 @@ export async function generatePdfAction(orderId: string): Promise<{
     .maybeSingle();
   if (!order) return { ok: false, error: 'Заказ не найден' };
 
-  // 2. Профиль мастера
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
-  // 3. Клиент
+  // Проверки обязательных полей
+  const missing: string[] = [];
+  if (!profile?.full_name && !profile?.company_name) missing.push('имя или компания');
+  if (!profile?.address) missing.push('адрес');
+  if (!profile?.postal_code) missing.push('PLZ');
+  if (!profile?.city) missing.push('город');
+  if (!profile?.tax_number) missing.push('Steuernummer');
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `Заполните в Настройках: ${missing.join(', ')}`,
+    };
+  }
+
   const { data: client } = await supabase
     .from('clients')
     .select('*')
@@ -48,8 +57,8 @@ export async function generatePdfAction(orderId: string): Promise<{
     .maybeSingle();
   if (!client) return { ok: false, error: 'Клиент не найден' };
 
-  // 4. Услуга (если из каталога)
-  let serviceTitle = order.custom_service_title ?? 'Услуга';
+  // Услуга и цена
+  let serviceTitle = order.custom_service_title ?? 'Leistung';
   let servicePrice = order.custom_price;
   if (order.service_id) {
     const { data: service } = await supabase
@@ -63,7 +72,45 @@ export async function generatePdfAction(orderId: string): Promise<{
     }
   }
 
-  // 5. Фото
+  if (servicePrice === null) {
+    return { ok: false, error: 'Не указана цена заказа' };
+  }
+
+  // ====== ВЫДАЧА НОМЕРА СЧЁТА ======
+  // Если номер уже есть — используем его (GoBD: номер неизменен).
+  // Если нет — получаем новый через атомарную функцию.
+  let invoiceNumber = order.invoice_number as string | null;
+  let invoiceIssuedAt = order.invoice_issued_at as string | null;
+
+  if (!invoiceNumber) {
+    const year = new Date().getFullYear();
+    const { data: numberData, error: numberError } = await supabase.rpc(
+      'next_invoice_number',
+      { p_user_id: user.id, p_year: year }
+    );
+
+    if (numberError || numberData === null) {
+      return { ok: false, error: `Не удалось получить номер: ${numberError?.message ?? 'error'}` };
+    }
+
+    invoiceNumber = `${year}-${String(numberData).padStart(4, '0')}`;
+    invoiceIssuedAt = new Date().toISOString();
+
+    // Записываем на заказ
+    await supabase
+      .from('orders')
+      .update({
+        invoice_number: invoiceNumber,
+        invoice_issued_at: invoiceIssuedAt,
+      })
+      .eq('id', orderId)
+      .eq('user_id', user.id);
+  }
+
+  // Leistungsdatum: если задан service_date — его, иначе completed_at, иначе created_at
+  const serviceDate = order.service_date ?? order.completed_at ?? order.created_at;
+
+  // Фото
   const { data: photos } = await supabase
     .from('order_photos')
     .select('*')
@@ -79,19 +126,26 @@ export async function generatePdfAction(orderId: string): Promise<{
     else afterPhotos.push(bytes);
   }
 
-  // 6. Подпись
+  // Подпись
   let signature: Uint8Array | null = null;
   if (order.signature_file_path) {
     signature = await downloadFile(supabase, 'order-signatures', order.signature_file_path);
   }
 
-  // 7. Собираем данные
   const invoiceData: InvoiceData = {
     master: {
-      full_name: profile?.full_name ?? null,
-      phone: profile?.phone ?? null,
-      company_name: profile?.company_name ?? null,
-      email: profile?.email ?? user.email ?? null,
+      full_name: profile.full_name,
+      phone: profile.phone,
+      email: profile.email ?? user.email ?? null,
+      company_name: profile.company_name,
+      address: profile.address,
+      postal_code: profile.postal_code,
+      city: profile.city,
+      tax_number: profile.tax_number,
+      vat_id: profile.vat_id,
+      is_kleinunternehmer: profile.is_kleinunternehmer ?? true,
+      iban: profile.iban,
+      bank_name: profile.bank_name,
     },
     client: {
       full_name: client.full_name,
@@ -100,19 +154,19 @@ export async function generatePdfAction(orderId: string): Promise<{
     },
     order: {
       id: order.id,
+      invoice_number: invoiceNumber,
+      invoice_date: invoiceIssuedAt!,
+      service_date: serviceDate,
       service_title: serviceTitle,
       price: servicePrice,
       description: order.description,
       order_address: order.order_address,
-      created_at: order.created_at,
-      completed_at: order.completed_at,
     },
     signature,
     photosBefore: beforePhotos,
     photosAfter: afterPhotos,
   };
 
-  // 8. Генерируем PDF
   let pdfBytes: Uint8Array;
   try {
     pdfBytes = await generateInvoicePdf(invoiceData);
@@ -123,9 +177,7 @@ export async function generatePdfAction(orderId: string): Promise<{
     };
   }
 
-  // 9. Сохраняем в Storage (перезаписываем, если уже был)
   const filePath = `${user.id}/${orderId}/invoice.pdf`;
-  // Создаём Blob для uploader'а
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
 
@@ -137,11 +189,8 @@ export async function generatePdfAction(orderId: string): Promise<{
       upsert: true,
     });
 
-  if (uploadError) {
-    return { ok: false, error: `Ошибка загрузки: ${uploadError.message}` };
-  }
+  if (uploadError) return { ok: false, error: uploadError.message };
 
-  // 10. Обновляем orders.pdf_file_path
   await supabase
     .from('orders')
     .update({ pdf_file_path: filePath })
@@ -152,7 +201,6 @@ export async function generatePdfAction(orderId: string): Promise<{
   return { ok: true };
 }
 
-// Получение signed URL для просмотра/скачивания
 export async function getPdfSignedUrlAction(orderId: string): Promise<{
   url: string | null;
   error?: string;
@@ -172,7 +220,7 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
 
   const { data, error } = await supabase.storage
     .from('order-pdfs')
-    .createSignedUrl(order.pdf_file_path, 300); // 5 минут хватит
+    .createSignedUrl(order.pdf_file_path, 300);
 
   if (error || !data) return { url: null, error: error?.message ?? 'Ошибка' };
   return { url: data.signedUrl };

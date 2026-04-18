@@ -10,6 +10,14 @@ export interface Profile {
   full_name: string | null;
   phone: string | null;
   company_name: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  tax_number: string | null;
+  vat_id: string | null;
+  is_kleinunternehmer: boolean;
+  iban: string | null;
+  bank_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -49,6 +57,9 @@ export interface Order {
   completed_at: string | null;
   signature_file_path: string | null;
   pdf_file_path: string | null;
+  invoice_number: string | null;
+  invoice_issued_at: string | null;
+  service_date: string | null;
   created_at: string;
   updated_at: string;
 }

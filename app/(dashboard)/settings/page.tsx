@@ -24,6 +24,14 @@ export default async function SettingsPage() {
             full_name: profile?.full_name ?? null,
             phone: profile?.phone ?? null,
             company_name: profile?.company_name ?? null,
+            address: profile?.address ?? null,
+            postal_code: profile?.postal_code ?? null,
+            city: profile?.city ?? null,
+            tax_number: profile?.tax_number ?? null,
+            vat_id: profile?.vat_id ?? null,
+            is_kleinunternehmer: profile?.is_kleinunternehmer ?? true,
+            iban: profile?.iban ?? null,
+            bank_name: profile?.bank_name ?? null,
           }}
         />
       </div>

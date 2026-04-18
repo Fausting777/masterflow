@@ -18,6 +18,8 @@ export type ClientFormState = {
   phone: string;
   email: string;        // ← новое
   address: string;
+  postal_code: string;    // ← новое
+  city: string;           // ← новое
   note: string;
 };
 };
@@ -34,6 +36,8 @@ export async function createClientAction(
     phone: String(formData.get('phone') ?? ''),
     email: String(formData.get('email') ?? ''),
     address: String(formData.get('address') ?? ''),
+    postal_code: String(formData.get('postal_code') ?? ''),   // ← новое
+  city: String(formData.get('city') ?? ''),                  // ← новое
     note: String(formData.get('note') ?? ''),
   };
 
@@ -79,6 +83,8 @@ export async function updateClientAction(
     phone: String(formData.get('phone') ?? ''),
     email: String(formData.get('email') ?? ''),
     address: String(formData.get('address') ?? ''),
+    postal_code: String(formData.get('postal_code') ?? ''),   // ← новое
+  city: String(formData.get('city') ?? ''),                  // ← новое
     note: String(formData.get('note') ?? ''),
   };
 

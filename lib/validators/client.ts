@@ -5,6 +5,8 @@ export type ClientInput = {
   phone: string;
   email: string;
   address: string;
+  postal_code: string;
+  city: string;
   note: string;
 };
 
@@ -38,6 +40,15 @@ export function validateClient(data: ClientInput): ClientValidationErrors {
     errors.address = 'Адрес слишком длинный';
   }
 
+  // Немецкий PLZ — ровно 5 цифр, но поле опциональное
+  if (data.postal_code.trim().length > 0 && !/^\d{5}$/.test(data.postal_code.trim())) {
+    errors.postal_code = 'PLZ должен быть 5 цифр';
+  }
+
+  if (data.city.length > 200) {
+    errors.city = 'Название города слишком длинное';
+  }
+
   if (data.note.length > 2000) {
     errors.note = 'Заметка слишком длинная';
   }
@@ -56,6 +67,8 @@ export function normalizeClientInput(data: ClientInput) {
     phone: clean(data.phone),
     email: clean(data.email)?.toLowerCase() ?? null,
     address: clean(data.address),
+    postal_code: clean(data.postal_code),
+    city: clean(data.city),
     note: clean(data.note),
   };
 }

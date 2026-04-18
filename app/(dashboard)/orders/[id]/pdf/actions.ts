@@ -148,10 +148,15 @@ export async function generatePdfAction(orderId: string): Promise<{
       bank_name: profile.bank_name,
     },
     client: {
-      full_name: client.full_name,
-      phone: client.phone,
-      address: client.address,
-    },
+  full_name: client.full_name,
+  phone: client.phone,
+  address: [
+    client.address,
+    [client.postal_code, client.city].filter(Boolean).join(' '),
+  ]
+    .filter(Boolean)
+    .join(', '),
+},
     order: {
       id: order.id,
       invoice_number: invoiceNumber,

@@ -1,8 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useCallback, useState } from 'react';
 import Link from 'next/link';
 import type { ClientFormState } from '@/app/(dashboard)/clients/actions';
+import MrzScanner from '@/components/clients/MrzScanner';
+import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
 
 type Props = {
   action: (
@@ -12,8 +14,10 @@ type Props = {
   initial?: {
     full_name?: string | null;
     phone?: string | null;
-    email?: string | null;           // ← новое
+    email?: string | null;
     address?: string | null;
+    postal_code?: string | null;
+    city?: string | null;
     note?: string | null;
   };
   cancelHref: string;
@@ -31,17 +35,41 @@ export default function ClientForm({
     {}
   );
 
-  // При ошибке валидации используем отправленные значения, иначе — initial из БД
   const v = state.values ?? {
     full_name: initial?.full_name ?? '',
     phone: initial?.phone ?? '',
-    email: initial?.email ?? '',           // ← новое
+    email: initial?.email ?? '',
     address: initial?.address ?? '',
+    postal_code: initial?.postal_code ?? '',
+    city: initial?.city ?? '',
     note: initial?.note ?? '',
   };
 
+  // Контролируемые значения — меняются при сканировании и автогороде
+  const [fullName, setFullName] = useState(v.full_name);
+  const [postalCode, setPostalCode] = useState(v.postal_code);
+  const [city, setCity] = useState(v.city);
+
+  // Обрабатываем результат сканирования
+  const handleScanResult = useCallback(({ fullName }: { fullName: string }) => {
+    setFullName(fullName);
+  }, []);
+
+  // Обрабатываем автоопределение города
+  const handleCityDetected = useCallback((detectedCity: string) => {
+    // Не перезатираем, если пользователь уже что-то ввёл отличное
+    setCity((prev) => (prev.trim().length === 0 ? detectedCity : prev));
+  }, []);
+
+  const inputCls =
+    'w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+
   return (
     <form action={formAction} className="space-y-4">
+      {/* Сканер MRZ */}
+      <MrzScanner onResult={handleScanResult} />
+
+      {/* Имя */}
       <div>
         <label htmlFor="full_name" className="block text-sm font-medium mb-1">
           Имя клиента <span className="text-red-500">*</span>
@@ -51,14 +79,16 @@ export default function ClientForm({
           name="full_name"
           type="text"
           required
-          defaultValue={v.full_name}
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          className={inputCls}
         />
         {state.errors?.full_name && (
           <p className="text-xs text-red-600 mt-1">{state.errors.full_name}</p>
         )}
       </div>
 
+      {/* Телефон */}
       <div>
         <label htmlFor="phone" className="block text-sm font-medium mb-1">
           Телефон
@@ -69,48 +99,97 @@ export default function ClientForm({
           type="tel"
           defaultValue={v.phone}
           placeholder="+49 ..."
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputCls}
         />
         {state.errors?.phone && (
           <p className="text-xs text-red-600 mt-1">{state.errors.phone}</p>
         )}
       </div>
-      <div>
-  <label htmlFor="email" className="block text-sm font-medium mb-1">
-    Email
-  </label>
-  <input
-    id="email"
-    name="email"
-    type="email"
-    defaultValue={v.email}
-    placeholder="kunde@example.com"
-    className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-  />
-  {state.errors?.email && (
-    <p className="text-xs text-red-600 mt-1">{state.errors.email}</p>
-  )}
-  <p className="text-xs text-neutral-500 mt-1">
-    Нужен для отправки счетов
-  </p>
-</div>
 
+      {/* Email */}
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium mb-1">
+          Email
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          defaultValue={v.email}
+          placeholder="kunde@example.com"
+          className={inputCls}
+        />
+        {state.errors?.email && (
+          <p className="text-xs text-red-600 mt-1">{state.errors.email}</p>
+        )}
+        <p className="text-xs text-neutral-500 mt-1">Нужен для отправки счетов</p>
+      </div>
+
+      {/* Адрес — улица + дом */}
       <div>
         <label htmlFor="address" className="block text-sm font-medium mb-1">
-          Адрес
+          Улица и дом
         </label>
         <input
           id="address"
           name="address"
           type="text"
           defaultValue={v.address}
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Musterstraße 15"
+          className={inputCls}
         />
         {state.errors?.address && (
           <p className="text-xs text-red-600 mt-1">{state.errors.address}</p>
         )}
       </div>
 
+      {/* PLZ + город */}
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label htmlFor="postal_code" className="block text-sm font-medium mb-1">
+            PLZ
+          </label>
+          <input
+            id="postal_code"
+            name="postal_code"
+            type="text"
+            inputMode="numeric"
+            maxLength={5}
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="20095"
+            className={inputCls}
+          />
+          {state.errors?.postal_code && (
+            <p className="text-xs text-red-600 mt-1">{state.errors.postal_code}</p>
+          )}
+        </div>
+        <div className="col-span-2">
+          <label htmlFor="city" className="block text-sm font-medium mb-1">
+            Город
+          </label>
+          <input
+            id="city"
+            name="city"
+            type="text"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="Hamburg"
+            className={inputCls}
+          />
+          {state.errors?.city && (
+            <p className="text-xs text-red-600 mt-1">{state.errors.city}</p>
+          )}
+          <p className="text-xs text-neutral-500 mt-1">
+            Подставится автоматически по PLZ
+          </p>
+        </div>
+      </div>
+
+      {/* Автоопределение города */}
+      <PostalCodeLookup postalCode={postalCode} onCityDetected={handleCityDetected} />
+
+      {/* Заметка */}
       <div>
         <label htmlFor="note" className="block text-sm font-medium mb-1">
           Заметка
@@ -120,7 +199,7 @@ export default function ClientForm({
           name="note"
           rows={3}
           defaultValue={v.note}
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          className={`${inputCls} resize-y`}
         />
         {state.errors?.note && (
           <p className="text-xs text-red-600 mt-1">{state.errors.note}</p>

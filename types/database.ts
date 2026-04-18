@@ -29,6 +29,8 @@ export interface Client {
   phone: string | null;
   email: string | null;           // ← новое
   address: string | null;
+  postal_code: string | null;    // ← новое
+  city: string | null;           // ← новое
   note: string | null;
   created_at: string;
   updated_at: string;

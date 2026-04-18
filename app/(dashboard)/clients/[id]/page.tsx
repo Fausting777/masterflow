@@ -75,6 +75,14 @@ export default async function ClientPage({
             <InfoRow label="Телефон" value={c.phone} />
             <InfoRow label="Email" value={c.email} />
             <InfoRow label="Адрес" value={c.address} />
+            <InfoRow
+  label="Город"
+  value={
+    c.postal_code && c.city
+      ? `${c.postal_code} ${c.city}`
+      : c.city ?? c.postal_code ?? null
+  }
+/>
             <InfoRow label="Заметка" value={c.note} multiline />
             <InfoRow
               label="Создан"

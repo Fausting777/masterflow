@@ -1,3 +1,5 @@
+import { getRange } from '@/lib/utils/date-range';
+import { getRevenueStats } from '@/lib/stats/calculate';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -27,12 +29,47 @@ export default async function DashboardPage() {
   ]);
 
   const recent = (recentOrdersRes.data ?? []) as OrderWithClient[];
-
+// Статистика за текущий месяц
+const monthRange = getRange('month');
+const monthStats = await getRevenueStats(
+  supabase,
+  user!.id,
+  monthRange.from,
+  monthRange.to
+);
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-1">Рабочий стол</h1>
       <p className="text-sm text-neutral-500 mb-6">{user!.email}</p>
-
+{/* Финансы за месяц */}
+<div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-4">
+  <div className="flex items-center justify-between mb-3">
+    <div>
+      <div className="text-xs text-neutral-500 uppercase tracking-wide">
+        Выручка за {monthRange.label}
+      </div>
+      <div className="text-3xl font-bold mt-1">
+        {formatPrice(monthStats.total)}
+      </div>
+    </div>
+    <Link
+      href="/stats"
+      className="text-sm text-blue-700 hover:text-blue-900 font-medium whitespace-nowrap"
+    >
+      Подробнее →
+    </Link>
+  </div>
+  <div className="flex gap-4 text-xs text-neutral-600 pt-3 border-t border-blue-200">
+    <div>
+      <span className="text-neutral-500">Счетов: </span>
+      <span className="font-semibold">{monthStats.invoicesCount}</span>
+    </div>
+    <div>
+      <span className="text-neutral-500">Средний чек: </span>
+      <span className="font-semibold">{formatPrice(monthStats.avgCheck)}</span>
+    </div>
+  </div>
+</div>
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mb-6">
         <StatCard href="/orders" label="Активные заказы" value={ordersActiveCountRes.count ?? 0} accent />
         <StatCard href="/clients" label="Клиенты" value={clientsCountRes.count ?? 0} />

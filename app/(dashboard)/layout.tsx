@@ -39,6 +39,9 @@ export default async function DashboardLayout({
             <Link href="/services" className="text-neutral-700 hover:text-blue-600">
               Услуги
             </Link>
+            <Link href="/stats" className="text-neutral-700 hover:text-blue-600">
+  Статистика
+</Link>
             <Link href="/settings" className="text-neutral-700 hover:text-blue-600">
   Настройки
 </Link>

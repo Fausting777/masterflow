@@ -22,6 +22,7 @@ export type OrderFormState = {
     description: string;
     order_address: string;
     scheduled_at: string;
+    service_date: string;     // ← новое
   };
 };
 
@@ -35,6 +36,7 @@ function readFormData(formData: FormData): OrderFormState['values'] & object {
     description: String(formData.get('description') ?? ''),
     order_address: String(formData.get('order_address') ?? ''),
     scheduled_at: String(formData.get('scheduled_at') ?? ''),
+    service_date: String(formData.get('service_date') ?? ''),   // ← новое
   };
 }
 
@@ -67,6 +69,7 @@ export async function createOrderAction(
         description: normalized.description,
         order_address: normalized.order_address,
         scheduled_at: normalized.scheduled_at,
+        service_date: normalized.service_date,     // ← новое
       })
       .select('id')
       .single();
@@ -90,7 +93,7 @@ export async function createOrderAction(
     p_description: normalized.description,
     p_order_address: normalized.order_address,
     p_scheduled_at: normalized.scheduled_at,
-    p_service_date: null,
+   p_service_date: normalized.service_date,   // ← было null, стало из формы
   });
 
   if (error) {
@@ -147,9 +150,25 @@ export async function changeOrderStatusAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Не авторизован');
 
+  // При переводе в "completed" — если service_date ещё пусто, ставим сегодня
+  const updates: Record<string, unknown> = { status };
+
+  if (status === 'completed') {
+    const { data: current } = await supabase
+      .from('orders')
+      .select('service_date')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (current && !current.service_date) {
+      updates.service_date = new Date().toISOString();
+    }
+  }
+
   const { error } = await supabase
     .from('orders')
-    .update({ status })
+    .update(updates)
     .eq('id', id)
     .eq('user_id', user.id);
 

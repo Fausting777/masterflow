@@ -17,6 +17,7 @@ type Props = {
     description?: string | null;
     order_address?: string | null;
     scheduled_at?: string | null;
+    service_date?: string | null;    // ← новое
   };
   cancelHref: string;
   submitLabel: string;
@@ -53,6 +54,7 @@ export default function OrderForm({
     description: initial?.description ?? '',
     order_address: initial?.order_address ?? '',
     scheduled_at: toDateTimeLocal(initial?.scheduled_at),
+    service_date: toDateTimeLocal(initial?.service_date),    // ← новое
   };
 
   // Режим услуги: из каталога или кастомная
@@ -222,6 +224,24 @@ export default function OrderForm({
           className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
+      <div>
+  <label htmlFor="service_date" className="block text-sm font-medium mb-1">
+    Дата выполнения работы
+  </label>
+  <input
+    id="service_date"
+    name="service_date"
+    type="datetime-local"
+    defaultValue={v.service_date}
+    className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  {state.errors?.service_date && (
+    <p className="text-xs text-red-600 mt-1">{state.errors.service_date}</p>
+  )}
+  <p className="text-xs text-neutral-500 mt-1">
+    Leistungsdatum для счёта. Проставится автоматически при переводе заказа в «Завершён».
+  </p>
+</div>
 
       <div>
         <label htmlFor="description" className="block text-sm font-medium mb-1">

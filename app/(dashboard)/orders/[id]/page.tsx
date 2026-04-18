@@ -184,6 +184,14 @@ export default async function OrderPage({
             <Row label="Цена" value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
             <Row label="Адрес работы" value={o.order_address ?? client?.address ?? '—'} />
             <Row label="Запланирован" value={formatDateTime(o.scheduled_at)} />
+            <Row
+  label="Дата выполнения"
+  value={
+    o.service_date
+      ? formatDateTime(o.service_date)
+      : <span className="text-neutral-400 italic">не указана</span>
+  }
+/>
             {o.completed_at && <Row label="Завершён" value={formatDateTime(o.completed_at)} />}
             {o.invoice_number && (
   <Row

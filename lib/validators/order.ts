@@ -2,14 +2,15 @@
 import { parsePriceInput } from '@/lib/utils/format';
 
 export type OrderInput = {
-  client_id: string;                // '' если быстрое имя
-  client_quick_name: string;        // имя для быстрого ввода
-  service_id: string;               // '' если кастомная услуга
+  client_id: string;
+  client_quick_name: string;
+  service_id: string;
   custom_service_title: string;
   custom_price: string;
   description: string;
   order_address: string;
   scheduled_at: string;
+  service_date: string;          // ← новое
 };
 
 export type OrderValidationErrors = Partial<Record<keyof OrderInput, string>>;
@@ -51,6 +52,10 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
     errors.scheduled_at = 'Некорректная дата';
   }
 
+  if (data.service_date && Number.isNaN(Date.parse(data.service_date))) {
+    errors.service_date = 'Некорректная дата';
+  }
+
   return errors;
 }
 
@@ -71,5 +76,6 @@ export function normalizeOrderInput(data: OrderInput) {
     description: clean(data.description),
     order_address: clean(data.order_address),
     scheduled_at: data.scheduled_at ? new Date(data.scheduled_at).toISOString() : null,
+    service_date: data.service_date ? new Date(data.service_date).toISOString() : null,
   };
 }

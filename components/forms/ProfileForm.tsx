@@ -108,20 +108,23 @@ export default function ProfileForm({ initial }: Props) {
           Налоговые данные
         </h3>
 
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            name="is_kleinunternehmer"
-            defaultChecked={v.is_kleinunternehmer}
-            className="mt-0.5 w-4 h-4 accent-blue-600"
-          />
-          <div>
-            <div className="text-sm font-medium">Kleinunternehmer (§19 UStG)</div>
-            <div className="text-xs text-neutral-500">
-              НДС не выставляется. В счетах автоматически добавится соответствующая пометка.
-            </div>
-          </div>
-        </label>
+       <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50 transition">
+  <input
+    type="checkbox"
+    name="is_kleinunternehmer"
+    defaultChecked={v.is_kleinunternehmer}
+    className="mt-0.5 w-5 h-5 flex-shrink-0 accent-blue-600 cursor-pointer"
+    style={{
+      accentColor: '#2563eb',
+    }}
+  />
+  <div className="flex-1">
+    <div className="text-sm font-medium">Kleinunternehmer (§19 UStG)</div>
+    <div className="text-xs text-neutral-500 mt-0.5">
+      НДС не выставляется. В счетах автоматически добавится соответствующая пометка.
+    </div>
+  </div>
+</label>
 
         <div>
           <label htmlFor="tax_number" className="block text-sm font-medium mb-1">

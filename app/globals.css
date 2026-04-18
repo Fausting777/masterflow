@@ -22,7 +22,10 @@ body {
 }
 
 /* Инпуты — принудительно светлые */
-input, textarea, select {
+/* Инпуты — принудительно светлые (кроме чекбоксов и радио) */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
   background-color: #ffffff;
   color: #171717;
   -webkit-appearance: none;

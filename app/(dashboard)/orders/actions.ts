@@ -129,11 +129,16 @@ export async function updateOrderAction(
 
   const normalized = normalizeOrderInput(raw);
 
-  const { error } = await supabase
-    .from('orders')
-    .update(normalized)
-    .eq('id', id)
-    .eq('user_id', user.id);
+// Убираем поле, которого нет в таблице orders
+// (client_quick_name используется только при создании)
+const { client_quick_name, ...updateData } = normalized;
+void client_quick_name; // явно помечаем что не используем — TypeScript не будет ругаться
+
+const { error } = await supabase
+  .from('orders')
+  .update(updateData)
+  .eq('id', id)
+  .eq('user_id', user.id);
 
   if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
 

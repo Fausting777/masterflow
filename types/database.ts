@@ -19,6 +19,7 @@ export interface Profile {
   is_kleinunternehmer: boolean;
   iban: string | null;
   bank_name: string | null;
+  business_email: string | null;      // ← новое
   created_at: string;
   updated_at: string;
 }

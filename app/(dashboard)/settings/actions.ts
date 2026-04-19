@@ -34,6 +34,7 @@ export async function updateProfileAction(
     city: String(formData.get('city') ?? '').trim(),
     tax_number: String(formData.get('tax_number') ?? '').trim(),
     vat_id: String(formData.get('vat_id') ?? '').trim(),
+    business_email: String(formData.get('business_email') ?? ''),
     is_kleinunternehmer: formData.get('is_kleinunternehmer') === 'on',
     iban: String(formData.get('iban') ?? '').trim().replace(/\s+/g, ' '),
     bank_name: String(formData.get('bank_name') ?? '').trim(),
@@ -57,11 +58,13 @@ export async function updateProfileAction(
       is_kleinunternehmer: raw.is_kleinunternehmer,
       iban: raw.iban || null,
       bank_name: raw.bank_name || null,
+      business_email: raw.business_email?.trim() || null,
     })
     .eq('id', user.id);
 
   if (error) return { formError: error.message, values: raw };
 
+  
   revalidatePath('/settings');
   return { success: true, values: raw };
 }

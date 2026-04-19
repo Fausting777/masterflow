@@ -43,10 +43,10 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
 
   // Профиль мастера для from-имени
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, company_name')
-    .eq('id', user.id)
-    .maybeSingle();
+  .from('profiles')
+  .select('full_name, company_name, business_email')
+  .eq('id', user.id)
+  .maybeSingle();
 
   // Скачиваем PDF
   const { data: pdfBlob, error: dlError } = await supabase.storage
@@ -76,7 +76,7 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
       to,
       subject,
       text: body,
-      replyTo: user.email ?? undefined,
+      replyTo: profile?.business_email ?? user.email ?? undefined,
       attachments: [
         {
           filename,

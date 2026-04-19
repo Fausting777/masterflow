@@ -136,7 +136,7 @@ export async function generatePdfAction(orderId: string): Promise<{
     master: {
       full_name: profile.full_name,
       phone: profile.phone,
-      email: profile.email ?? user.email ?? null,
+      email: profile.business_email ?? profile.email ?? user.email ?? null,
       company_name: profile.company_name,
       address: profile.address,
       postal_code: profile.postal_code,

@@ -72,6 +72,7 @@ export default function ProfileForm({ initial }: Props) {
             placeholder="Petrov Handwerk" className={inputCls} />
         </div>
       </section>
+      
 
       {/* Адрес */}
       <section className="space-y-4">
@@ -81,6 +82,26 @@ export default function ProfileForm({ initial }: Props) {
             (обязательно для счетов)
           </span>
         </h3>
+        <div>
+  <label htmlFor="business_email" className="block text-sm font-medium mb-1">
+    Корпоративная почта
+  </label>
+  <input
+    id="business_email"
+    name="business_email"
+    type="email"
+    defaultValue={v.business_email ?? ''}
+    placeholder="info@ihre-firma.de"
+    className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  <p className="text-xs text-neutral-500 mt-1">
+    Этот email будет отображаться на PDF-счетах и использоваться как адрес для ответов клиентов.
+    Если не указан — используется email входа.
+  </p>
+  {state.errors?.business_email && (
+    <p className="text-xs text-red-600 mt-1">{state.errors.business_email}</p>
+  )}
+</div>
 
         <div>
           <label htmlFor="address" className="block text-sm font-medium mb-1">Улица и дом</label>

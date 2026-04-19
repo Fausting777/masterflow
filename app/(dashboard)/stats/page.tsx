@@ -33,14 +33,13 @@ type SearchParams = Promise<{
   period?: string;
   from?: string;
   to?: string;
-  m?: string; // specific month "2026-04"
+  m?: string;
 }>;
 
 export default async function StatsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const activePeriod = (sp.period ?? 'month') as PeriodKey;
 
-  // Формируем текущий диапазон
   const rangeOptions: { from?: Date; to?: Date; specificMonth?: string } = {};
   if (activePeriod === 'custom' && sp.from && sp.to) {
     rangeOptions.from = new Date(sp.from + 'T00:00:00');
@@ -56,58 +55,61 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Параллельные запросы для текущего и предыдущего периода
   const months12 = getLastMonths(12);
   const monthOptions = getMonthOptions(2024);
 
   const fromDate = toDateOnly(range.from);
-const toDate = toDateOnly(range.to);
-const prevFromDate = previousRange ? toDateOnly(previousRange.from) : fromDate;
-const prevToDate = previousRange ? toDateOnly(previousRange.to) : toDate;
+  const toDate = toDateOnly(range.to);
+  const prevFromDate = previousRange ? toDateOnly(previousRange.from) : fromDate;
+  const prevToDate = previousRange ? toDateOnly(previousRange.to) : toDate;
 
-const [
-  revenue,
-  statuses,
-  monthly,
-  topClients,
-  topServices,
-  ordersNoInvoice,
-  revenuePrev,
-  ordersNoInvoicePrev,
-  expenses,
-  expensesPrev,
-  monthlyExpenses,
-] = await Promise.all([
-  getRevenueStats(supabase, user!.id, range.from, range.to),
-  getStatusBreakdown(supabase, user!.id, range.from, range.to),
-  getMonthlyRevenue(
-    supabase,
-    user!.id,
-    months12.map(m => ({ from: m.from, to: m.to }))
-  ),
-  getTopClients(supabase, user!.id, range.from, range.to),
-  getTopServices(supabase, user!.id, range.from, range.to),
-  getOrdersWithoutInvoice(supabase, user!.id, range.from, range.to),
-  previousRange
-    ? getRevenueStats(supabase, user!.id, previousRange.from, previousRange.to)
-    : Promise.resolve({ total: 0, invoicesCount: 0, avgCheck: 0 }),
-  previousRange
-    ? getOrdersWithoutInvoice(supabase, user!.id, previousRange.from, previousRange.to)
-    : Promise.resolve([]),
-  getExpensesSummary(supabase, user!.id, fromDate, toDate),
-  previousRange
-    ? getExpensesSummary(supabase, user!.id, prevFromDate, prevToDate)
-    : Promise.resolve({ total: 0, taxDeductible: 0, count: 0, byCategory: {} as Record<ExpenseCategory, number> }),
-  getMonthlyExpenses(
-    supabase,
-    user!.id,
-    months12.map(m => ({ from: m.from, to: m.to }))
-  ),
-]);
+  const [
+    revenue,
+    statuses,
+    monthly,
+    topClients,
+    topServices,
+    ordersNoInvoice,
+    revenuePrev,
+    ordersNoInvoicePrev,
+    expenses,
+    expensesPrev,
+    monthlyExpenses,
+  ] = await Promise.all([
+    getRevenueStats(supabase, user!.id, range.from, range.to),
+    getStatusBreakdown(supabase, user!.id, range.from, range.to),
+    getMonthlyRevenue(
+      supabase,
+      user!.id,
+      months12.map(m => ({ from: m.from, to: m.to }))
+    ),
+    getTopClients(supabase, user!.id, range.from, range.to),
+    getTopServices(supabase, user!.id, range.from, range.to),
+    getOrdersWithoutInvoice(supabase, user!.id, range.from, range.to),
+    previousRange
+      ? getRevenueStats(supabase, user!.id, previousRange.from, previousRange.to)
+      : Promise.resolve({ total: 0, invoicesCount: 0, avgCheck: 0 }),
+    previousRange
+      ? getOrdersWithoutInvoice(supabase, user!.id, previousRange.from, previousRange.to)
+      : Promise.resolve([]),
+    getExpensesSummary(supabase, user!.id, fromDate, toDate),
+    previousRange
+      ? getExpensesSummary(supabase, user!.id, prevFromDate, prevToDate)
+      : Promise.resolve({
+          total: 0,
+          taxDeductible: 0,
+          count: 0,
+          byCategory: {} as Record<ExpenseCategory, number>,
+        }),
+    getMonthlyExpenses(
+      supabase,
+      user!.id,
+      months12.map(m => ({ from: m.from, to: m.to }))
+    ),
+  ]);
 
-// Прибыль
-const profit = revenue.total - expenses.total;
-const profitPrev = revenuePrev.total - expensesPrev.total;
+  const profit = revenue.total - expenses.total;
+  const profitPrev = revenuePrev.total - expensesPrev.total;
 
   const statusOrder: OrderStatus[] = ['new', 'in_progress', 'completed', 'canceled'];
   const totalOrders = Object.values(statuses).reduce((a, b) => a + b, 0);
@@ -123,7 +125,6 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
       <h1 className="text-2xl font-semibold mb-1">Статистика</h1>
       <p className="text-sm text-neutral-500 mb-4">{range.label}</p>
 
-      {/* Выбор периода */}
       <PeriodPicker
         currentPeriod={activePeriod}
         currentFrom={sp.from ?? null}
@@ -132,7 +133,7 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
         monthOptions={monthOptions}
       />
 
-      {/* Главные цифры с индикатором изменения */}
+      {/* Главные цифры */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
           <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Выручка</div>
@@ -170,65 +171,19 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
           )}
         </div>
 
-        <div className={`border rounded-xl p-5 ${
-          ordersNoInvoice.length > 0
-            ? 'bg-amber-50 border-amber-200'
-            : 'bg-white border-neutral-200'
-        }`}>
+        <div
+          className={`border rounded-xl p-5 ${
+            ordersNoInvoice.length > 0
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-white border-neutral-200'
+          }`}
+        >
           <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Без счёта</div>
-          {/* Финансовая сводка */}
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
-    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💰 Доход</div>
-    <div className="text-2xl font-bold text-green-700">{formatPrice(revenue.total)}</div>
-    {previousRange && (
-      <ChangeIndicator
-        current={revenue.total}
-        previous={revenuePrev.total}
-        label="vs. прошлый"
-      />
-    )}
-  </div>
-
-  <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-xl p-5">
-    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💸 Расходы</div>
-    <div className="text-2xl font-bold text-rose-700">{formatPrice(expenses.total)}</div>
-    <div className="text-xs text-neutral-500 mt-1">
-      Из них к вычету: <span className="font-semibold">{formatPrice(expenses.taxDeductible)}</span>
-    </div>
-    {previousRange && (
-      <ChangeIndicator
-        current={expenses.total}
-        previous={expensesPrev.total}
-        higherIsBetter={false}
-        label="vs. прошлый"
-      />
-    )}
-  </div>
-
-  <div className={`border rounded-xl p-5 ${
-    profit >= 0
-      ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
-      : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200'
-  }`}>
-    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">
-      {profit >= 0 ? '📈 Прибыль' : '📉 Убыток'}
-    </div>
-    <div className={`text-2xl font-bold ${profit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-      {formatPrice(Math.abs(profit))}
-    </div>
-    {previousRange && (
-      <ChangeIndicator
-        current={profit}
-        previous={profitPrev}
-        label="vs. прошлый"
-      />
-    )}
-  </div>
-</div>
-          <div className={`text-2xl font-bold ${
-            ordersNoInvoice.length > 0 ? 'text-amber-700' : ''
-          }`}>
+          <div
+            className={`text-2xl font-bold ${
+              ordersNoInvoice.length > 0 ? 'text-amber-700' : ''
+            }`}
+          >
             {ordersNoInvoice.length}
           </div>
           {previousRange && (
@@ -242,12 +197,71 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
         </div>
       </div>
 
+      {/* Финансовая сводка — Доход / Расход / Прибыль */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💰 Доход</div>
+          <div className="text-2xl font-bold text-green-700">{formatPrice(revenue.total)}</div>
+          {previousRange && (
+            <ChangeIndicator
+              current={revenue.total}
+              previous={revenuePrev.total}
+              label="vs. прошлый"
+            />
+          )}
+        </div>
+
+        <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-xl p-5">
+          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💸 Расходы</div>
+          <div className="text-2xl font-bold text-rose-700">{formatPrice(expenses.total)}</div>
+          <div className="text-xs text-neutral-500 mt-1">
+            Из них к вычету:{' '}
+            <span className="font-semibold">{formatPrice(expenses.taxDeductible)}</span>
+          </div>
+          {previousRange && (
+            <ChangeIndicator
+              current={expenses.total}
+              previous={expensesPrev.total}
+              higherIsBetter={false}
+              label="vs. прошлый"
+            />
+          )}
+        </div>
+
+        <div
+          className={`border rounded-xl p-5 ${
+            profit >= 0
+              ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+              : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200'
+          }`}
+        >
+          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">
+            {profit >= 0 ? '📈 Прибыль' : '📉 Убыток'}
+          </div>
+          <div
+            className={`text-2xl font-bold ${
+              profit >= 0 ? 'text-blue-700' : 'text-orange-700'
+            }`}
+          >
+            {formatPrice(Math.abs(profit))}
+          </div>
+          {previousRange && (
+            <ChangeIndicator
+              current={profit}
+              previous={profitPrev}
+              label="vs. прошлый"
+            />
+          )}
+        </div>
+      </div>
+
       {/* График по месяцам */}
       <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-medium text-neutral-500 mb-1">Выручка по месяцам</h2>
+        <h2 className="text-sm font-medium text-neutral-500 mb-1">Доход и расходы по месяцам</h2>
         <RevenueChart
           months={months12.map(m => ({ label: m.label, fullLabel: m.fullLabel }))}
           values={monthly}
+          expenses={monthlyExpenses}
         />
       </div>
 
@@ -266,7 +280,9 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
               return (
                 <div key={s}>
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[s]}`}>
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[s]}`}
+                    >
                       {STATUS_LABELS[s]}
                     </span>
                     <span className="font-semibold">{count}</span>
@@ -283,51 +299,56 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
           </div>
         )}
       </div>
-{/* Расходы по категориям */}
-{expenses.total > 0 && (
-  <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-sm font-medium text-neutral-500">
-        💸 Расходы по категориям <span className="text-neutral-400">· {formatPrice(expenses.total)}</span>
-      </h2>
-      <Link
-        href="/expenses"
-        className="text-xs text-blue-700 hover:text-blue-900 font-medium"
-      >
-        Подробнее →
-      </Link>
-    </div>
 
-    <div className="space-y-2">
-      {(Object.entries(expenses.byCategory) as Array<[ExpenseCategory, number]>)
-        .filter(([, amount]) => amount > 0)
-        .sort(([, a], [, b]) => b - a)
-        .map(([cat, amount]) => {
-          const pct = expenses.total > 0 ? (amount / expenses.total) * 100 : 0;
-          return (
-            <div key={cat}>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span className="flex items-center gap-1">
-                  <span>{EXPENSE_CATEGORY_EMOJIS[cat]}</span>
-                  <span className="text-neutral-700">{EXPENSE_CATEGORY_LABELS[cat]}</span>
-                </span>
-                <span className="font-semibold">
-                  {formatPrice(amount)}{' '}
-                  <span className="text-xs text-neutral-500 font-normal">({Math.round(pct)}%)</span>
-                </span>
-              </div>
-              <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-rose-400 rounded-full transition-all"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-    </div>
-  </div>
-)}
+      {/* Расходы по категориям */}
+      {expenses.total > 0 && (
+        <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-neutral-500">
+              💸 Расходы по категориям{' '}
+              <span className="text-neutral-400">· {formatPrice(expenses.total)}</span>
+            </h2>
+            <Link
+              href="/expenses"
+              className="text-xs text-blue-700 hover:text-blue-900 font-medium"
+            >
+              Подробнее →
+            </Link>
+          </div>
+
+          <div className="space-y-2">
+            {(Object.entries(expenses.byCategory) as Array<[ExpenseCategory, number]>)
+              .filter(([, amount]) => amount > 0)
+              .sort(([, a], [, b]) => b - a)
+              .map(([cat, amount]) => {
+                const pct = expenses.total > 0 ? (amount / expenses.total) * 100 : 0;
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="flex items-center gap-1">
+                        <span>{EXPENSE_CATEGORY_EMOJIS[cat]}</span>
+                        <span className="text-neutral-700">{EXPENSE_CATEGORY_LABELS[cat]}</span>
+                      </span>
+                      <span className="font-semibold">
+                        {formatPrice(amount)}{' '}
+                        <span className="text-xs text-neutral-500 font-normal">
+                          ({Math.round(pct)}%)
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-rose-400 rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Ожидают счёт */}
       {ordersNoInvoice.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
@@ -369,7 +390,9 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
           {ordersNoInvoice.length > 10 && (
             <div className="text-xs text-amber-700 mt-3 text-center">
               Показано 10 из {ordersNoInvoice.length}.{' '}
-              <Link href="/orders?invoice=without" className="underline">Открыть все</Link>
+              <Link href="/orders?invoice=without" className="underline">
+                Открыть все
+              </Link>
             </div>
           )}
         </div>
@@ -400,7 +423,8 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
                     <div className="text-right whitespace-nowrap">
                       <div className="text-sm font-semibold">{formatPrice(c.total)}</div>
                       <div className="text-xs text-neutral-500">
-                        {c.count} {c.count === 1 ? 'счёт' : c.count < 5 ? 'счёта' : 'счетов'}
+                        {c.count}{' '}
+                        {c.count === 1 ? 'счёт' : c.count < 5 ? 'счёта' : 'счетов'}
                       </div>
                     </div>
                   </Link>
@@ -419,16 +443,17 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
           ) : (
             <ul className="space-y-2">
               {topServices.map((s, i) => (
-                <li key={`${i}-${s.title}`} className="flex items-center justify-between gap-3">
+                <li
+                  key={`${i}-${s.title}`}
+                  className="flex items-center justify-between gap-3"
+                >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xs w-5 text-center text-neutral-400 font-mono">
                       {i + 1}.
                     </span>
                     <span className="text-sm truncate">{s.title}</span>
                   </div>
-                  <span className="text-sm font-semibold whitespace-nowrap">
-                    {s.count}×
-                  </span>
+                  <span className="text-sm font-semibold whitespace-nowrap">{s.count}×</span>
                 </li>
               ))}
             </ul>
@@ -438,8 +463,14 @@ const profitPrev = revenuePrev.total - expensesPrev.total;
 
       {/* Подсказка */}
       <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-3 space-y-1">
-        <div>💡 В «Выручку» входят только заказы с выставленным счётом (есть номер вида 2026-XXXX).</div>
-        <div>📅 Все цифры считаются по <strong>дате выполнения работы</strong> (Leistungsdatum). Если она не указана — используется дата завершения заказа или дата создания.</div>
+        <div>
+          💡 В «Выручку» входят только заказы с выставленным счётом (есть номер вида 2026-XXXX).
+        </div>
+        <div>
+          📅 Все цифры считаются по{' '}
+          <strong>дате выполнения работы</strong> (Leistungsdatum). Если она не указана —
+          используется дата завершения заказа или дата создания.
+        </div>
         <div>📊 Индикатор ↑/↓ — сравнение с предыдущим периодом такой же длины.</div>
       </div>
     </div>

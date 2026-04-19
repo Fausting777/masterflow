@@ -309,30 +309,59 @@ if (data.order.payment_method) {
 
   // ===================== ПОДПИСЬ =====================
   if (data.signature) {
-    ensureSpace(120);
-    drawText('Unterschrift des Kunden', margin, bold, 9, COLORS.muted);
-    y -= 8;
-    try {
-      const sig = await doc.embedPng(data.signature);
-      const maxW = 180, maxH = 70;
-      const scale = Math.min(maxW / sig.width, maxH / sig.height);
-      const w = sig.width * scale, h = sig.height * scale;
-      y -= h;
-      page.drawImage(sig, { x: margin, y, width: w, height: h });
-      y -= 4;
-      page.drawLine({
-        start: { x: margin, y },
-        end: { x: margin + 180, y },
-        thickness: 0.5,
-        color: COLORS.line,
-      });
-      y -= 11;
-      drawText(data.client.full_name, margin, regular, 8, COLORS.muted);
-      y -= 20;
-    } catch {
-      y -= 10;
-    }
+  ensureSpace(180);
+
+  // Текст подтверждения (как клиент видел перед подписью)
+  drawText('Auftragsbestätigung / Leistungsbestätigung', margin, bold, 9, COLORS.text);
+  y -= 12;
+
+  drawWrapped(
+    'Mit meiner Unterschrift bestätige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
+    margin,
+    W - 2 * margin,
+    regular,
+    8,
+    COLORS.muted,
+    1.4
+  );
+
+  drawWrapped(
+    'Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemäß der vereinbarten Zahlungsart.',
+    margin,
+    W - 2 * margin,
+    regular,
+    8,
+    COLORS.muted,
+    1.4
+  );
+
+  y -= 4;
+
+  // Подпись
+  drawText('Unterschrift des Kunden', margin, bold, 9, COLORS.muted);
+  y -= 8;
+
+  try {
+    const sig = await doc.embedPng(data.signature);
+    const maxW = 180, maxH = 70;
+    const scale = Math.min(maxW / sig.width, maxH / sig.height);
+    const w = sig.width * scale, h = sig.height * scale;
+    y -= h;
+    page.drawImage(sig, { x: margin, y, width: w, height: h });
+    y -= 4;
+    page.drawLine({
+      start: { x: margin, y },
+      end: { x: margin + 180, y },
+      thickness: 0.5,
+      color: COLORS.line,
+    });
+    y -= 11;
+    drawText(data.client.full_name, margin, regular, 8, COLORS.muted);
+    y -= 20;
+  } catch {
+    y -= 10;
   }
+}
 
   // ===================== ФОТО =====================
   async function drawPhotoGrid(title: string, photos: Uint8Array[]) {

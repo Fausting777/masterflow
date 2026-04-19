@@ -36,6 +36,20 @@ export default async function SignaturePage({ params }: { params: Params }) {
         <p className="text-sm text-neutral-500 mb-4">{client.full_name}</p>
       )}
 
+      {/* Немецкий текст подтверждения — клиент читает ПЕРЕД подписью */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 space-y-2">
+        <div className="font-semibold text-blue-900 text-sm">
+          Auftragsbestätigung / Leistungsbestätigung
+        </div>
+        <p className="text-sm text-neutral-800 leading-relaxed">
+          Mit meiner Unterschrift bestätige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.
+        </p>
+        <p className="text-sm text-neutral-800 leading-relaxed">
+          Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemäß der vereinbarten Zahlungsart.
+        </p>
+      </div>
+
+      {/* Поле подписи */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
         <SignaturePad orderId={id} />
       </div>

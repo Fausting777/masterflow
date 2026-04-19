@@ -1,8 +1,31 @@
 // lib/stats/calculate.ts
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// ==================================================================
+// ВЫБОР ДАТЫ ДЛЯ АГРЕГАЦИИ
+// Приоритет: service_date → completed_at → created_at
+// ==================================================================
+// Это "эффективная дата услуги" — то, по чему считаем статистику.
+
+// Postgres COALESCE через raw-SQL не получится в supabase-js фильтре,
+// поэтому мы тянем нужные поля и фильтруем на клиенте (Node).
+
+function effectiveDate(o: {
+  service_date: string | null;
+  completed_at?: string | null;
+  created_at: string;
+}): Date {
+  return new Date(o.service_date ?? o.completed_at ?? o.created_at);
+}
+
+function inRange(d: Date, from: Date, to: Date): boolean {
+  const t = d.getTime();
+  return t >= from.getTime() && t <= to.getTime();
+}
+
 // ======================================================
 // ИТОГОВАЯ СУММА ВЫСТАВЛЕННЫХ СЧЕТОВ ЗА ПЕРИОД
+// считаем по service_date (fallback completed_at → created_at)
 // ======================================================
 export async function getRevenueStats(
   supabase: SupabaseClient,
@@ -14,23 +37,34 @@ export async function getRevenueStats(
   invoicesCount: number;
   avgCheck: number;
 }> {
+  // Важно: мы НЕ фильтруем по service_date в SQL (не факт что оно есть у всех),
+  // а тянем всё за широкий диапазон и фильтруем на стороне Node.
+  // Чтобы не вытягивать мильон — берём за год в обе стороны от диапазона.
+  const wideFrom = new Date(from.getTime() - 365 * 24 * 60 * 60 * 1000);
+  const wideTo = new Date(to.getTime() + 365 * 24 * 60 * 60 * 1000);
+
   const { data, error } = await supabase
     .from('orders')
-    .select('custom_price, service_id')
+    .select('custom_price, service_id, service_date, completed_at, created_at')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .not('invoice_number', 'is', null)
-    .gte('invoice_issued_at', from.toISOString())
-    .lte('invoice_issued_at', to.toISOString());
+    .gte('created_at', wideFrom.toISOString())
+    .lte('created_at', wideTo.toISOString());
 
   if (error || !data || data.length === 0) {
     return { total: 0, invoicesCount: 0, avgCheck: 0 };
   }
 
-  // Для точности: если custom_price null и есть service_id — подтягиваем цену из services.
-  // Но для скорости сначала соберём service_id, где price null.
+  // Фильтруем по эффективной дате
+  const inPeriod = data.filter(o => inRange(effectiveDate(o), from, to));
+  if (inPeriod.length === 0) {
+    return { total: 0, invoicesCount: 0, avgCheck: 0 };
+  }
+
+  // Подтягиваем service prices где custom_price null
   const needServiceIds: string[] = [];
-  for (const o of data) {
+  for (const o of inPeriod) {
     if ((o.custom_price === null || o.custom_price === undefined) && o.service_id) {
       needServiceIds.push(o.service_id);
     }
@@ -50,7 +84,7 @@ export async function getRevenueStats(
 
   let total = 0;
   let counted = 0;
-  for (const o of data) {
+  for (const o of inPeriod) {
     let price = o.custom_price !== null ? Number(o.custom_price) : null;
     if (price === null && o.service_id) {
       price = servicePrices.get(o.service_id) ?? null;
@@ -63,13 +97,14 @@ export async function getRevenueStats(
 
   return {
     total: Math.round(total * 100) / 100,
-    invoicesCount: data.length,
+    invoicesCount: inPeriod.length,
     avgCheck: counted > 0 ? Math.round((total / counted) * 100) / 100 : 0,
   };
 }
 
 // ======================================================
 // РАСПРЕДЕЛЕНИЕ ЗАКАЗОВ ПО СТАТУСАМ ЗА ПЕРИОД
+// Теперь тоже по service_date (fallback → completed_at → created_at)
 // ======================================================
 export async function getStatusBreakdown(
   supabase: SupabaseClient,
@@ -77,16 +112,20 @@ export async function getStatusBreakdown(
   from: Date,
   to: Date
 ): Promise<Record<'new' | 'in_progress' | 'completed' | 'canceled', number>> {
+  const wideFrom = new Date(from.getTime() - 365 * 24 * 60 * 60 * 1000);
+  const wideTo = new Date(to.getTime() + 365 * 24 * 60 * 60 * 1000);
+
   const { data } = await supabase
     .from('orders')
-    .select('status')
+    .select('status, service_date, completed_at, created_at')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .gte('created_at', from.toISOString())
-    .lte('created_at', to.toISOString());
+    .gte('created_at', wideFrom.toISOString())
+    .lte('created_at', wideTo.toISOString());
 
   const result = { new: 0, in_progress: 0, completed: 0, canceled: 0 };
   for (const o of data ?? []) {
+    if (!inRange(effectiveDate(o), from, to)) continue;
     const s = o.status as keyof typeof result;
     if (s in result) result[s]++;
   }
@@ -95,28 +134,30 @@ export async function getStatusBreakdown(
 
 // ======================================================
 // ВЫРУЧКА ПО МЕСЯЦАМ ДЛЯ ГРАФИКА
+// По service_date (fallback...)
 // ======================================================
 export async function getMonthlyRevenue(
   supabase: SupabaseClient,
   userId: string,
   months: Array<{ from: Date; to: Date }>
 ): Promise<number[]> {
-  // Тянем за один запрос всё: счета с invoice_issued_at в диапазоне первый-последний месяц
   const first = months[0].from;
   const last = months[months.length - 1].to;
+  const wideFrom = new Date(first.getTime() - 365 * 24 * 60 * 60 * 1000);
+  const wideTo = new Date(last.getTime() + 365 * 24 * 60 * 60 * 1000);
 
   const { data } = await supabase
     .from('orders')
-    .select('custom_price, service_id, invoice_issued_at')
+    .select('custom_price, service_id, service_date, completed_at, created_at')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .not('invoice_number', 'is', null)
-    .gte('invoice_issued_at', first.toISOString())
-    .lte('invoice_issued_at', last.toISOString());
+    .gte('created_at', wideFrom.toISOString())
+    .lte('created_at', wideTo.toISOString());
 
   if (!data || data.length === 0) return months.map(() => 0);
 
-  // Подтягиваем цены услуг для тех, у кого custom_price null
+  // Цены услуг
   const needIds = [...new Set(
     data.filter(o => o.custom_price === null && o.service_id).map(o => o.service_id!)
   )];
@@ -133,16 +174,15 @@ export async function getMonthlyRevenue(
 
   const result = months.map(() => 0);
   for (const o of data) {
-    if (!o.invoice_issued_at) continue;
-    const d = new Date(o.invoice_issued_at).getTime();
+    const eff = effectiveDate(o);
+    const effT = eff.getTime();
 
     let price = o.custom_price !== null ? Number(o.custom_price) : null;
     if (price === null && o.service_id) price = priceMap.get(o.service_id) ?? null;
     if (price === null) continue;
 
-    // Найдём нужный месяц
     for (let i = 0; i < months.length; i++) {
-      if (d >= months[i].from.getTime() && d <= months[i].to.getTime()) {
+      if (effT >= months[i].from.getTime() && effT <= months[i].to.getTime()) {
         result[i] += price;
         break;
       }
@@ -153,7 +193,7 @@ export async function getMonthlyRevenue(
 }
 
 // ======================================================
-// ТОП-КЛИЕНТЫ ПО СУММЕ СЧЕТОВ
+// ТОП-КЛИЕНТЫ ПО СУММЕ СЧЕТОВ — по service_date
 // ======================================================
 export async function getTopClients(
   supabase: SupabaseClient,
@@ -162,19 +202,25 @@ export async function getTopClients(
   to: Date,
   limit = 5
 ): Promise<Array<{ clientId: string; name: string; total: number; count: number }>> {
+  const wideFrom = new Date(from.getTime() - 365 * 24 * 60 * 60 * 1000);
+  const wideTo = new Date(to.getTime() + 365 * 24 * 60 * 60 * 1000);
+
   const { data } = await supabase
     .from('orders')
-    .select('client_id, custom_price, service_id')
+    .select('client_id, custom_price, service_id, service_date, completed_at, created_at')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .not('invoice_number', 'is', null)
-    .gte('invoice_issued_at', from.toISOString())
-    .lte('invoice_issued_at', to.toISOString());
+    .gte('created_at', wideFrom.toISOString())
+    .lte('created_at', wideTo.toISOString());
 
   if (!data || data.length === 0) return [];
 
+  const inPeriod = data.filter(o => inRange(effectiveDate(o), from, to));
+  if (inPeriod.length === 0) return [];
+
   const needIds = [...new Set(
-    data.filter(o => o.custom_price === null && o.service_id).map(o => o.service_id!)
+    inPeriod.filter(o => o.custom_price === null && o.service_id).map(o => o.service_id!)
   )];
   const priceMap = new Map<string, number>();
   if (needIds.length > 0) {
@@ -187,9 +233,8 @@ export async function getTopClients(
     }
   }
 
-  // Группируем
   const byClient = new Map<string, { total: number; count: number }>();
-  for (const o of data) {
+  for (const o of inPeriod) {
     let price = o.custom_price !== null ? Number(o.custom_price) : null;
     if (price === null && o.service_id) price = priceMap.get(o.service_id) ?? null;
     if (price === null) continue;
@@ -201,7 +246,6 @@ export async function getTopClients(
     });
   }
 
-  // Получаем имена
   const ids = [...byClient.keys()];
   if (ids.length === 0) return [];
   const { data: clients } = await supabase
@@ -223,7 +267,7 @@ export async function getTopClients(
 }
 
 // ======================================================
-// ТОП-УСЛУГИ ПО ЧАСТОТЕ
+// ТОП-УСЛУГИ ПО ЧАСТОТЕ — по service_date
 // ======================================================
 export async function getTopServices(
   supabase: SupabaseClient,
@@ -232,19 +276,24 @@ export async function getTopServices(
   to: Date,
   limit = 5
 ): Promise<Array<{ title: string; count: number }>> {
+  const wideFrom = new Date(from.getTime() - 365 * 24 * 60 * 60 * 1000);
+  const wideTo = new Date(to.getTime() + 365 * 24 * 60 * 60 * 1000);
+
   const { data } = await supabase
     .from('orders')
-    .select('service_id, custom_service_title')
+    .select('service_id, custom_service_title, service_date, completed_at, created_at')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .gte('created_at', from.toISOString())
-    .lte('created_at', to.toISOString());
+    .gte('created_at', wideFrom.toISOString())
+    .lte('created_at', wideTo.toISOString());
 
   if (!data || data.length === 0) return [];
 
-  // Получаем названия услуг из service_id
+  const inPeriod = data.filter(o => inRange(effectiveDate(o), from, to));
+  if (inPeriod.length === 0) return [];
+
   const serviceIds = [...new Set(
-    data.filter(o => o.service_id).map(o => o.service_id!)
+    inPeriod.filter(o => o.service_id).map(o => o.service_id!)
   )];
   const serviceNames = new Map<string, string>();
   if (serviceIds.length > 0) {
@@ -258,7 +307,7 @@ export async function getTopServices(
   }
 
   const counts = new Map<string, number>();
-  for (const o of data) {
+  for (const o of inPeriod) {
     const title = o.service_id
       ? serviceNames.get(o.service_id) ?? 'Услуга'
       : o.custom_service_title ?? 'Без названия';
@@ -270,8 +319,9 @@ export async function getTopServices(
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);
 }
+
 // ======================================================
-// ЗАКАЗЫ БЕЗ СЧЁТА ЗА ПЕРИОД
+// ЗАКАЗЫ БЕЗ СЧЁТА ЗА ПЕРИОД — по service_date (fallback)
 // ======================================================
 export async function getOrdersWithoutInvoice(
   supabase: SupabaseClient,
@@ -284,30 +334,37 @@ export async function getOrdersWithoutInvoice(
   service_title: string;
   price: number | null;
   created_at: string;
+  effective_date: string;
   status: string;
 }>> {
+  const wideFrom = new Date(from.getTime() - 365 * 24 * 60 * 60 * 1000);
+  const wideTo = new Date(to.getTime() + 365 * 24 * 60 * 60 * 1000);
+
   const { data } = await supabase
     .from('orders')
-    .select('id, client_id, service_id, custom_service_title, custom_price, created_at, status')
+    .select('id, client_id, service_id, custom_service_title, custom_price, created_at, completed_at, service_date, status')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .is('invoice_number', null)
-    .gte('created_at', from.toISOString())
-    .lte('created_at', to.toISOString())
+    .gte('created_at', wideFrom.toISOString())
+    .lte('created_at', wideTo.toISOString())
     .order('created_at', { ascending: false });
 
   if (!data || data.length === 0) return [];
 
+  const inPeriod = data.filter(o => inRange(effectiveDate(o), from, to));
+  if (inPeriod.length === 0) return [];
+
   // Клиенты
-  const clientIds = [...new Set(data.map(o => o.client_id))];
+  const clientIds = [...new Set(inPeriod.map(o => o.client_id))];
   const { data: clients } = await supabase
     .from('clients')
     .select('id, full_name')
     .in('id', clientIds);
   const clientNames = new Map((clients ?? []).map(c => [c.id, c.full_name]));
 
-  // Услуги (для цены и названия)
-  const serviceIds = [...new Set(data.filter(o => o.service_id).map(o => o.service_id!))];
+  // Услуги
+  const serviceIds = [...new Set(inPeriod.filter(o => o.service_id).map(o => o.service_id!))];
   const serviceMap = new Map<string, { title: string; price: number | null }>();
   if (serviceIds.length > 0) {
     const { data: services } = await supabase
@@ -322,16 +379,15 @@ export async function getOrdersWithoutInvoice(
     }
   }
 
-  return data.map(o => {
+  return inPeriod.map(o => {
     const service = o.service_id ? serviceMap.get(o.service_id) : null;
     return {
       id: o.id,
       client_name: clientNames.get(o.client_id) ?? '—',
       service_title: service?.title ?? o.custom_service_title ?? '—',
-      price: o.custom_price !== null
-        ? Number(o.custom_price)
-        : service?.price ?? null,
+      price: o.custom_price !== null ? Number(o.custom_price) : service?.price ?? null,
       created_at: o.created_at,
+      effective_date: effectiveDate(o).toISOString(),
       status: o.status,
     };
   });

@@ -259,10 +259,10 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
       </div>
 
       {/* Подсказка */}
-      <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-3">
-        💡 В «Выручку» входят только заказы с выставленным счётом (есть номер вида 2026-XXXX).
-        Заказы без счёта не учитываются.
-      </div>
+      <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-3 space-y-1">
+  <div>💡 В «Выручку» входят только заказы с выставленным счётом (есть номер вида 2026-XXXX).</div>
+  <div>📅 Все цифры считаются по <strong>дате выполнения работы</strong> (Leistungsdatum). Если она не указана — используется дата завершения заказа или дата создания.</div>
+</div>
     </div>
   );
 }

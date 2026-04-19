@@ -270,3 +270,69 @@ export async function getTopServices(
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);
 }
+// ======================================================
+// ЗАКАЗЫ БЕЗ СЧЁТА ЗА ПЕРИОД
+// ======================================================
+export async function getOrdersWithoutInvoice(
+  supabase: SupabaseClient,
+  userId: string,
+  from: Date,
+  to: Date
+): Promise<Array<{
+  id: string;
+  client_name: string;
+  service_title: string;
+  price: number | null;
+  created_at: string;
+  status: string;
+}>> {
+  const { data } = await supabase
+    .from('orders')
+    .select('id, client_id, service_id, custom_service_title, custom_price, created_at, status')
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .is('invoice_number', null)
+    .gte('created_at', from.toISOString())
+    .lte('created_at', to.toISOString())
+    .order('created_at', { ascending: false });
+
+  if (!data || data.length === 0) return [];
+
+  // Клиенты
+  const clientIds = [...new Set(data.map(o => o.client_id))];
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, full_name')
+    .in('id', clientIds);
+  const clientNames = new Map((clients ?? []).map(c => [c.id, c.full_name]));
+
+  // Услуги (для цены и названия)
+  const serviceIds = [...new Set(data.filter(o => o.service_id).map(o => o.service_id!))];
+  const serviceMap = new Map<string, { title: string; price: number | null }>();
+  if (serviceIds.length > 0) {
+    const { data: services } = await supabase
+      .from('services')
+      .select('id, title, default_price')
+      .in('id', serviceIds);
+    for (const s of services ?? []) {
+      serviceMap.set(s.id, {
+        title: s.title,
+        price: s.default_price !== null ? Number(s.default_price) : null,
+      });
+    }
+  }
+
+  return data.map(o => {
+    const service = o.service_id ? serviceMap.get(o.service_id) : null;
+    return {
+      id: o.id,
+      client_name: clientNames.get(o.client_id) ?? '—',
+      service_title: service?.title ?? o.custom_service_title ?? '—',
+      price: o.custom_price !== null
+        ? Number(o.custom_price)
+        : service?.price ?? null,
+      created_at: o.created_at,
+      status: o.status,
+    };
+  });
+}

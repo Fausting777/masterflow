@@ -1,3 +1,4 @@
+import InvoiceBadges from '@/components/orders/InvoiceBadges';
 import { getRange } from '@/lib/utils/date-range';
 import { getRevenueStats } from '@/lib/stats/calculate';
 import Link from 'next/link';

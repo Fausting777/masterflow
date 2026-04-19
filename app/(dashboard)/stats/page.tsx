@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getRange, getLastMonths, type PeriodKey } from '@/lib/utils/date-range';
@@ -7,6 +8,7 @@ import {
   getMonthlyRevenue,
   getTopClients,
   getTopServices,
+  getOrdersWithoutInvoice,
 } from '@/lib/stats/calculate';
 import RevenueChart from '@/components/stats/RevenueChart';
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/format';
@@ -31,7 +33,8 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
 
   // Все запросы параллельно
   const months12 = getLastMonths(12);
-  const [revenue, statuses, monthly, topClients, topServices] = await Promise.all([
+  const [revenue, statuses, monthly, topClients, topServices, ordersNoInvoice] =
+  await Promise.all([
     getRevenueStats(supabase, user!.id, range.from, range.to),
     getStatusBreakdown(supabase, user!.id, range.from, range.to),
     getMonthlyRevenue(
@@ -41,6 +44,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
     ),
     getTopClients(supabase, user!.id, range.from, range.to),
     getTopServices(supabase, user!.id, range.from, range.to),
+    getOrdersWithoutInvoice(supabase, user!.id, range.from, range.to),
   ]);
 
   const statusOrder: OrderStatus[] = ['new', 'in_progress', 'completed', 'canceled'];
@@ -79,20 +83,32 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
       </div>
 
       {/* Главные цифры */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Выручка</div>
-          <div className="text-2xl font-bold">{formatPrice(revenue.total)}</div>
-        </div>
-        <div className="bg-white border border-neutral-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Счетов</div>
-          <div className="text-2xl font-bold">{revenue.invoicesCount}</div>
-        </div>
-        <div className="bg-white border border-neutral-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Средний чек</div>
-          <div className="text-2xl font-bold">{formatPrice(revenue.avgCheck)}</div>
-        </div>
-      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Выручка</div>
+    <div className="text-2xl font-bold">{formatPrice(revenue.total)}</div>
+  </div>
+  <div className="bg-white border border-neutral-200 rounded-xl p-5">
+    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Счетов</div>
+    <div className="text-2xl font-bold">{revenue.invoicesCount}</div>
+  </div>
+  <div className="bg-white border border-neutral-200 rounded-xl p-5">
+    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Средний чек</div>
+    <div className="text-2xl font-bold">{formatPrice(revenue.avgCheck)}</div>
+  </div>
+  <div className={`border rounded-xl p-5 ${
+    ordersNoInvoice.length > 0
+      ? 'bg-amber-50 border-amber-200'
+      : 'bg-white border-neutral-200'
+  }`}>
+    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Без счёта</div>
+    <div className={`text-2xl font-bold ${
+      ordersNoInvoice.length > 0 ? 'text-amber-700' : ''
+    }`}>
+      {ordersNoInvoice.length}
+    </div>
+  </div>
+</div>
 
       {/* График по месяцам */}
       <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
@@ -135,7 +151,50 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           </div>
         )}
       </div>
+{ordersNoInvoice.length > 0 && (
+  <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-sm font-medium text-amber-900 flex items-center gap-2">
+        ⚠️ Ожидают счёт
+        <span className="text-amber-700">· {ordersNoInvoice.length}</span>
+      </h2>
+      <Link
+        href="/orders?invoice=without"
+        className="text-xs text-amber-700 hover:text-amber-900 font-medium"
+      >
+        Все →
+      </Link>
+    </div>
 
+    <ul className="space-y-2">
+      {ordersNoInvoice.slice(0, 10).map(o => (
+        <li key={o.id}>
+          <Link
+            href={`/orders/${o.id}`}
+            className="flex items-center justify-between gap-3 p-2 -mx-2 rounded hover:bg-amber-100/50"
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-sm font-medium truncate">{o.client_name}</span>
+              <span className="text-xs text-neutral-500 truncate">· {o.service_title}</span>
+            </div>
+            <div className="text-right whitespace-nowrap">
+              <div className="text-sm font-semibold">{formatPrice(o.price)}</div>
+              <div className="text-xs text-neutral-500">
+                {new Date(o.created_at).toLocaleDateString('de-DE')}
+              </div>
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+
+    {ordersNoInvoice.length > 10 && (
+      <div className="text-xs text-amber-700 mt-3 text-center">
+        Показано 10 из {ordersNoInvoice.length}. <Link href="/orders?invoice=without" className="underline">Открыть все</Link>
+      </div>
+    )}
+  </div>
+)}
       {/* Двухколоночный блок: топ клиентов и топ услуг */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Топ клиентов */}

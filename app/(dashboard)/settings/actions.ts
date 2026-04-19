@@ -18,6 +18,7 @@ export type ProfileFormState = {
     is_kleinunternehmer: boolean;
     iban: string;
     bank_name: string;
+    business_email: string;         // ← новое
   };
 };
 

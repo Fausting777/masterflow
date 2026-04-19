@@ -16,6 +16,7 @@ type Props = {
     is_kleinunternehmer: boolean;
     iban: string | null;
     bank_name: string | null;
+    business_email: string | null;    // ← новое
   };
 };
 
@@ -37,6 +38,7 @@ export default function ProfileForm({ initial }: Props) {
     is_kleinunternehmer: initial.is_kleinunternehmer,
     iban: initial.iban ?? '',
     bank_name: initial.bank_name ?? '',
+    business_email: initial.business_email ?? '',    // ← новое
   };
 
   const inputCls =
@@ -98,9 +100,7 @@ export default function ProfileForm({ initial }: Props) {
     Этот email будет отображаться на PDF-счетах и использоваться как адрес для ответов клиентов.
     Если не указан — используется email входа.
   </p>
-  {state.errors?.business_email && (
-    <p className="text-xs text-red-600 mt-1">{state.errors.business_email}</p>
-  )}
+  
 </div>
 
         <div>

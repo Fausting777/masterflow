@@ -32,6 +32,7 @@ export default async function SettingsPage() {
             is_kleinunternehmer: profile?.is_kleinunternehmer ?? true,
             iban: profile?.iban ?? null,
             bank_name: profile?.bank_name ?? null,
+            business_email: profile?.business_email ?? null,    // ← новое
           }}
         />
       </div>

@@ -120,7 +120,18 @@ export async function updateOrderAction(
 ): Promise<OrderFormState> {
   const raw = readFormData(formData);
 
+  // При редактировании поле client_quick_name не применимо
+  // Валидируем только с реальным client_id
   const errors = validateOrder(raw);
+
+  // Убираем ошибку про quick_name (она не имеет значения при редактировании)
+  delete errors.client_quick_name;
+
+  // Но теперь требуем чтобы client_id был заполнен
+  if (!raw.client_id.trim()) {
+    errors.client_id = 'Выберите клиента';
+  }
+
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
   const supabase = await createClient();
@@ -129,16 +140,23 @@ export async function updateOrderAction(
 
   const normalized = normalizeOrderInput(raw);
 
-// Убираем поле, которого нет в таблице orders
-// (client_quick_name используется только при создании)
-const { client_quick_name, ...updateData } = normalized;
-void client_quick_name; // явно помечаем что не используем — TypeScript не будет ругаться
+  // Убираем client_quick_name — его нет в таблице orders
+  const { client_quick_name, ...updateData } = normalized;
+  void client_quick_name;
 
-const { error } = await supabase
-  .from('orders')
-  .update(updateData)
-  .eq('id', id)
-  .eq('user_id', user.id);
+  // Дополнительная страховка — не даём затереть client_id
+  if (!updateData.client_id) {
+    return {
+      formError: 'Не удалось определить клиента',
+      values: raw,
+    };
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update(updateData)
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
 

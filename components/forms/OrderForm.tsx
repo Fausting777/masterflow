@@ -62,8 +62,11 @@ export default function OrderForm({
     !v.service_id && (v.custom_service_title.length > 0 || services.length === 0)
   );
 
-  const [useQuickClient, setUseQuickClient] = useState(
-  !v.client_id && (v.client_quick_name.length > 0 || clients.length === 0)
+ // Quick-mode ТОЛЬКО при создании (когда нет initial?.client_id)
+// При редактировании всегда показываем выбор из базы
+const isEditing = Boolean(initial?.client_id);
+const [useQuickClient, setUseQuickClient] = useState(
+  !isEditing && !v.client_id && (v.client_quick_name.length > 0 || clients.length === 0)
 );
 
   return (
@@ -74,13 +77,15 @@ export default function OrderForm({
     <label className="block text-sm font-medium">
       Клиент <span className="text-red-500">*</span>
     </label>
-    <button
-      type="button"
-      onClick={() => setUseQuickClient(!useQuickClient)}
-      className="text-xs text-blue-600 hover:underline"
-    >
-      {useQuickClient ? 'Из базы' : 'Быстрое имя'}
-    </button>
+    {!isEditing && (
+  <button
+    type="button"
+    onClick={() => setUseQuickClient(!useQuickClient)}
+    className="text-xs text-blue-600 hover:underline"
+  >
+    {useQuickClient ? 'Из базы' : 'Быстрое имя'}
+  </button>
+)}
   </div>
 
   {useQuickClient ? (

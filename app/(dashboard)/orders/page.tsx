@@ -56,6 +56,48 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   }
 
   const { data: orders, error } = await query;
+  const ordersList = (orders as OrderWithClient[] | null) ?? [];
+
+// Подсчёт сумм по текущей выборке (только для фильтра "без счёта")
+let invoiceSummary: { total: number; count: number } | null = null;
+if (invoiceFilter === 'without' && ordersList.length > 0) {
+  // Нужны цены услуг где custom_price null
+  const servicesNeeded = [
+    ...new Set(
+      ordersList
+        .filter(o => o.custom_price === null && o.service_id)
+        .map(o => o.service_id!)
+    ),
+  ];
+
+  const servicePrices = new Map<string, number>();
+  if (servicesNeeded.length > 0) {
+    const { data: services } = await supabase
+      .from('services')
+      .select('id, default_price')
+      .in('id', servicesNeeded);
+    for (const s of services ?? []) {
+      if (s.default_price !== null) {
+        servicePrices.set(s.id, Number(s.default_price));
+      }
+    }
+  }
+
+  let total = 0;
+  let count = 0;
+  for (const o of ordersList) {
+    let price = o.custom_price !== null ? Number(o.custom_price) : null;
+    if (price === null && o.service_id) {
+      price = servicePrices.get(o.service_id) ?? null;
+    }
+    if (price !== null) {
+      total += price;
+      count++;
+    }
+  }
+
+  invoiceSummary = { total: Math.round(total * 100) / 100, count };
+}
 
   // Хелпер для формирования ссылок с сохранением параметров
   function buildHref(params: { status?: string; invoice?: string }) {
@@ -130,13 +172,35 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
         })}
       </div>
 
+      {/* Сумма по "Без счёта" */}
+{invoiceSummary && (
+  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-center justify-between gap-3 flex-wrap">
+    <div className="flex items-center gap-2">
+      <span className="text-xl">⚠️</span>
+      <div>
+        <div className="text-xs text-neutral-600 uppercase tracking-wide">
+          Зависло без счёта
+        </div>
+        <div className="text-sm text-amber-900">
+          <span className="font-semibold">{invoiceSummary.count}</span>{' '}
+          {invoiceSummary.count === 1 ? 'заказ' : invoiceSummary.count < 5 ? 'заказа' : 'заказов'}
+          {' '}на сумму
+        </div>
+      </div>
+    </div>
+    <div className="text-2xl font-bold text-amber-700">
+      {formatPrice(invoiceSummary.total)}
+    </div>
+  </div>
+)}
+
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 mb-4">
           Ошибка: {error.message}
         </div>
       )}
 
-      {orders && orders.length === 0 ? (
+      {ordersList.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-8 text-center text-sm text-neutral-500">
           {activeFilter === 'all' && invoiceFilter === 'all' ? (
             <>
@@ -150,8 +214,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           )}
         </div>
       ) : (
-        <ul className="space-y-2">
-          {(orders as OrderWithClient[] | null)?.map((o) => {
+        <ul>
+    {ordersList.map((o) => {
             const price = o.custom_price;
             return (
               <li key={o.id}>

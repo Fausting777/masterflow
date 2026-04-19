@@ -4,6 +4,7 @@ import { parsePriceInput } from '@/lib/utils/format';
 export type OrderInput = {
   client_id: string;
   client_quick_name: string;
+  client_quick_phone: string;    // ← новое
   service_id: string;
   custom_service_title: string;
   custom_price: string;
@@ -62,6 +63,9 @@ if (
 ) {
   errors.payment_method = 'Некорректный способ оплаты';
 }
+if (data.client_quick_phone.length > 50) {
+  errors.client_quick_phone = 'Телефон слишком длинный';
+}
 
   return errors;
 }
@@ -77,6 +81,7 @@ export function normalizeOrderInput(data: OrderInput) {
   return {
     client_id: data.client_id.trim() || null,
     client_quick_name: clean(data.client_quick_name),
+    client_quick_phone: clean(data.client_quick_phone),   // ← новое
     service_id: hasService ? data.service_id : null,
     custom_service_title: hasService ? null : clean(data.custom_service_title),
     custom_price: parsePriceInput(data.custom_price),

@@ -16,6 +16,7 @@ export type OrderFormState = {
   values?: {
     client_id: string;
     client_quick_name: string;        // ← новое
+    client_quick_phone: string;     // ← новое
     service_id: string;
     custom_service_title: string;
     custom_price: string;
@@ -31,6 +32,7 @@ function readFormData(formData: FormData): OrderFormState['values'] & object {
   return {
     client_id: String(formData.get('client_id') ?? ''),
     client_quick_name: String(formData.get('client_quick_name') ?? ''),   // ← новое
+    client_quick_phone: String(formData.get('client_quick_phone') ?? ''),    // ← новое
     service_id: String(formData.get('service_id') ?? ''),
     custom_service_title: String(formData.get('custom_service_title') ?? ''),
     custom_price: String(formData.get('custom_price') ?? ''),
@@ -90,6 +92,7 @@ export async function createOrderAction(
 
   const { data, error } = await supabase.rpc('create_order_with_new_client', {
     p_full_name: normalized.client_quick_name,
+    p_phone: normalized.client_quick_phone,            // ← новое
     p_service_id: normalized.service_id,
     p_custom_service_title: normalized.custom_service_title,
     p_custom_price: normalized.custom_price,

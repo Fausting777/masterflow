@@ -46,6 +46,7 @@ export default function OrderForm({
   const v = state.values ?? {
     client_id: initial?.client_id ?? '',
     client_quick_name: '',         // ← новое
+    client_quick_phone: '',              // ← новое
     service_id: initial?.service_id ?? '',
     custom_service_title: initial?.custom_service_title ?? '',
     custom_price:
@@ -91,24 +92,33 @@ const [useQuickClient, setUseQuickClient] = useState(
   </div>
 
   {useQuickClient ? (
-    <>
-      {/* Пустой client_id, чтобы не отправлялся выбор */}
-      <input type="hidden" name="client_id" value="" />
-      <input
-        name="client_quick_name"
-        type="text"
-        defaultValue={v.client_quick_name}
-        placeholder="Например: Иван Петров"
-        className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <p className="text-xs text-neutral-500">
-        Клиент создастся автоматически с этим именем. Телефон, адрес и email можно дозаполнить позже в карточке клиента.
-      </p>
-      {state.errors?.client_quick_name && (
-        <p className="text-xs text-red-600">{state.errors.client_quick_name}</p>
-      )}
-    </>
-  ) : (
+  <>
+    <input type="hidden" name="client_id" value="" />
+    <input
+      name="client_quick_name"
+      type="text"
+      defaultValue={v.client_quick_name}
+      placeholder="Имя клиента — например, Иван Петров"
+      className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+    <input
+      name="client_quick_phone"
+      type="tel"
+      defaultValue={v.client_quick_phone}
+      placeholder="+49 ... (опционально)"
+      className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
+    />
+    <p className="text-xs text-neutral-500">
+      Клиент создастся автоматически. Email и адрес можно дозаполнить позже в карточке клиента.
+    </p>
+    {state.errors?.client_quick_name && (
+      <p className="text-xs text-red-600">{state.errors.client_quick_name}</p>
+    )}
+    {state.errors?.client_quick_phone && (
+      <p className="text-xs text-red-600">{state.errors.client_quick_phone}</p>
+    )}
+  </>
+) : (
     <>
       <input type="hidden" name="client_quick_name" value="" />
       <select

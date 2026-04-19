@@ -153,15 +153,19 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     y -= 10;
   }
 
-  // Адрес клиента — слева в "окошке конверта" (стандарт DIN 5008)
-  const clientTop = y;
-  drawText(data.client.full_name, margin, bold, 11);
-  y -= 14;
-  if (data.order.order_address ?? data.client.address) {
-    const addr = data.order.order_address ?? data.client.address ?? '';
-    drawText(addr, margin, regular, 10);
-    y -= 12;
-  }
+ // Адрес клиента — слева в "окошке конверта" (стандарт DIN 5008)
+const clientTop = y;
+drawText(data.client.full_name, margin, bold, 11);
+y -= 14;
+if (data.order.order_address ?? data.client.address) {
+  const addr = data.order.order_address ?? data.client.address ?? '';
+  drawText(addr, margin, regular, 10);
+  y -= 12;
+}
+if (data.client.phone) {
+  drawText(`Tel.: ${data.client.phone}`, margin, regular, 9, COLORS.muted);
+  y -= 11;
+}
 
   // Реквизиты справа: дата, номер счёта
   let rightY = clientTop;

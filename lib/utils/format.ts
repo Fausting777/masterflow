@@ -60,3 +60,39 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   ec_card: 'EC-Karte',
   paypal: 'PayPal',
 };
+
+import type { ExpenseCategory } from '@/types/database';
+
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  material: 'Material',
+  fahrtkosten: 'Fahrtkosten',
+  werkzeuge: 'Werkzeuge',
+  telefon_internet: 'Telefon & Internet',
+  versicherung: 'Versicherung',
+  buero: 'Büro',
+  weiterbildung: 'Weiterbildung',
+  sonstiges: 'Sonstiges',
+};
+
+export const EXPENSE_CATEGORY_EMOJIS: Record<ExpenseCategory, string> = {
+  material: '🧱',
+  fahrtkosten: '⛽',
+  werkzeuge: '🔧',
+  telefon_internet: '📱',
+  versicherung: '🛡️',
+  buero: '📝',
+  weiterbildung: '📚',
+  sonstiges: '📦',
+};
+
+// Цвета для карточек/бейджей категорий (Tailwind-классы)
+export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
+  material: 'bg-amber-100 text-amber-800',
+  fahrtkosten: 'bg-red-100 text-red-800',
+  werkzeuge: 'bg-blue-100 text-blue-800',
+  telefon_internet: 'bg-purple-100 text-purple-800',
+  versicherung: 'bg-green-100 text-green-800',
+  buero: 'bg-neutral-100 text-neutral-800',
+  weiterbildung: 'bg-indigo-100 text-indigo-800',
+  sonstiges: 'bg-neutral-100 text-neutral-700',
+};

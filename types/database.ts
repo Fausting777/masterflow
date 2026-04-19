@@ -95,3 +95,32 @@ export interface OrderWithClient extends Omit<Order, never> {
   client_name: string;
   client_phone: string | null;
 }
+// ==================================================================
+// РАСХОДЫ (Expenses)
+// ==================================================================
+
+export type ExpenseCategory =
+  | 'material'
+  | 'fahrtkosten'
+  | 'werkzeuge'
+  | 'telefon_internet'
+  | 'versicherung'
+  | 'buero'
+  | 'weiterbildung'
+  | 'sonstiges';
+
+export interface Expense {
+  id: string;
+  user_id: string;
+  order_id: string | null;
+  category: ExpenseCategory;
+  amount: number;
+  description: string | null;
+  vendor: string | null;
+  expense_date: string;  // ISO date (YYYY-MM-DD)
+  receipt_file_path: string | null;
+  tax_deductible: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}

@@ -170,3 +170,7 @@ export function calculateChange(current: number, previous: number): {
   if (percent > 0) return { percent, direction: 'up', display: `+${percent}%` };
   return { percent, direction: 'down', display: `${percent}%` };
 }
+// Преобразует Date в YYYY-MM-DD (для сравнения с expense_date)
+export function toDateOnly(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

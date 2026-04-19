@@ -5,6 +5,7 @@ import {
   getPreviousRange,
   getLastMonths,
   getMonthOptions,
+  toDateOnly,
   type PeriodKey,
 } from '@/lib/utils/date-range';
 import {
@@ -15,11 +16,18 @@ import {
   getTopServices,
   getOrdersWithoutInvoice,
 } from '@/lib/stats/calculate';
+import { getExpensesSummary, getMonthlyExpenses } from '@/lib/stats/expenses';
 import RevenueChart from '@/components/stats/RevenueChart';
 import PeriodPicker from '@/components/stats/PeriodPicker';
 import ChangeIndicator from '@/components/stats/ChangeIndicator';
-import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '@/lib/utils/format';
-import type { OrderStatus } from '@/types/database';
+import {
+  formatPrice,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  EXPENSE_CATEGORY_LABELS,
+  EXPENSE_CATEGORY_EMOJIS,
+} from '@/lib/utils/format';
+import type { OrderStatus, ExpenseCategory } from '@/types/database';
 
 type SearchParams = Promise<{
   period?: string;
@@ -52,34 +60,54 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
   const months12 = getLastMonths(12);
   const monthOptions = getMonthOptions(2024);
 
-  const [
-    revenue,
-    statuses,
-    monthly,
-    topClients,
-    topServices,
-    ordersNoInvoice,
-    // Предыдущий период — только выручка для сравнения
-    revenuePrev,
-    ordersNoInvoicePrev,
-  ] = await Promise.all([
-    getRevenueStats(supabase, user!.id, range.from, range.to),
-    getStatusBreakdown(supabase, user!.id, range.from, range.to),
-    getMonthlyRevenue(
-      supabase,
-      user!.id,
-      months12.map(m => ({ from: m.from, to: m.to }))
-    ),
-    getTopClients(supabase, user!.id, range.from, range.to),
-    getTopServices(supabase, user!.id, range.from, range.to),
-    getOrdersWithoutInvoice(supabase, user!.id, range.from, range.to),
-    previousRange
-      ? getRevenueStats(supabase, user!.id, previousRange.from, previousRange.to)
-      : Promise.resolve({ total: 0, invoicesCount: 0, avgCheck: 0 }),
-    previousRange
-      ? getOrdersWithoutInvoice(supabase, user!.id, previousRange.from, previousRange.to)
-      : Promise.resolve([]),
-  ]);
+  const fromDate = toDateOnly(range.from);
+const toDate = toDateOnly(range.to);
+const prevFromDate = previousRange ? toDateOnly(previousRange.from) : fromDate;
+const prevToDate = previousRange ? toDateOnly(previousRange.to) : toDate;
+
+const [
+  revenue,
+  statuses,
+  monthly,
+  topClients,
+  topServices,
+  ordersNoInvoice,
+  revenuePrev,
+  ordersNoInvoicePrev,
+  expenses,
+  expensesPrev,
+  monthlyExpenses,
+] = await Promise.all([
+  getRevenueStats(supabase, user!.id, range.from, range.to),
+  getStatusBreakdown(supabase, user!.id, range.from, range.to),
+  getMonthlyRevenue(
+    supabase,
+    user!.id,
+    months12.map(m => ({ from: m.from, to: m.to }))
+  ),
+  getTopClients(supabase, user!.id, range.from, range.to),
+  getTopServices(supabase, user!.id, range.from, range.to),
+  getOrdersWithoutInvoice(supabase, user!.id, range.from, range.to),
+  previousRange
+    ? getRevenueStats(supabase, user!.id, previousRange.from, previousRange.to)
+    : Promise.resolve({ total: 0, invoicesCount: 0, avgCheck: 0 }),
+  previousRange
+    ? getOrdersWithoutInvoice(supabase, user!.id, previousRange.from, previousRange.to)
+    : Promise.resolve([]),
+  getExpensesSummary(supabase, user!.id, fromDate, toDate),
+  previousRange
+    ? getExpensesSummary(supabase, user!.id, prevFromDate, prevToDate)
+    : Promise.resolve({ total: 0, taxDeductible: 0, count: 0, byCategory: {} as Record<ExpenseCategory, number> }),
+  getMonthlyExpenses(
+    supabase,
+    user!.id,
+    months12.map(m => ({ from: m.from, to: m.to }))
+  ),
+]);
+
+// Прибыль
+const profit = revenue.total - expenses.total;
+const profitPrev = revenuePrev.total - expensesPrev.total;
 
   const statusOrder: OrderStatus[] = ['new', 'in_progress', 'completed', 'canceled'];
   const totalOrders = Object.values(statuses).reduce((a, b) => a + b, 0);
@@ -148,6 +176,56 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
             : 'bg-white border-neutral-200'
         }`}>
           <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Без счёта</div>
+          {/* Финансовая сводка */}
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💰 Доход</div>
+    <div className="text-2xl font-bold text-green-700">{formatPrice(revenue.total)}</div>
+    {previousRange && (
+      <ChangeIndicator
+        current={revenue.total}
+        previous={revenuePrev.total}
+        label="vs. прошлый"
+      />
+    )}
+  </div>
+
+  <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-xl p-5">
+    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💸 Расходы</div>
+    <div className="text-2xl font-bold text-rose-700">{formatPrice(expenses.total)}</div>
+    <div className="text-xs text-neutral-500 mt-1">
+      Из них к вычету: <span className="font-semibold">{formatPrice(expenses.taxDeductible)}</span>
+    </div>
+    {previousRange && (
+      <ChangeIndicator
+        current={expenses.total}
+        previous={expensesPrev.total}
+        higherIsBetter={false}
+        label="vs. прошлый"
+      />
+    )}
+  </div>
+
+  <div className={`border rounded-xl p-5 ${
+    profit >= 0
+      ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+      : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200'
+  }`}>
+    <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">
+      {profit >= 0 ? '📈 Прибыль' : '📉 Убыток'}
+    </div>
+    <div className={`text-2xl font-bold ${profit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+      {formatPrice(Math.abs(profit))}
+    </div>
+    {previousRange && (
+      <ChangeIndicator
+        current={profit}
+        previous={profitPrev}
+        label="vs. прошлый"
+      />
+    )}
+  </div>
+</div>
           <div className={`text-2xl font-bold ${
             ordersNoInvoice.length > 0 ? 'text-amber-700' : ''
           }`}>
@@ -205,7 +283,51 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           </div>
         )}
       </div>
+{/* Расходы по категориям */}
+{expenses.total > 0 && (
+  <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-sm font-medium text-neutral-500">
+        💸 Расходы по категориям <span className="text-neutral-400">· {formatPrice(expenses.total)}</span>
+      </h2>
+      <Link
+        href="/expenses"
+        className="text-xs text-blue-700 hover:text-blue-900 font-medium"
+      >
+        Подробнее →
+      </Link>
+    </div>
 
+    <div className="space-y-2">
+      {(Object.entries(expenses.byCategory) as Array<[ExpenseCategory, number]>)
+        .filter(([, amount]) => amount > 0)
+        .sort(([, a], [, b]) => b - a)
+        .map(([cat, amount]) => {
+          const pct = expenses.total > 0 ? (amount / expenses.total) * 100 : 0;
+          return (
+            <div key={cat}>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="flex items-center gap-1">
+                  <span>{EXPENSE_CATEGORY_EMOJIS[cat]}</span>
+                  <span className="text-neutral-700">{EXPENSE_CATEGORY_LABELS[cat]}</span>
+                </span>
+                <span className="font-semibold">
+                  {formatPrice(amount)}{' '}
+                  <span className="text-xs text-neutral-500 font-normal">({Math.round(pct)}%)</span>
+                </span>
+              </div>
+              <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-rose-400 rounded-full transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+    </div>
+  </div>
+)}
       {/* Ожидают счёт */}
       {ordersNoInvoice.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">

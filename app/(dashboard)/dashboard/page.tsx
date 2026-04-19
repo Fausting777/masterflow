@@ -1,3 +1,5 @@
+import { getExpensesSummary } from '@/lib/stats/expenses';
+import { toDateOnly } from '@/lib/utils/date-range';
 import InvoiceBadges from '@/components/orders/InvoiceBadges';
 import { getRange } from '@/lib/utils/date-range';
 import { getRevenueStats } from '@/lib/stats/calculate';
@@ -38,19 +40,32 @@ const monthStats = await getRevenueStats(
   monthRange.from,
   monthRange.to
 );
+// Расходы за текущий месяц
+const monthExpenses = await getExpensesSummary(
+  supabase,
+  user!.id,
+  toDateOnly(monthRange.from),
+  toDateOnly(monthRange.to)
+);
+const monthProfit = monthStats.total - monthExpenses.total;
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-1">Рабочий стол</h1>
       <p className="text-sm text-neutral-500 mb-6">{user!.email}</p>
 {/* Финансы за месяц */}
 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-4">
-  <div className="flex items-center justify-between mb-3">
-    <div>
+  <div className="flex items-start justify-between mb-3 gap-3">
+    <div className="min-w-0">
       <div className="text-xs text-neutral-500 uppercase tracking-wide">
-        Выручка за {monthRange.label}
+        {monthRange.label}
       </div>
-      <div className="text-3xl font-bold mt-1">
-        {formatPrice(monthStats.total)}
+      <div className={`text-3xl font-bold mt-1 ${
+        monthProfit >= 0 ? 'text-blue-900' : 'text-orange-700'
+      }`}>
+        {formatPrice(monthProfit)}
+      </div>
+      <div className="text-xs text-neutral-500 mt-0.5">
+        {monthProfit >= 0 ? 'Прибыль' : 'Убыток'} за месяц
       </div>
     </div>
     <Link
@@ -60,14 +75,18 @@ const monthStats = await getRevenueStats(
       Подробнее →
     </Link>
   </div>
-  <div className="flex gap-4 text-xs text-neutral-600 pt-3 border-t border-blue-200">
+  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-blue-200">
     <div>
-      <span className="text-neutral-500">Счетов: </span>
-      <span className="font-semibold">{monthStats.invoicesCount}</span>
+      <div className="text-xs text-neutral-500">💰 Доход</div>
+      <div className="text-sm font-semibold text-green-700">{formatPrice(monthStats.total)}</div>
     </div>
     <div>
-      <span className="text-neutral-500">Средний чек: </span>
-      <span className="font-semibold">{formatPrice(monthStats.avgCheck)}</span>
+      <div className="text-xs text-neutral-500">💸 Расход</div>
+      <div className="text-sm font-semibold text-rose-700">{formatPrice(monthExpenses.total)}</div>
+    </div>
+    <div>
+      <div className="text-xs text-neutral-500">Счетов</div>
+      <div className="text-sm font-semibold">{monthStats.invoicesCount}</div>
     </div>
   </div>
 </div>

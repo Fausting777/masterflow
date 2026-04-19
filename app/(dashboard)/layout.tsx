@@ -38,6 +38,9 @@ export default async function DashboardLayout({
             <Link href="/invoices" className="text-neutral-700 hover:text-blue-600">
   Счета
 </Link>
+<Link href="/expenses" className="text-neutral-700 hover:text-blue-600">
+  Расходы
+</Link>
             <Link href="/clients" className="text-neutral-700 hover:text-blue-600">
               Клиенты
             </Link>

@@ -17,8 +17,10 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "15mb",
     },
   },
-  // Пустой объект — формально сигнализирует Turbopack-у, что конфиг есть
   turbopack: {},
+  outputFileTracingIncludes: {
+    '/orders/**': ['./public/fonts/**/*'],
+  },
 };
 
 export default withSerwist(nextConfig);

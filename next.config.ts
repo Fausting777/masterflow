@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   },
   turbopack: {},
   outputFileTracingIncludes: {
-    '/orders/**': ['./public/fonts/**/*'],
+    "/**/*": ["./public/fonts/**/*"],
   },
 };
 

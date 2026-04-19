@@ -52,3 +52,11 @@ export function parsePriceInput(raw: string): number | null {
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.round(n * 100) / 100;
 }
+import type { PaymentMethod } from '@/types/database';
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: 'Barzahlung',
+  transfer: 'Überweisung',
+  ec_card: 'EC-Karte',
+  paypal: 'PayPal',
+};

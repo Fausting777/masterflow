@@ -11,6 +11,7 @@ export type OrderInput = {
   order_address: string;
   scheduled_at: string;
   service_date: string;          // ← новое
+  payment_method: string;        // ← новое
 };
 
 export type OrderValidationErrors = Partial<Record<keyof OrderInput, string>>;
@@ -55,6 +56,12 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
   if (data.service_date && Number.isNaN(Date.parse(data.service_date))) {
     errors.service_date = 'Некорректная дата';
   }
+if (
+  data.payment_method &&
+  !['cash', 'transfer', 'ec_card', 'paypal'].includes(data.payment_method)
+) {
+  errors.payment_method = 'Некорректный способ оплаты';
+}
 
   return errors;
 }
@@ -77,5 +84,6 @@ export function normalizeOrderInput(data: OrderInput) {
     order_address: clean(data.order_address),
     scheduled_at: data.scheduled_at ? new Date(data.scheduled_at).toISOString() : null,
     service_date: data.service_date ? new Date(data.service_date).toISOString() : null,
+    payment_method: data.payment_method.trim() || null,    // ← новое
   };
 }

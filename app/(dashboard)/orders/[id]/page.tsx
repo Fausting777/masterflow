@@ -15,6 +15,7 @@ import {
   formatDateTime,
   STATUS_LABELS,
   STATUS_COLORS,
+  PAYMENT_METHOD_LABELS,      // ← новое
 } from '@/lib/utils/format';
 import type {
   Order,
@@ -182,6 +183,12 @@ export default async function OrderPage({
               } />
             )}
             <Row label="Цена" value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
+            {o.payment_method && (
+  <Row
+    label="Способ оплаты"
+    value={PAYMENT_METHOD_LABELS[o.payment_method]}
+  />
+)}
             <Row label="Адрес работы" value={o.order_address ?? client?.address ?? '—'} />
             <Row label="Запланирован" value={formatDateTime(o.scheduled_at)} />
             <Row

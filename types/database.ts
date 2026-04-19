@@ -3,6 +3,7 @@
 
 export type OrderStatus = 'new' | 'in_progress' | 'completed' | 'canceled';
 export type PhotoType = 'before' | 'after';
+export type PaymentMethod = 'cash' | 'transfer' | 'ec_card' | 'paypal';
 
 export interface Profile {
   id: string;
@@ -63,6 +64,7 @@ export interface Order {
   invoice_number: string | null;
   invoice_issued_at: string | null;
   service_date: string | null;
+   payment_method: PaymentMethod | null;    // ← новое, поставь рядом с другими полями
   invoice_sent_at: string | null;    // ← новое
   invoice_sent_to: string | null;    // ← новое
   deleted_at: string | null;

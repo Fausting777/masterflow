@@ -33,6 +33,7 @@ export type InvoiceData = {
     price: number | null;
     description: string | null;
     order_address: string | null;
+    payment_method: 'cash' | 'transfer' | 'ec_card' | 'paypal' | null;   // ← новое
   };
   signature: Uint8Array | null;
   photosBefore: Uint8Array[];
@@ -289,20 +290,27 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     y -= 25;
   }
 
-  // ===================== УСЛОВИЯ ОПЛАТЫ =====================
-  ensureSpace(60);
-  drawText('Zahlungsbedingungen', margin, bold, 10);
+  // ===================== ZAHLUNGSART =====================
+if (data.order.payment_method) {
+  const PAYMENT_LABELS: Record<string, string> = {
+    cash: 'Barzahlung',
+    transfer: 'Überweisung',
+    ec_card: 'EC-Karte',
+    paypal: 'PayPal',
+  };
+  const label = PAYMENT_LABELS[data.order.payment_method] ?? data.order.payment_method;
+
+  ensureSpace(40);
+  drawText('Zahlungsart', margin, bold, 10);
   y -= 14;
-  drawText(
-    'Bitte überweisen Sie den Rechnungsbetrag innerhalb von 14 Tagen auf das unten genannte Konto.',
-    margin, regular, 9, COLORS.muted
-  );
+  drawText(label, margin, regular, 10, COLORS.text);
   y -= 20;
+}
 
   // ===================== ПОДПИСЬ =====================
   if (data.signature) {
     ensureSpace(120);
-    drawText('Unterschrift des Kunden / Подпись клиента', margin, bold, 9, COLORS.muted);
+    drawText('Unterschrift des Kunden', margin, bold, 9, COLORS.muted);
     y -= 8;
     try {
       const sig = await doc.embedPng(data.signature);
@@ -368,8 +376,8 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     y -= 10;
   }
 
-  await drawPhotoGrid('Fotos vor der Arbeit / Фото до', data.photosBefore);
-  await drawPhotoGrid('Fotos nach der Arbeit / Фото после', data.photosAfter);
+  await drawPhotoGrid('Fotos vor der Arbeit', data.photosBefore);
+  await drawPhotoGrid('Fotos nach der Arbeit', data.photosAfter);
 
   // ===================== ФУТЕР НА ВСЕХ СТРАНИЦАХ =====================
   const pages = doc.getPages();

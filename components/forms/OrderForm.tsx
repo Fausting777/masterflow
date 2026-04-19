@@ -18,6 +18,7 @@ type Props = {
     order_address?: string | null;
     scheduled_at?: string | null;
     service_date?: string | null;    // ← новое
+    payment_method?: string | null;    // ← новое
   };
   cancelHref: string;
   submitLabel: string;
@@ -55,6 +56,7 @@ export default function OrderForm({
     order_address: initial?.order_address ?? '',
     scheduled_at: toDateTimeLocal(initial?.scheduled_at),
     service_date: toDateTimeLocal(initial?.service_date),    // ← новое
+    payment_method: initial?.payment_method ?? '',    // ← новое
   };
 
   // Режим услуги: из каталога или кастомная
@@ -248,6 +250,29 @@ const [useQuickClient, setUseQuickClient] = useState(
   </p>
 </div>
 
+<div>
+  <label htmlFor="payment_method" className="block text-sm font-medium mb-1">
+    Способ оплаты
+  </label>
+  <select
+    id="payment_method"
+    name="payment_method"
+    defaultValue={v.payment_method}
+    className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="">— не выбрано —</option>
+    <option value="cash">Barzahlung (наличные)</option>
+    <option value="transfer">Überweisung (банковский перевод)</option>
+    <option value="ec_card">EC-Karte (карта)</option>
+    <option value="paypal">PayPal</option>
+  </select>
+  {state.errors?.payment_method && (
+    <p className="text-xs text-red-600 mt-1">{state.errors.payment_method}</p>
+  )}
+  <p className="text-xs text-neutral-500 mt-1">
+    Отобразится на PDF-счёте как Zahlungsart.
+  </p>
+</div>
       <div>
         <label htmlFor="description" className="block text-sm font-medium mb-1">
           Описание работы

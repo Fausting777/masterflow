@@ -23,6 +23,7 @@ export type OrderFormState = {
     order_address: string;
     scheduled_at: string;
     service_date: string;     // ← новое
+    payment_method: string;      // ← новое
   };
 };
 
@@ -37,6 +38,7 @@ function readFormData(formData: FormData): OrderFormState['values'] & object {
     order_address: String(formData.get('order_address') ?? ''),
     scheduled_at: String(formData.get('scheduled_at') ?? ''),
     service_date: String(formData.get('service_date') ?? ''),   // ← новое
+     payment_method: String(formData.get('payment_method') ?? ''),   // ← новое
   };
 }
 
@@ -70,6 +72,7 @@ export async function createOrderAction(
         order_address: normalized.order_address,
         scheduled_at: normalized.scheduled_at,
         service_date: normalized.service_date,     // ← новое
+        payment_method: normalized.payment_method,     // ← новое
       })
       .select('id')
       .single();
@@ -94,6 +97,7 @@ export async function createOrderAction(
     p_order_address: normalized.order_address,
     p_scheduled_at: normalized.scheduled_at,
    p_service_date: normalized.service_date,   // ← было null, стало из формы
+   p_payment_method: normalized.payment_method,    // ← новое
   });
 
   if (error) {

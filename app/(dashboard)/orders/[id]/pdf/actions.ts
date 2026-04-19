@@ -166,6 +166,7 @@ export async function generatePdfAction(orderId: string): Promise<{
       price: servicePrice,
       description: order.description,
       order_address: order.order_address,
+      payment_method: order.payment_method,     // ← новое
     },
     signature,
     photosBefore: beforePhotos,
@@ -216,16 +217,22 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
 
   const { data: order } = await supabase
     .from('orders')
-    .select('pdf_file_path')
+    .select('pdf_file_path, invoice_number')
     .eq('id', orderId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (!order?.pdf_file_path) return { url: null, error: 'PDF не создан' };
 
+  const filename = order.invoice_number
+    ? `Rechnung-${order.invoice_number}.pdf`
+    : `Rechnung-${orderId.slice(0, 8)}.pdf`;
+
   const { data, error } = await supabase.storage
     .from('order-pdfs')
-    .createSignedUrl(order.pdf_file_path, 300);
+    .createSignedUrl(order.pdf_file_path, 300, {
+      download: filename,
+    });
 
   if (error || !data) return { url: null, error: error?.message ?? 'Ошибка' };
   return { url: data.signedUrl };

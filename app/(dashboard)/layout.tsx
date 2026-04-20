@@ -1,9 +1,9 @@
+import MobileShell from '@/components/ui/MobileShell';
 import InstallButton from '@/components/ui/InstallButton';
 import IosInstallHint from '@/components/ui/IosInstallHint';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import MobileNav from '@/components/ui/MobileNav';
 
 export default async function DashboardLayout({
   children,
@@ -36,11 +36,11 @@ export default async function DashboardLayout({
               Заказы
             </Link>
             <Link href="/invoices" className="text-neutral-700 hover:text-blue-600">
-  Счета
-</Link>
-<Link href="/expenses" className="text-neutral-700 hover:text-blue-600">
-  Расходы
-</Link>
+              Счета
+            </Link>
+            <Link href="/expenses" className="text-neutral-700 hover:text-blue-600">
+              Расходы
+            </Link>
             <Link href="/clients" className="text-neutral-700 hover:text-blue-600">
               Клиенты
             </Link>
@@ -48,11 +48,11 @@ export default async function DashboardLayout({
               Услуги
             </Link>
             <Link href="/stats" className="text-neutral-700 hover:text-blue-600">
-  Статистика
-</Link>
+              Статистика
+            </Link>
             <Link href="/settings" className="text-neutral-700 hover:text-blue-600">
-  Настройки
-</Link>
+              Настройки
+            </Link>
             <span className="text-neutral-300">|</span>
             <form action="/auth/signout" method="post">
               <button
@@ -63,13 +63,19 @@ export default async function DashboardLayout({
               </button>
             </form>
           </nav>
-
-          {/* Мобильное меню */}
-          <MobileNav userEmail={user.email} />
         </div>
       </header>
-      <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
-      <InstallButton />           {/* ← новое */}
+
+      {/* Контент — на мобилке добавлен большой padding снизу под таб-бар */}
+      <main className="max-w-5xl mx-auto px-4 py-6 pb-24 sm:pb-6">
+        {children}
+      </main>
+
+      {/* Мобильные элементы — таб-бар, FAB, "Ещё" */}
+      <MobileShell />
+
+      {/* PWA */}
+      <InstallButton />
       <IosInstallHint />
     </div>
   );

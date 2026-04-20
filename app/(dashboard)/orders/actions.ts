@@ -148,9 +148,9 @@ export async function updateOrderAction(
   const normalized = normalizeOrderInput(raw);
 
   // Убираем client_quick_name — его нет в таблице orders
-  const { client_quick_name, ...updateData } = normalized;
-  void client_quick_name;
-  void client_quick_phone;
+ const { client_quick_name, client_quick_phone, ...updateData } = normalized;
+void client_quick_name;
+void client_quick_phone;
 
   // Дополнительная страховка — не даём затереть client_id
   if (!updateData.client_id) {

@@ -127,7 +127,7 @@ export async function changePasswordAction(
   // Меняем пароль — Supabase сам проверит текущий
 const { error: updateError } = await supabase.auth.updateUser({
   password: newPassword,
-  // @ts-expect-error — current_password поддерживается Supabase, но нет в типах supabase-js
+  
   current_password: currentPassword,
 });
 

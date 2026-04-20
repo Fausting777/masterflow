@@ -1,3 +1,4 @@
+import PasswordChangeForm from '@/components/forms/PasswordChangeForm';
 import { createClient } from '@/lib/supabase/server';
 import ProfileForm from '@/components/forms/ProfileForm';
 
@@ -36,6 +37,14 @@ export default async function SettingsPage() {
           }}
         />
       </div>
+      {/* Блок безопасности */}
+<h2 className="text-lg font-semibold mt-8 mb-3">Безопасность</h2>
+<div className="bg-white border border-neutral-200 rounded-xl p-5 max-w-md">
+  <p className="text-sm text-neutral-600 mb-4">
+    Смена пароля для входа в MasterFlow. После смены вы останетесь залогинены.
+  </p>
+  <PasswordChangeForm />
+</div>
 
       <div className="mt-4 p-4 rounded-lg bg-neutral-100 text-xs text-neutral-600">
         <strong>Email:</strong> {user!.email}

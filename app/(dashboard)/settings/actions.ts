@@ -69,3 +69,78 @@ export async function updateProfileAction(
   revalidatePath('/settings');
   return { success: true, values: raw };
 }
+// ==================================================================
+// СМЕНА ПАРОЛЯ
+// ==================================================================
+
+export type PasswordChangeState = {
+  formError?: string;
+  errors?: {
+    currentPassword?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  };
+  success?: boolean;
+};
+
+export async function changePasswordAction(
+  _prevState: PasswordChangeState,
+  formData: FormData
+): Promise<PasswordChangeState> {
+  const currentPassword = String(formData.get('currentPassword') ?? '');
+  const newPassword = String(formData.get('newPassword') ?? '');
+  const confirmPassword = String(formData.get('confirmPassword') ?? '');
+
+  // Базовая валидация
+  const errors: PasswordChangeState['errors'] = {};
+
+  if (!currentPassword) {
+    errors.currentPassword = 'Укажите текущий пароль';
+  }
+
+  if (!newPassword) {
+    errors.newPassword = 'Укажите новый пароль';
+  } else if (newPassword.length < 8) {
+    errors.newPassword = 'Минимум 8 символов';
+  } else if (newPassword.length > 72) {
+    errors.newPassword = 'Максимум 72 символа';
+  }
+
+  if (newPassword && newPassword !== confirmPassword) {
+    errors.confirmPassword = 'Пароли не совпадают';
+  }
+
+  if (newPassword && currentPassword && newPassword === currentPassword) {
+    errors.newPassword = 'Новый пароль должен отличаться от текущего';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return { errors };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !user.email) {
+    return { formError: 'Не авторизован' };
+  }
+
+  // Меняем пароль — Supabase сам проверит текущий
+const { error: updateError } = await supabase.auth.updateUser({
+  password: newPassword,
+  // @ts-expect-error — current_password поддерживается Supabase, но нет в типах supabase-js
+  current_password: currentPassword,
+});
+
+if (updateError) {
+  // Определяем тип ошибки по сообщению
+  const msg = updateError.message.toLowerCase();
+  if (msg.includes('invalid') || msg.includes('incorrect') || msg.includes('wrong')) {
+    return {
+      errors: { currentPassword: 'Неверный текущий пароль' },
+    };
+  }
+  return { formError: `Ошибка: ${updateError.message}` };
+}
+
+return { success: true };
+}

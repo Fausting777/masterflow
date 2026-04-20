@@ -1,5 +1,5 @@
 // types/database.ts
-// Типы под схему Supabase. Обновляй вручную, если меняешь схему.
+// Types for the Supabase schema. Update when the schema changes.
 
 export type OrderStatus = 'new' | 'in_progress' | 'completed' | 'canceled';
 export type PhotoType = 'before' | 'after';
@@ -19,7 +19,7 @@ export interface Profile {
   is_kleinunternehmer: boolean;
   iban: string | null;
   bank_name: string | null;
-  business_email: string | null;      // ← новое
+  business_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,10 +29,10 @@ export interface Client {
   user_id: string;
   full_name: string;
   phone: string | null;
-  email: string | null;           // ← новое
+  email: string | null;
   address: string | null;
-  postal_code: string | null;    // ← новое
-  city: string | null;           // ← новое
+  postal_code: string | null;
+  city: string | null;
   note: string | null;
   created_at: string;
   updated_at: string;
@@ -51,6 +51,8 @@ export interface Service {
 export interface Order {
   id: string;
   user_id: string;
+  correction_of_order_id: string | null;
+  correction_reason: string | null;
   client_id: string;
   service_id: string | null;
   custom_service_title: string | null;
@@ -64,10 +66,13 @@ export interface Order {
   pdf_file_path: string | null;
   invoice_number: string | null;
   invoice_issued_at: string | null;
+  invoice_locked_at: string | null;
+  invoice_version: number;
+  invoice_snapshot_json: unknown | null;
   service_date: string | null;
-   payment_method: PaymentMethod | null;    // ← новое, поставь рядом с другими полями
-  invoice_sent_at: string | null;    // ← новое
-  invoice_sent_to: string | null;    // ← новое
+  payment_method: PaymentMethod | null;
+  invoice_sent_at: string | null;
+  invoice_sent_to: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -91,14 +96,10 @@ export interface ActivityLog {
   created_at: string;
 }
 
-// Удобный тип для orders_with_client view
 export interface OrderWithClient extends Omit<Order, never> {
   client_name: string;
   client_phone: string | null;
 }
-// ==================================================================
-// РАСХОДЫ (Expenses)
-// ==================================================================
 
 export type ExpenseCategory =
   | 'material'
@@ -118,7 +119,7 @@ export interface Expense {
   amount: number;
   description: string | null;
   vendor: string | null;
-  expense_date: string;  // ISO date (YYYY-MM-DD)
+  expense_date: string;
   receipt_file_path: string | null;
   tax_deductible: boolean;
   created_at: string;

@@ -46,7 +46,7 @@ export default function PhotoUploader({ orderId, photoType, label }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           capture="environment"
           multiple
           onChange={handleChange}

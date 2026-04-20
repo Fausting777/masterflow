@@ -29,13 +29,16 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
 
   function handlePermanentDelete() {
     if (hasInvoice) {
-      setError('Нельзя: по заказу выставлен счёт, §14 UStG требует 10 лет хранения');
+      setError('Нельзя: по заказу уже выпущен счет, такой документ должен храниться по правилам бухгалтерского учета.');
       return;
     }
-    if (!window.confirm(
-      'ОКОНЧАТЕЛЬНО удалить заказ со всеми фото и файлами?\n\n' +
-      'Это действие нельзя отменить.'
-    )) return;
+    if (
+      !window.confirm(
+        'Окончательно удалить заказ со всеми фото и файлами?\n\nЭто действие нельзя отменить.'
+      )
+    ) {
+      return;
+    }
     setError(null);
     startTransition(async () => {
       try {
@@ -53,17 +56,17 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
           type="button"
           onClick={handleRestore}
           disabled={isPending}
-          className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
+          className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
         >
-          {isPending ? 'Восстановление...' : '↻ Восстановить'}
+          {isPending ? 'Восстановление...' : 'Восстановить'}
         </button>
 
         <button
           type="button"
           onClick={handlePermanentDelete}
           disabled={isPending || hasInvoice}
-          title={hasInvoice ? 'Нельзя: есть выставленный счёт' : ''}
-          className="rounded-lg border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2.5 text-sm font-medium"
+          title={hasInvoice ? 'Нельзя: есть выставленный счет' : ''}
+          className="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Удалить навсегда
         </button>
@@ -71,8 +74,7 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
 
       {hasInvoice && (
         <p className="text-xs text-neutral-500">
-          🔒 Этот заказ защищён от окончательного удаления, так как по нему выставлен счёт
-          (№ {/* purely informational */}).
+          Этот заказ защищен от окончательного удаления, потому что по нему уже существует счет или архивный документ.
         </p>
       )}
 

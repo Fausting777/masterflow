@@ -40,7 +40,6 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
   }
 
   function handlePermanentDelete() {
-    if (!confirm('Удалить окончательно? Это действие нельзя отменить. Чек тоже будет удалён.')) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -53,14 +52,12 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
 
   if (isDeleted) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-        <div className="flex items-start gap-2 mb-3">
-          <span className="text-xl">🗑</span>
-          <div>
-            <div className="font-medium text-red-900">Расход в корзине</div>
-            <div className="text-xs text-red-700 mt-0.5">
-              Нажми &quot;Восстановить&quot; чтобы вернуть его в список
-            </div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <div className="mb-3">
+          <div className="font-medium text-amber-900">Расход в корзине</div>
+          <div className="mt-0.5 text-xs text-amber-800">
+            Расход можно восстановить, но окончательное удаление отключено из-за требований хранения бухгалтерских
+            документов.
           </div>
         </div>
 
@@ -69,21 +66,21 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
             type="button"
             onClick={handleRestore}
             disabled={isPending}
-            className="flex-1 rounded-lg bg-white border border-red-300 text-red-700 hover:bg-red-100 font-medium py-2 text-sm disabled:opacity-50"
+            className="flex-1 rounded-lg border border-amber-300 bg-white py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
           >
-            ↻ Восстановить
+            Восстановить
           </button>
           <button
             type="button"
             onClick={handlePermanentDelete}
             disabled={isPending}
-            className="rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 text-sm disabled:opacity-50"
+            className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
           >
-            Удалить навсегда
+            Почему нельзя удалить
           </button>
         </div>
 
-        {error && <p className="text-xs text-red-700 mt-2">{error}</p>}
+        {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
       </div>
     );
   }
@@ -94,11 +91,11 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
         type="button"
         onClick={handleSoftDelete}
         disabled={isPending}
-        className="w-full rounded-lg border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 font-medium py-2.5 text-sm disabled:opacity-50"
+        className="w-full rounded-lg border border-red-300 bg-red-50 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
       >
-        🗑 Удалить расход (в корзину)
+        Удалить расход в корзину
       </button>
-      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

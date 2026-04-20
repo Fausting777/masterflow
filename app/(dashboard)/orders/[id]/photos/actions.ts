@@ -1,11 +1,12 @@
 'use server';
 
+import { validateUploadedFile } from '@/lib/security/file-validation';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { PhotoType } from '@/types/database';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
+const PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 export async function uploadPhotoAction(formData: FormData): Promise<{
   ok: boolean;
@@ -19,36 +20,46 @@ export async function uploadPhotoAction(formData: FormData): Promise<{
   if (photoType !== 'before' && photoType !== 'after') {
     return { ok: false, error: 'Неверный тип фото' };
   }
-  if (!file || file.size === 0) return { ok: false, error: 'Файл не выбран' };
-  if (file.size > MAX_FILE_SIZE) return { ok: false, error: 'Файл слишком большой (макс. 10 MB)' };
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return { ok: false, error: 'Разрешены только изображения' };
+
+  const validation = await validateUploadedFile(file, {
+    allowedMimeTypes: PHOTO_MIME_TYPES,
+    maxBytes: MAX_FILE_SIZE,
+  });
+  if (!validation.ok) {
+    if (validation.error === 'missing') {
+      return { ok: false, error: 'Файл не выбран' };
+    }
+    if (validation.error === 'too_large') {
+      return { ok: false, error: 'Файл слишком большой (макс. 10 MB)' };
+    }
+    return { ok: false, error: 'Разрешены только JPEG, PNG и WebP' };
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Не авторизован' };
 
-  // Проверка, что заказ принадлежит пользователю (страховка поверх RLS)
   const { data: order } = await supabase
     .from('orders')
-    .select('id')
+    .select('id, invoice_number, invoice_locked_at')
     .eq('id', orderId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (!order) return { ok: false, error: 'Заказ не найден' };
+  if (order.invoice_number || order.invoice_locked_at) {
+    return { ok: false, error: 'После выпуска счета нельзя менять фото, влияющие на архивный PDF' };
+  }
 
-  // Формируем путь: {user_id}/{order_id}/{before|after}/{timestamp}-{name}.ext
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${validation.extension}`;
   const filePath = `${user.id}/${orderId}/${photoType}/${filename}`;
 
-  // Загружаем в Storage
   const { error: uploadError } = await supabase.storage
     .from('order-photos')
-    .upload(filePath, file, {
-      contentType: file.type,
+    .upload(filePath, file!, {
+      contentType: validation.detectedMimeType,
       cacheControl: '3600',
       upsert: false,
     });
@@ -57,7 +68,6 @@ export async function uploadPhotoAction(formData: FormData): Promise<{
     return { ok: false, error: `Ошибка загрузки: ${uploadError.message}` };
   }
 
-  // Сохраняем запись в БД
   const { error: dbError } = await supabase.from('order_photos').insert({
     order_id: orderId,
     user_id: user.id,
@@ -66,7 +76,6 @@ export async function uploadPhotoAction(formData: FormData): Promise<{
   });
 
   if (dbError) {
-    // Откатываем: удаляем загруженный файл
     await supabase.storage.from('order-photos').remove([filePath]);
     return { ok: false, error: `Ошибка БД: ${dbError.message}` };
   }
@@ -80,10 +89,11 @@ export async function deletePhotoAction(photoId: string): Promise<{
   error?: string;
 }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Не авторизован' };
 
-  // Получаем file_path и order_id для удаления
   const { data: photo } = await supabase
     .from('order_photos')
     .select('file_path, order_id')
@@ -93,10 +103,8 @@ export async function deletePhotoAction(photoId: string): Promise<{
 
   if (!photo) return { ok: false, error: 'Фото не найдено' };
 
-  // Удаляем файл из Storage
   await supabase.storage.from('order-photos').remove([photo.file_path]);
 
-  // Удаляем запись из БД
   const { error } = await supabase
     .from('order_photos')
     .delete()

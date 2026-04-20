@@ -1,7 +1,11 @@
 'use server';
 
+import { validateUploadedFile } from '@/lib/security/file-validation';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+
+const MAX_SIGNATURE_SIZE = 2 * 1024 * 1024;
+const SIGNATURE_MIME_TYPES = ['image/png'] as const;
 
 export async function saveSignatureAction(formData: FormData): Promise<{
   ok: boolean;
@@ -11,39 +15,53 @@ export async function saveSignatureAction(formData: FormData): Promise<{
   const file = formData.get('file') as File | null;
 
   if (!orderId) return { ok: false, error: 'Не указан заказ' };
-  if (!file || file.size === 0) return { ok: false, error: 'Пустая подпись' };
-  if (file.size > 2 * 1024 * 1024) return { ok: false, error: 'Файл слишком большой' };
+
+  const validation = await validateUploadedFile(file, {
+    allowedMimeTypes: SIGNATURE_MIME_TYPES,
+    maxBytes: MAX_SIGNATURE_SIZE,
+  });
+  if (!validation.ok) {
+    if (validation.error === 'missing') {
+      return { ok: false, error: 'Пустая подпись' };
+    }
+    if (validation.error === 'too_large') {
+      return { ok: false, error: 'Файл слишком большой' };
+    }
+    return { ok: false, error: 'Подпись должна быть PNG-файлом' };
+  }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Не авторизован' };
 
-  // Проверяем заказ
   const { data: order } = await supabase
     .from('orders')
-    .select('id, signature_file_path')
+    .select('id, signature_file_path, invoice_number, invoice_locked_at')
     .eq('id', orderId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (!order) return { ok: false, error: 'Заказ не найден' };
+  if (order.invoice_number || order.invoice_locked_at) {
+    return { ok: false, error: 'После выпуска счета нельзя менять подпись архивного документа' };
+  }
 
-  // Путь всегда один и тот же — перезаписываем предыдущую подпись
   const filePath = `${user.id}/${orderId}/signature.png`;
 
   const { error: uploadError } = await supabase.storage
     .from('order-signatures')
-    .upload(filePath, file, {
-      contentType: 'image/png',
+    .upload(filePath, file!, {
+      contentType: validation.detectedMimeType,
       cacheControl: '3600',
-      upsert: true, // перезаписать, если была
+      upsert: true,
     });
 
   if (uploadError) {
     return { ok: false, error: `Ошибка загрузки: ${uploadError.message}` };
   }
 
-  // Обновляем orders.signature_file_path
   const { error: updateError } = await supabase
     .from('orders')
     .update({ signature_file_path: filePath })
@@ -63,7 +81,9 @@ export async function deleteSignatureAction(orderId: string): Promise<{
   error?: string;
 }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Не авторизован' };
 
   const { data: order } = await supabase

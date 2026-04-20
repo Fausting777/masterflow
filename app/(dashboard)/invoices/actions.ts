@@ -1,10 +1,11 @@
 'use server';
 
+import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
 import { createClient } from '@/lib/supabase/server';
 
 export type InvoiceExportFilter = {
-  from?: string | null;    // ISO
-  to?: string | null;      // ISO
+  from?: string | null;
+  to?: string | null;
 };
 
 export async function exportInvoicesCsvAction(
@@ -16,13 +17,16 @@ export async function exportInvoicesCsvAction(
   error?: string;
 }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Не авторизован' };
 
-  // Забираем все выставленные счета за период
   let query = supabase
     .from('orders')
-    .select('id, invoice_number, invoice_issued_at, service_date, custom_service_title, service_id, custom_price, client_id, invoice_sent_at, invoice_sent_to')
+    .select(
+      'id, invoice_number, invoice_issued_at, service_date, custom_service_title, service_id, custom_price, client_id, invoice_sent_at, invoice_sent_to, invoice_snapshot_json, correction_of_order_id'
+    )
     .eq('user_id', user.id)
     .is('deleted_at', null)
     .not('invoice_number', 'is', null)
@@ -37,31 +41,41 @@ export async function exportInvoicesCsvAction(
     return { ok: false, error: 'Нет счетов в выбранном периоде' };
   }
 
-  // Подтягиваем клиентов
-  const clientIds = [...new Set(orders.map(o => o.client_id))];
+  const clientIds = [...new Set(orders.map((order) => order.client_id))];
   const { data: clients } = await supabase
     .from('clients')
     .select('id, full_name, phone, email, address, postal_code, city')
     .in('id', clientIds);
-  const clientMap = new Map((clients ?? []).map(c => [c.id, c]));
+  const clientMap = new Map((clients ?? []).map((client) => [client.id, client]));
 
-  // Подтягиваем услуги (для тех, у кого service_id)
-  const serviceIds = [...new Set(orders.filter(o => o.service_id).map(o => o.service_id!))];
+  const serviceIds = [...new Set(orders.filter((order) => order.service_id).map((order) => order.service_id!))];
   const serviceMap = new Map<string, { title: string; default_price: number | null }>();
   if (serviceIds.length > 0) {
     const { data: services } = await supabase
       .from('services')
       .select('id, title, default_price')
       .in('id', serviceIds);
-    for (const s of services ?? []) {
-      serviceMap.set(s.id, { title: s.title, default_price: Number(s.default_price) });
+    for (const service of services ?? []) {
+      serviceMap.set(service.id, {
+        title: service.title,
+        default_price: Number(service.default_price),
+      });
     }
   }
 
-  // Формируем CSV
-  // Разделитель — ";" (стандарт для немецкого Excel), десятичный — "," (немецкий формат)
+  const sourceIds = [...new Set(orders.filter((order) => order.correction_of_order_id).map((order) => order.correction_of_order_id!))];
+  const sourceInvoiceMap = new Map<string, string>();
+  if (sourceIds.length > 0) {
+    const { data: sourceOrders } = await supabase.from('orders').select('id, invoice_number').in('id', sourceIds);
+    for (const sourceOrder of sourceOrders ?? []) {
+      if (sourceOrder.invoice_number) sourceInvoiceMap.set(sourceOrder.id, sourceOrder.invoice_number);
+    }
+  }
+
   const headers = [
+    'Dokumenttyp',
     'Rechnungsnummer',
+    'Korrektur zu',
     'Rechnungsdatum',
     'Leistungsdatum',
     'Kunde',
@@ -76,59 +90,74 @@ export async function exportInvoicesCsvAction(
     'Versendet an',
   ];
 
-  const rows = orders.map(o => {
-    const client = clientMap.get(o.client_id);
-    const service = o.service_id ? serviceMap.get(o.service_id) : null;
-    const title = service?.title ?? o.custom_service_title ?? '';
-    const price = o.custom_price !== null
-      ? Number(o.custom_price)
-      : (service?.default_price ?? 0);
-    const priceStr = price.toFixed(2).replace('.', ','); // немецкий формат
+  const rows = orders.map((order) => {
+    const snapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
+    const client = clientMap.get(order.client_id);
+    const service = order.service_id ? serviceMap.get(order.service_id) : null;
+
+    const fullName = snapshot?.client.full_name ?? client?.full_name ?? '';
+    const phone = snapshot?.client.phone ?? client?.phone ?? '';
+    const address = snapshot?.client.address ?? client?.address ?? '';
+    const postalCode = snapshot?.client.address ? '' : client?.postal_code ?? '';
+    const city = snapshot?.client.address ? '' : client?.city ?? '';
+    const serviceTitle = snapshot?.order.service_title ?? service?.title ?? order.custom_service_title ?? '';
+    const amount =
+      snapshot?.order.price ??
+      (order.custom_price !== null ? Number(order.custom_price) : service?.default_price ?? 0);
+    const amountString = Number(amount ?? 0).toFixed(2).replace('.', ',');
 
     return [
-      o.invoice_number ?? '',
-      o.invoice_issued_at ? new Date(o.invoice_issued_at).toLocaleDateString('de-DE') : '',
-      o.service_date ? new Date(o.service_date).toLocaleDateString('de-DE') : '',
-      client?.full_name ?? '',
-      client?.phone ?? '',
-      client?.email ?? '',
-      client?.address ?? '',
-      client?.postal_code ?? '',
-      client?.city ?? '',
-      title,
-      priceStr,
-      o.invoice_sent_at ? new Date(o.invoice_sent_at).toLocaleDateString('de-DE') : '',
-      o.invoice_sent_to ?? '',
+      order.correction_of_order_id ? 'Korrektur' : 'Rechnung',
+      order.invoice_number ?? '',
+      order.correction_of_order_id ? sourceInvoiceMap.get(order.correction_of_order_id) ?? '' : '',
+      snapshot?.invoice_issued_at
+        ? new Date(snapshot.invoice_issued_at).toLocaleDateString('de-DE')
+        : order.invoice_issued_at
+          ? new Date(order.invoice_issued_at).toLocaleDateString('de-DE')
+          : '',
+      snapshot?.order.service_date
+        ? new Date(snapshot.order.service_date).toLocaleDateString('de-DE')
+        : order.service_date
+          ? new Date(order.service_date).toLocaleDateString('de-DE')
+          : '',
+      fullName,
+      phone,
+      snapshot?.client.full_name ? '' : client?.email ?? '',
+      address,
+      postalCode,
+      city,
+      serviceTitle,
+      amountString,
+      order.invoice_sent_at ? new Date(order.invoice_sent_at).toLocaleDateString('de-DE') : '',
+      order.invoice_sent_to ?? '',
     ];
   });
 
-  // Экранирование: если в ячейке ";" или "\"" или "\n" — оборачиваем в кавычки, внутри кавычек удваиваем "
-  const escape = (v: string) => {
-    if (v.includes(';') || v.includes('"') || v.includes('\n')) {
-      return `"${v.replace(/"/g, '""')}"`;
+  const escape = (value: string) => {
+    if (value.includes(';') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
     }
-    return v;
+    return value;
   };
 
   const lines = [
     headers.map(escape).join(';'),
-    ...rows.map(r => r.map(c => escape(String(c))).join(';')),
+    ...rows.map((row) => row.map((cell) => escape(String(cell))).join(';')),
   ];
 
-  // BOM нужен, чтобы Excel понял UTF-8 с кириллицей и умляутами
   const csv = '\uFEFF' + lines.join('\r\n');
-
-  // Имя файла с меткой периода
   const now = new Date();
-  let label = 'all';
-  if (filter.from && filter.to) {
-    const fromD = new Date(filter.from);
-    const toD = new Date(filter.to);
-    label = `${fromD.toISOString().slice(0, 10)}_${toD.toISOString().slice(0, 10)}`;
-  } else {
-    label = now.toISOString().slice(0, 10);
-  }
-  const filename = `Rechnungen_${label}.csv`;
 
-  return { ok: true, csv, filename };
+  let label = now.toISOString().slice(0, 10);
+  if (filter.from && filter.to) {
+    const fromDate = new Date(filter.from);
+    const toDate = new Date(filter.to);
+    label = `${fromDate.toISOString().slice(0, 10)}_${toDate.toISOString().slice(0, 10)}`;
+  }
+
+  return {
+    ok: true,
+    csv,
+    filename: `Rechnungen_${label}.csv`,
+  };
 }

@@ -14,11 +14,11 @@ async function getMessages() {
     ? {
         missingOrder: 'Auftrag ist nicht angegeben',
         emptySignature: 'Leere Unterschrift',
-        fileTooLarge: 'Datei ist zu groß',
+        fileTooLarge: 'Datei ist zu gross',
         invalidType: 'Die Unterschrift muss eine PNG-Datei sein',
         unauthorized: 'Nicht autorisiert',
         orderNotFound: 'Auftrag nicht gefunden',
-        locked: 'Nach der Rechnungsausgabe darf die Unterschrift des Archivdokuments nicht mehr geändert werden',
+        locked: 'Nach der Quittungsausgabe darf die Unterschrift des Archivdokuments nicht mehr geaendert werden',
         uploadError: 'Upload-Fehler',
       }
     : {
@@ -26,9 +26,9 @@ async function getMessages() {
         emptySignature: 'Пустая подпись',
         fileTooLarge: 'Файл слишком большой',
         invalidType: 'Подпись должна быть PNG-файлом',
-        unauthorized: 'Не авторизован',
+        unauthorized: 'Нет авторизации',
         orderNotFound: 'Заказ не найден',
-        locked: 'После выпуска счета нельзя менять подпись архивного документа',
+        locked: 'После выдачи квитанции нельзя менять подпись архивного документа',
         uploadError: 'Ошибка загрузки',
       };
 }

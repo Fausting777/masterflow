@@ -24,7 +24,7 @@ export async function exportExpensesCsvAction(
     locale === 'de'
       ? {
           unauthorized: 'Nicht autorisiert',
-          empty: 'Keine Ausgaben im gewählten Zeitraum',
+          empty: 'Keine Ausgaben im gewaehlten Zeitraum',
           unknownClient: '—',
           headers: [
             'Datum',
@@ -33,9 +33,11 @@ export async function exportExpensesCsvAction(
             'Beschreibung',
             'Anbieter',
             'Steuerlich absetzbar',
-            'Zugehöriger Auftrag',
-            'Rechnungsnummer',
+            'Zugehoeriger Auftrag',
+            'Quittungsnummer',
             'Beleg vorhanden',
+            'Beleg-Pfad',
+            'Beleg-SHA256',
           ],
           yes: 'Ja',
           no: 'Nein',
@@ -44,7 +46,7 @@ export async function exportExpensesCsvAction(
           filename: 'Ausgaben',
         }
       : {
-          unauthorized: 'Не авторизован',
+          unauthorized: 'Нет авторизации',
           empty: 'Нет расходов в выбранном периоде',
           unknownClient: '—',
           headers: [
@@ -55,8 +57,10 @@ export async function exportExpensesCsvAction(
             'Поставщик',
             'К вычету',
             'Связанный заказ',
-            'Номер счета',
+            'Номер квитанции',
             'Есть чек',
+            'Путь к чеку',
+            'SHA-256 чека',
           ],
           yes: 'Да',
           no: 'Нет',
@@ -64,13 +68,6 @@ export async function exportExpensesCsvAction(
           deductible: 'Из них к вычету',
           filename: 'Расходы',
         };
-
-  if (text.headers.length === 9) {
-    text.headers.push(
-      locale === 'de' ? 'Beleg-Pfad' : 'РџСѓС‚СЊ С‡РµРєР°',
-      locale === 'de' ? 'Beleg-SHA256' : 'SHA-256 С‡РµРєР°'
-    );
-  }
 
   const supabase = await createClient();
   const {

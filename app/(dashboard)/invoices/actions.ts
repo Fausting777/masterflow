@@ -20,7 +20,7 @@ export async function exportInvoicesCsvAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Не авторизован' };
+  if (!user) return { ok: false, error: 'Нет авторизации' };
 
   let query = supabase
     .from('orders')
@@ -38,7 +38,7 @@ export async function exportInvoicesCsvAction(
   const { data: orders, error } = await query;
   if (error) return { ok: false, error: error.message };
   if (!orders || orders.length === 0) {
-    return { ok: false, error: 'Нет счетов в выбранном периоде' };
+    return { ok: false, error: 'Нет квитанций в выбранном периоде' };
   }
 
   const clientIds = [...new Set(orders.map((order) => order.client_id))];
@@ -74,9 +74,9 @@ export async function exportInvoicesCsvAction(
 
   const headers = [
     'Dokumenttyp',
-    'Rechnungsnummer',
+    'Quittungsnummer',
     'Korrektur zu',
-    'Rechnungsdatum',
+    'Quittungsdatum',
     'Leistungsdatum',
     'Kunde',
     'Telefon',
@@ -109,7 +109,7 @@ export async function exportInvoicesCsvAction(
     const amountString = Number(amount ?? 0).toFixed(2).replace('.', ',');
 
     return [
-      order.correction_of_order_id ? 'Korrektur' : 'Rechnung',
+      order.correction_of_order_id ? 'Korrektur' : 'Quittung',
       order.invoice_number ?? '',
       order.correction_of_order_id ? sourceInvoiceMap.get(order.correction_of_order_id) ?? '' : '',
       snapshot?.invoice_issued_at
@@ -162,6 +162,6 @@ export async function exportInvoicesCsvAction(
   return {
     ok: true,
     csv,
-    filename: `Rechnungen_${label}.csv`,
+    filename: `Quittungen_${label}.csv`,
   };
 }

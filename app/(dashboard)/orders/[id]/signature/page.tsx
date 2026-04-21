@@ -19,16 +19,16 @@ export default async function SignaturePage({ params }: { params: Params }) {
           introLine1:
             'Mit meiner Unterschrift bestaetige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
           introLine2:
-            'Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemaess der vereinbarten Zahlungsart.',
+            'Ich erkenne den Quittungsbetrag an und verpflichte mich zur Zahlung gemaess der vereinbarten Zahlungsart.',
         }
       : {
           back: 'Назад к заказу',
           title: 'Подпись клиента',
-          introTitle: 'Подтверждение заказа / выполнения работ',
+          introTitle: 'Подтверждение заказа / выполненных работ',
           introLine1:
             'Моей подписью я подтверждаю, что указанные выше работы выполнены качественно и к моему удовлетворению.',
           introLine2:
-            'Я признаю сумму счета и обязуюсь оплатить ее согласно согласованному способу оплаты.',
+            'Я признаю сумму квитанции и обязуюсь оплатить ее согласно согласованному способу оплаты.',
         };
 
   const supabase = await createClient();

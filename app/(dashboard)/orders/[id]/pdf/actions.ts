@@ -50,18 +50,18 @@ async function getMessages() {
         missingClientAddress: 'Strasse und Hausnummer des Kunden',
         missingClientPostal: 'PLZ des Kunden',
         missingClientCity: 'Stadt des Kunden',
-        fillClient: 'Fuer die Rechnung bitte beim Kunden ausfuellen',
+        fillClient: 'Fuer die Quittung bitte beim Kunden ausfuellen',
         missingPrice: 'Preis des Auftrags ist nicht angegeben',
-        missingSourceInvoice: 'Ausgangsrechnung fuer die Korrektur konnte nicht gefunden werden',
+        missingSourceInvoice: 'Ausgangsquittung fuer die Korrektur konnte nicht gefunden werden',
         unauthorized: 'Nicht autorisiert',
         orderNotFound: 'Auftrag nicht gefunden',
         invoiceLocked:
-          'Die Rechnung wurde bereits erstellt und fixiert. Eine Neugenerierung ueber das Ausgangsdokument ist gesperrt. Fuer Aenderungen ist eine separate Rechnungskorrektur erforderlich.',
-        numberFailed: 'Rechnungsnummer konnte nicht erzeugt werden',
-        snapshotFailed: 'Rechnungssnapshot konnte nicht erstellt werden',
+          'Die Quittung wurde bereits erstellt und fixiert. Eine Neugenerierung ueber das Ausgangsdokument ist gesperrt. Fuer Aenderungen ist eine separate Quittungskorrektur erforderlich.',
+        numberFailed: 'Quittungsnummer konnte nicht erzeugt werden',
+        snapshotFailed: 'Quittungssnapshot konnte nicht erstellt werden',
         generationError: 'Fehler bei der PDF-Erzeugung',
-        correctionIssued: 'Rechnungskorrektur',
-        invoiceIssued: 'Rechnung',
+        correctionIssued: 'Quittungskorrektur',
+        invoiceIssued: 'Quittung',
         wasIssued: 'wurde erstellt und fixiert',
         pdfMissing: 'PDF wurde nicht erstellt',
         genericError: 'Fehler',
@@ -77,21 +77,21 @@ async function getMessages() {
         missingClientPostal: 'PLZ \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
         missingClientCity: '\u0413\u043e\u0440\u043e\u0434 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
         fillClient:
-          '\u0414\u043b\u044f \u0432\u044b\u043f\u0438\u0441\u043a\u0438 \u0441\u0447\u0435\u0442\u0430 \u0437\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+          '\u0414\u043b\u044f \u0432\u044b\u0434\u0430\u0447\u0438 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438 \u0437\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
         missingPrice: '\u041d\u0435 \u0443\u043a\u0430\u0437\u0430\u043d\u0430 \u0446\u0435\u043d\u0430 \u0437\u0430\u043a\u0430\u0437\u0430',
         missingSourceInvoice:
-          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0439\u0442\u0438 \u0438\u0441\u0445\u043e\u0434\u043d\u044b\u0439 \u0441\u0447\u0451\u0442 \u0434\u043b\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438',
+          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0439\u0442\u0438 \u0438\u0441\u0445\u043e\u0434\u043d\u0443\u044e \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044e \u0434\u043b\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438',
         unauthorized: '\u041d\u0435\u0442 \u0430\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u0438',
         orderNotFound: '\u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
         invoiceLocked:
-          '\u0421\u0447\u0451\u0442 \u0443\u0436\u0435 \u0432\u044b\u043f\u0438\u0441\u0430\u043d \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d. \u041f\u043e\u0432\u0442\u043e\u0440\u043d\u0430\u044f \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u043f\u043e \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443 \u0437\u0430\u043f\u0440\u0435\u0449\u0435\u043d\u0430. \u0414\u043b\u044f \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0439 \u043d\u0443\u0436\u043d\u0430 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u0441\u0447\u0451\u0442\u0430.',
+          '\u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044f \u0443\u0436\u0435 \u0432\u044b\u0434\u0430\u043d\u0430 \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u0430. \u041f\u043e\u0432\u0442\u043e\u0440\u043d\u0430\u044f \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u043f\u043e \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443 \u0437\u0430\u043f\u0440\u0435\u0449\u0435\u043d\u0430. \u0414\u043b\u044f \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0439 \u043d\u0443\u0436\u043d\u0430 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438.',
         numberFailed:
-          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043d\u043e\u043c\u0435\u0440 \u0441\u0447\u0451\u0442\u0430',
+          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043d\u043e\u043c\u0435\u0440 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
         snapshotFailed:
-          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c snapshot \u0441\u0447\u0451\u0442\u0430',
+          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c snapshot \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
         generationError: '\u041e\u0448\u0438\u0431\u043a\u0430 \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u0438',
-        correctionIssued: '\u041a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430',
-        invoiceIssued: '\u0421\u0447\u0451\u0442',
+        correctionIssued: '\u041a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
+        invoiceIssued: '\u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044f',
         wasIssued: '\u0432\u044b\u043f\u0438\u0441\u0430\u043d \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d',
         pdfMissing: 'PDF \u0435\u0449\u0435 \u043d\u0435 \u0441\u043e\u0437\u0434\u0430\u043d',
         genericError: '\u041e\u0448\u0438\u0431\u043a\u0430',
@@ -402,7 +402,7 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
 
   if (!order?.pdf_file_path) return { url: null, error: m.pdfMissing };
 
-  const prefix = order.correction_of_order_id ? 'Rechnungskorrektur' : 'Rechnung';
+  const prefix = order.correction_of_order_id ? 'Quittungskorrektur' : 'Quittung';
   const filename = order.invoice_number
     ? `${prefix}-${order.invoice_number}.pdf`
     : `${prefix}-${orderId.slice(0, 8)}.pdf`;

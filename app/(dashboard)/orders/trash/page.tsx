@@ -15,14 +15,14 @@ export default async function TrashPage() {
           countSuffix: 'Stk.',
           archiveTitle: 'Archivierte Dokumente',
           archiveText:
-            'Auftraege mit Rechnung duerfen nicht spurlos geloescht werden. In diesem Bereich bleiben sie nur ausgeblendet erhalten.',
+            'Auftraege mit Quittung duerfen nicht spurlos geloescht werden. In diesem Bereich bleiben sie nur ausgeblendet erhalten.',
           noInvoiceText:
-            'Auftraege ohne Rechnung koennen nach einer Pruefung spaeter bereinigt werden. Dieser Bereich entfernt sie jedoch nicht automatisch.',
+            'Auftraege ohne Quittung koennen nach einer Pruefung spaeter bereinigt werden. Dieser Bereich entfernt sie jedoch nicht automatisch.',
           error: 'Fehler',
           empty: 'Papierkorb ist leer',
-          noInvoice: 'Ohne Rechnung',
+          noInvoice: 'Ohne Quittung',
           hiddenAt: 'Versteckt',
-          archivedNote: 'Dokument bleibt wegen Rechnung im Archiv',
+          archivedNote: 'Dokument bleibt wegen Quittung im Archiv',
           laterCleanup: 'Kann nach Pruefung spaeter bereinigt werden',
         }
       : {
@@ -31,15 +31,15 @@ export default async function TrashPage() {
           countSuffix: 'шт.',
           archiveTitle: 'Архивные документы',
           archiveText:
-            'Заказы со счетом не могут быть удалены окончательно. В этом разделе они только скрываются и остаются в архиве.',
+            'Заказы с квитанцией нельзя удалить окончательно. В этом разделе они только скрываются и остаются в архиве.',
           noInvoiceText:
-            'Заказы без счета можно очистить позже после проверки. Этот раздел не удаляет их автоматически.',
+            'Заказы без квитанции можно очистить позже после проверки. Этот раздел не удаляет их автоматически.',
           error: 'Ошибка',
           empty: 'Корзина пуста',
-          noInvoice: 'Без счета',
+          noInvoice: 'Без квитанции',
           hiddenAt: 'Скрыт',
-          archivedNote: 'Документ защищен от окончательного удаления',
-          laterCleanup: 'Можно удалить позже после проверки',
+          archivedNote: 'Документ остается в архиве из-за квитанции',
+          laterCleanup: 'Можно очистить позже после проверки',
         };
 
   const formatDate = (value: string | null | undefined) => {

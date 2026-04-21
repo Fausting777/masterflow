@@ -161,7 +161,7 @@ export async function deleteClientAction(id: string): Promise<void> {
   if (error) {
     throw new Error(
       error.message.includes('foreign key')
-        ? 'Нельзя удалить: у клиента есть заказы в корзине со счетами'
+        ? 'Нельзя удалить: у клиента есть заказы в корзине с квитанциями'
         : `Ошибка удаления: ${error.message}`
     );
   }

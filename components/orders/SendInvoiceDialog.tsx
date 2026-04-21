@@ -25,7 +25,7 @@ export default function SendInvoiceDialog({
   const text =
     locale === 'de'
       ? {
-          title: 'Rechnung per E-Mail senden',
+          title: 'Quittung per E-Mail senden',
           close: 'Schließen',
           success: 'E-Mail wurde gesendet',
           recipient: 'Empfänger (E-Mail)',
@@ -34,17 +34,17 @@ export default function SendInvoiceDialog({
           subjectLabel: 'Betreff',
           bodyLabel: 'Nachricht',
           attachmentHint:
-            'Die PDF-Rechnung wird automatisch angehängt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
+            'Die PDF-Quittung wird automatisch angehängt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
           cancel: 'Abbrechen',
           send: 'Senden',
           sending: 'Wird gesendet...',
           genericError: 'Fehler beim Senden',
           defaultSubject: invoiceNumber
-            ? `Rechnung ${invoiceNumber}`
-            : 'Rechnung für erbrachte Leistung',
+            ? `Quittung ${invoiceNumber}`
+            : 'Quittung für erbrachte Leistung',
           defaultBody: `Sehr geehrte/r ${clientName},
 
-anbei finden Sie die Rechnung für die erbrachte Leistung.
+anbei finden Sie die Quittung für die erbrachte Leistung.
 
 Bei Fragen melden Sie sich bitte gerne bei mir.
 
@@ -52,7 +52,7 @@ Mit freundlichen Grüßen
 ${masterName}`,
         }
       : {
-          title: 'Отправить счет на email',
+          title: 'Отправить квитанцию на email',
           close: 'Закрыть',
           success: 'Письмо отправлено',
           recipient: 'Кому (email)',
@@ -61,17 +61,17 @@ ${masterName}`,
           subjectLabel: 'Тема',
           bodyLabel: 'Текст письма',
           attachmentHint:
-            'PDF-счет будет вложен автоматически.\nОтветы от клиента придут на твой email.',
+            'PDF-квитанция будет вложена автоматически.\nОтветы от клиента придут на твой email.',
           cancel: 'Отмена',
           send: 'Отправить',
           sending: 'Отправка...',
           genericError: 'Ошибка отправки',
           defaultSubject: invoiceNumber
-            ? `Счет ${invoiceNumber}`
-            : 'Счет за выполненную работу',
+            ? `Квитанция ${invoiceNumber}`
+            : 'Квитанция за выполненную работу',
           defaultBody: `Здравствуйте, ${clientName}.
 
-Во вложении счет за выполненную работу.
+Во вложении квитанция за выполненную работу.
 
 Если появятся вопросы, пожалуйста, свяжитесь со мной.
 

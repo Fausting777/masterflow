@@ -87,7 +87,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
   };
   const isCorrectionDocument =
     data.order.service_title.startsWith('Korrektur:') ||
-    data.order.description?.includes('Korrektur zu Rechnung') === true;
+    data.order.description?.includes('Korrektur zu Quittung') === true;
 
   let page = doc.addPage([595, 842]); // A4
   const W = 595;
@@ -181,17 +181,17 @@ if (data.client.phone) {
   const metaLabelX = rightX - 110;
 
   y = rightY;
-  drawRight('Rechnungsnummer:', metaLabelX, regular, 9, COLORS.muted);
+  drawRight('Quittungsnummer:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(data.order.invoice_number, rightX, bold, 10);
   y -= 14;
-  drawRight('Rechnungsdatum:', metaLabelX, regular, 9, COLORS.muted);
+  drawRight('Quittungsdatum:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(formatDate(data.order.invoice_date), rightX, regular, 10);
   y -= 14;
   drawRight('Leistungsdatum:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(formatDate(data.order.service_date), rightX, regular, 10);
   if (data.order.correction_of_invoice_number) {
     y -= 14;
-    drawRight('Bezug auf Rechnung:', metaLabelX, regular, 9, COLORS.muted);
+    drawRight('Bezug auf Quittung:', metaLabelX, regular, 9, COLORS.muted);
     drawRight(data.order.correction_of_invoice_number, rightX, bold, 10, COLORS.correctionText);
   }
 
@@ -208,11 +208,11 @@ if (data.client.phone) {
       color: COLORS.correctionBg,
     });
     y -= 18;
-    drawText('Rechnungskorrektur', margin + 12, bold, 13, COLORS.correctionText);
+    drawText('Quittungskorrektur', margin + 12, bold, 13, COLORS.correctionText);
     y -= 20;
   }
 
-  drawText(isCorrectionDocument ? 'Korrigierte Rechnung' : 'Rechnung', margin, bold, 22, COLORS.text);
+  drawText(isCorrectionDocument ? 'Korrigierte Quittung' : 'Quittung', margin, bold, 22, COLORS.text);
   y -= 26;
 
   // ===================== ТАБЛИЦА УСЛУГ =====================
@@ -365,7 +365,7 @@ if (data.order.payment_method) {
   );
 
   drawWrapped(
-    'Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemäß der vereinbarten Zahlungsart.',
+    'Ich erkenne den Quittungsbetrag an und verpflichte mich zur Zahlung gemäß der vereinbarten Zahlungsart.',
     margin,
     W - 2 * margin,
     regular,

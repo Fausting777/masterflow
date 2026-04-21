@@ -42,32 +42,32 @@ export default function PdfSection({
       ? {
           genericError: 'Fehler',
           pdfUrlFailed: 'Signierte PDF-URL konnte nicht geladen werden',
-          ready: 'PDF-Rechnung ist bereit',
+          ready: 'PDF-Quittung ist bereit',
           openPdf: 'PDF öffnen',
           regeneratePdf: 'PDF neu erzeugen',
           sendByEmail: 'An Kunden per E-Mail senden',
           lastSent: 'Zuletzt gesendet',
           draftLocked:
-            'Nach Ausstellung der Rechnung ist das PDF fixiert. Eine Neuerzeugung über das Ursprungsdokument hinaus ist nicht mehr möglich.',
+            'Nach Ausstellung der Quittung ist das PDF fixiert. Eine Neuerzeugung über das Ursprungsdokument hinaus ist nicht mehr möglich.',
           draftHint:
-            'Vor Ausstellung der Rechnung kann das PDF neu erzeugt werden, wenn Daten geändert oder Fotos hinzugefügt wurden.',
+            'Vor Ausstellung der Quittung kann das PDF neu erzeugt werden, wenn Daten geändert oder Fotos hinzugefügt wurden.',
           generating: 'PDF wird erzeugt...',
-          generatePdf: 'PDF-Rechnung erzeugen',
+          generatePdf: 'PDF-Quittung erzeugen',
         }
       : {
           genericError: 'Ошибка',
           pdfUrlFailed: 'Не удалось получить ссылку',
-          ready: 'PDF-счет готов',
+          ready: 'PDF-квитанция готова',
           openPdf: 'Открыть PDF',
           regeneratePdf: 'Пересоздать PDF',
           sendByEmail: 'Отправить клиенту на email',
           lastSent: 'Последняя отправка',
           draftLocked:
-            'После выпуска счета PDF фиксируется. Пересоздавать его поверх исходного документа больше нельзя.',
+            'После выпуска квитанции PDF фиксируется. Пересоздавать его поверх исходного документа больше нельзя.',
           draftHint:
-            'До выпуска счета PDF можно пересоздать, если ты изменил данные или добавил фото.',
+            'До выпуска квитанции PDF можно пересоздать, если ты изменил данные или добавил фото.',
           generating: 'Генерация PDF...',
-          generatePdf: 'Создать PDF-счет',
+          generatePdf: 'Создать PDF-квитанцию',
         };
 
   function handleGenerate() {
@@ -97,7 +97,7 @@ export default function PdfSection({
       {pdfExists ? (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-green-700">
-            <span>✔</span>
+            <span>✓</span>
             <span>
               {text.ready}
               {invoiceNumber && ` - ${invoiceNumber}`}
@@ -136,7 +136,12 @@ export default function PdfSection({
           {invoiceSentAt && (
             <div className="rounded-lg bg-neutral-50 p-2 text-xs text-neutral-500">
               {text.lastSent}: {formatDateTime(invoiceSentAt, locale)}
-              {invoiceSentTo && <> {locale === 'de' ? 'an' : 'на'} <span className="font-medium">{invoiceSentTo}</span></>}
+              {invoiceSentTo && (
+                <>
+                  {' '}
+                  {locale === 'de' ? 'an' : 'на'} <span className="font-medium">{invoiceSentTo}</span>
+                </>
+              )}
             </div>
           )}
 

@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import AuditTrailList from '@/components/audit/AuditTrailList';
+import FileIntegrityPanel from '@/components/audit/FileIntegrityPanel';
 import ExpenseActions from '@/components/expenses/ExpenseActions';
 import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
@@ -11,7 +13,7 @@ import {
   getExpenseCategoryEmoji,
   getExpenseCategoryLabel,
 } from '@/lib/utils/format';
-import type { Expense } from '@/types/database';
+import type { AuditTrailEntry, Expense } from '@/types/database';
 
 type Params = Promise<{ id: string }>;
 
@@ -75,6 +77,16 @@ export default async function ExpensePage({ params }: { params: Params }) {
       .createSignedUrl(e.receipt_file_path, 300);
     receiptUrl = signed?.signedUrl ?? null;
   }
+
+  const { data: auditData } = await supabase
+    .from('audit_trail')
+    .select('*')
+    .eq('table_name', 'expenses')
+    .eq('record_id', e.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  const auditEntries = (auditData ?? []) as AuditTrailEntry[];
 
   return (
     <div className="max-w-2xl">
@@ -165,6 +177,15 @@ export default async function ExpensePage({ params }: { params: Params }) {
         )}
       </div>
 
+      {(e.receipt_file_path || e.receipt_sha256) && (
+        <FileIntegrityPanel
+          title={locale === 'de' ? 'Beleg-Integrität' : 'Целостность чека'}
+          hash={e.receipt_sha256}
+          path={e.receipt_file_path}
+          locale={locale}
+        />
+      )}
+
       <div className="mb-4 space-y-2 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex justify-between text-xs text-neutral-500">
           <span>{t.expensesPage.createdAt}:</span>
@@ -177,6 +198,12 @@ export default async function ExpensePage({ params }: { params: Params }) {
           </div>
         )}
       </div>
+
+      <AuditTrailList
+        entries={auditEntries}
+        locale={locale}
+        title={locale === 'de' ? 'DB-Audit Trail' : 'DB-аудит'}
+      />
 
       <ExpenseActions expenseId={e.id} isDeleted={Boolean(e.deleted_at)} />
     </div>

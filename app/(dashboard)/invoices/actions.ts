@@ -25,7 +25,7 @@ export async function exportInvoicesCsvAction(
   let query = supabase
     .from('orders')
     .select(
-      'id, invoice_number, invoice_issued_at, service_date, custom_service_title, service_id, custom_price, client_id, invoice_sent_at, invoice_sent_to, invoice_snapshot_json, correction_of_order_id'
+      'id, invoice_number, invoice_issued_at, service_date, custom_service_title, service_id, custom_price, client_id, invoice_sent_at, invoice_sent_to, invoice_snapshot_json, correction_of_order_id, pdf_file_path, pdf_sha256'
     )
     .eq('user_id', user.id)
     .is('deleted_at', null)
@@ -88,6 +88,8 @@ export async function exportInvoicesCsvAction(
     'Betrag',
     'Versendet am',
     'Versendet an',
+    'PDF-Pfad',
+    'PDF-SHA256',
   ];
 
   const rows = orders.map((order) => {
@@ -130,6 +132,8 @@ export async function exportInvoicesCsvAction(
       amountString,
       order.invoice_sent_at ? new Date(order.invoice_sent_at).toLocaleDateString('de-DE') : '',
       order.invoice_sent_to ?? '',
+      order.pdf_file_path ?? '',
+      order.pdf_sha256 ?? '',
     ];
   });
 

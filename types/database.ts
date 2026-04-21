@@ -65,6 +65,7 @@ export interface Order {
   completed_at: string | null;
   signature_file_path: string | null;
   pdf_file_path: string | null;
+  pdf_sha256: string | null;
   invoice_number: string | null;
   invoice_issued_at: string | null;
   invoice_locked_at: string | null;
@@ -97,6 +98,18 @@ export interface ActivityLog {
   created_at: string;
 }
 
+export interface AuditTrailEntry {
+  id: string;
+  table_name: string;
+  record_id: string;
+  user_id: string | null;
+  operation: 'INSERT' | 'UPDATE' | 'DELETE';
+  changed_fields: string[];
+  old_data: unknown | null;
+  new_data: unknown | null;
+  created_at: string;
+}
+
 export interface OrderWithClient extends Omit<Order, never> {
   client_name: string;
   client_phone: string | null;
@@ -122,6 +135,7 @@ export interface Expense {
   vendor: string | null;
   expense_date: string;
   receipt_file_path: string | null;
+  receipt_sha256: string | null;
   tax_deductible: boolean;
   created_at: string;
   updated_at: string;

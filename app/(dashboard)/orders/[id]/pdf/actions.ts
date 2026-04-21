@@ -9,6 +9,7 @@ import {
 } from '@/lib/invoices/snapshot';
 import { getLocale } from '@/lib/i18n/server';
 import { generateInvoicePdf } from '@/lib/pdf/invoice';
+import { sha256Hex } from '@/lib/security/hash';
 import { createClient } from '@/lib/supabase/server';
 
 type InvoiceOrderRow = {
@@ -31,6 +32,7 @@ type InvoiceOrderRow = {
   invoice_version: number | null;
   invoice_snapshot_json: unknown | null;
   pdf_file_path: string | null;
+  pdf_sha256: string | null;
   correction_of_order_id: string | null;
   correction_reason: string | null;
 };
@@ -281,7 +283,7 @@ export async function generatePdfAction(orderId: string): Promise<{
   const { data: orderData } = await supabase
     .from('orders')
     .select(
-      'id, user_id, client_id, service_id, custom_service_title, custom_price, description, order_address, service_date, completed_at, created_at, payment_method, signature_file_path, invoice_number, invoice_issued_at, invoice_locked_at, invoice_version, invoice_snapshot_json, pdf_file_path, correction_of_order_id, correction_reason'
+      'id, user_id, client_id, service_id, custom_service_title, custom_price, description, order_address, service_date, completed_at, created_at, payment_method, signature_file_path, invoice_number, invoice_issued_at, invoice_locked_at, invoice_version, invoice_snapshot_json, pdf_file_path, pdf_sha256, correction_of_order_id, correction_reason'
     )
     .eq('id', orderId)
     .eq('user_id', user.id)
@@ -300,8 +302,7 @@ export async function generatePdfAction(orderId: string): Promise<{
 
   if (!invoiceNumber) {
     const year = new Date().getFullYear();
-    const { data: numberData, error: numberError } = await supabase.rpc('next_invoice_number', {
-      p_user_id: user.id,
+    const { data: numberData, error: numberError } = await supabase.rpc('next_invoice_number_secure', {
       p_year: year,
     });
 
@@ -340,6 +341,7 @@ export async function generatePdfAction(orderId: string): Promise<{
 
   const version = Math.max(snapshot.version ?? 1, order.invoice_version ?? 0, 1);
   const filePath = `${user.id}/${orderId}/invoice-v${version}.pdf`;
+  const pdfSha256 = sha256Hex(pdfBytes);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
 
@@ -359,6 +361,7 @@ export async function generatePdfAction(orderId: string): Promise<{
       invoice_version: version,
       invoice_snapshot_json: snapshot,
       pdf_file_path: filePath,
+      pdf_sha256: pdfSha256,
     })
     .eq('id', orderId)
     .eq('user_id', user.id);

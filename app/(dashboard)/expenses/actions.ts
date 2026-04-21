@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { validateCsrfFormData } from '@/lib/csrf/server';
 import { getLocale } from '@/lib/i18n/server';
+import { sha256Hex } from '@/lib/security/hash';
 import { validateUploadedFile } from '@/lib/security/file-validation';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeExpenseInput, validateExpense, type ExpenseValidationErrors } from '@/lib/validators/expense';
@@ -145,7 +146,12 @@ export async function createExpenseAction(
     if (uploadError) {
       console.error(m.uploadLog, uploadError);
     } else {
-      await supabase.from('expenses').update({ receipt_file_path: path }).eq('id', expense.id).eq('user_id', user.id);
+      const receiptSha256 = sha256Hex(await receiptFile.arrayBuffer());
+      await supabase
+        .from('expenses')
+        .update({ receipt_file_path: path, receipt_sha256: receiptSha256 })
+        .eq('id', expense.id)
+        .eq('user_id', user.id);
     }
   }
 
@@ -205,7 +211,12 @@ export async function updateExpenseAction(
     });
 
     if (!uploadError) {
-      await supabase.from('expenses').update({ receipt_file_path: path }).eq('id', id).eq('user_id', user.id);
+      const receiptSha256 = sha256Hex(await receiptFile.arrayBuffer());
+      await supabase
+        .from('expenses')
+        .update({ receipt_file_path: path, receipt_sha256: receiptSha256 })
+        .eq('id', id)
+        .eq('user_id', user.id);
     }
   }
 

@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import AuditTrailList from '@/components/audit/AuditTrailList';
+import FileIntegrityPanel from '@/components/audit/FileIntegrityPanel';
 import TrashActions from '@/components/orders/TrashActions';
 import OrderForm from '@/components/forms/OrderForm';
 import OrderStatusSwitcher from '@/components/forms/OrderStatusSwitcher';
@@ -14,6 +16,7 @@ import { getSignedUrl, getSignedUrls } from '@/lib/supabase/storage';
 import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
 import type {
   ActivityLog,
+  AuditTrailEntry,
   Client,
   Order,
   OrderPhoto,
@@ -53,6 +56,7 @@ export default async function OrderPage({
     clientRes,
     serviceRes,
     logsRes,
+    auditRes,
     photosRes,
     clientsListRes,
     servicesListRes,
@@ -68,6 +72,13 @@ export default async function OrderPage({
       .from('activity_logs')
       .select('*')
       .eq('order_id', o.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
+    supabase
+      .from('audit_trail')
+      .select('*')
+      .eq('table_name', 'orders')
+      .eq('record_id', o.id)
       .order('created_at', { ascending: false })
       .limit(20),
     supabase
@@ -95,6 +106,7 @@ export default async function OrderPage({
   const client = clientRes.data as Client | null;
   const service = serviceRes.data as Service | null;
   const logs = (logsRes.data ?? []) as ActivityLog[];
+  const auditEntries = (auditRes.data ?? []) as AuditTrailEntry[];
   const photos = (photosRes.data ?? []) as OrderPhoto[];
   const masterProfile = profileRes.data as {
     full_name: string | null;
@@ -369,6 +381,15 @@ export default async function OrderPage({
             )}
           </div>
 
+          {(o.pdf_file_path || o.pdf_sha256) && (
+            <FileIntegrityPanel
+              title={locale === 'de' ? 'PDF-Integrität' : 'Целостность PDF'}
+              hash={o.pdf_sha256}
+              path={o.pdf_file_path}
+              locale={locale}
+            />
+          )}
+
           {corrections.length > 0 && (
             <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
               <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.corrections}</h2>
@@ -402,6 +423,12 @@ export default async function OrderPage({
               </ul>
             </div>
           )}
+
+          <AuditTrailList
+            entries={auditEntries}
+            locale={locale}
+            title={locale === 'de' ? 'DB-Audit Trail' : 'DB-аудит'}
+          />
 
           {o.deleted_at ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-5">

@@ -1,3 +1,4 @@
+import ExportAuditTrailButton from '@/components/audit/ExportAuditTrailButton';
 import PasswordChangeForm from '@/components/forms/PasswordChangeForm';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { createClient } from '@/lib/supabase/server';
@@ -5,7 +6,7 @@ import { getDictionary } from '@/lib/i18n/server';
 import ProfileForm from '@/components/forms/ProfileForm';
 
 export default async function SettingsPage() {
-  const { t } = await getDictionary();
+  const { t, locale } = await getDictionary();
   const supabase = await createClient();
   const {
     data: { user },
@@ -60,6 +61,16 @@ export default async function SettingsPage() {
 
       <div className="mt-4 rounded-lg bg-neutral-100 p-4 text-xs text-neutral-600">
         <strong>{t.settings.emailLabel}:</strong> {user!.email}
+      </div>
+
+      <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="text-base font-semibold">{locale === 'de' ? 'Audit Export' : 'Экспорт аудита'}</h2>
+        <p className="mt-1 mb-4 text-sm text-neutral-500">
+          {locale === 'de'
+            ? 'Lädt den DB-Audit-Trail als CSV für Prüfung und Archiv herunter.'
+            : 'Скачивает DB-аудит в CSV для проверки и архива.'}
+        </p>
+        <ExportAuditTrailButton />
       </div>
     </div>
   );

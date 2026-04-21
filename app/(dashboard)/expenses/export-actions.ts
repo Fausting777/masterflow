@@ -65,6 +65,13 @@ export async function exportExpensesCsvAction(
           filename: 'Расходы',
         };
 
+  if (text.headers.length === 9) {
+    text.headers.push(
+      locale === 'de' ? 'Beleg-Pfad' : 'РџСѓС‚СЊ С‡РµРєР°',
+      locale === 'de' ? 'Beleg-SHA256' : 'SHA-256 С‡РµРєР°'
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -75,7 +82,7 @@ export async function exportExpensesCsvAction(
   let query = supabase
     .from('expenses')
     .select(
-      'id, category, amount, description, vendor, expense_date, tax_deductible, order_id, created_at, receipt_file_path'
+      'id, category, amount, description, vendor, expense_date, tax_deductible, order_id, created_at, receipt_file_path, receipt_sha256'
     )
     .eq('user_id', user.id)
     .is('deleted_at', null)
@@ -133,6 +140,8 @@ export async function exportExpensesCsvAction(
       orderInfo?.client_name ?? '',
       orderInfo?.invoice_number ?? '',
       receiptLabel,
+      expense.receipt_file_path ?? '',
+      expense.receipt_sha256 ?? '',
     ];
   });
 
@@ -154,8 +163,8 @@ export async function exportExpensesCsvAction(
     .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
   lines.push('');
-  lines.push(`${text.total};;${total.toFixed(2).replace('.', ',')};;;;;;`);
-  lines.push(`${text.deductible};;${taxTotal.toFixed(2).replace('.', ',')};;;;;;`);
+  lines.push(`${text.total};;${total.toFixed(2).replace('.', ',')};;;;;;;;;`);
+  lines.push(`${text.deductible};;${taxTotal.toFixed(2).replace('.', ',')};;;;;;;;;`);
 
   const csv = '\uFEFF' + lines.join('\r\n');
   const filename = `${text.filename}_${filter.fromDate}_${filter.toDate}.csv`;

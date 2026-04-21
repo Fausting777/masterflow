@@ -1,16 +1,22 @@
 import Link from 'next/link';
+import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import {
-  formatPrice,
-  EXPENSE_CATEGORY_LABELS,
-  EXPENSE_CATEGORY_EMOJIS,
   EXPENSE_CATEGORY_COLORS,
+  formatDate,
+  formatDateTime,
+  formatPrice,
+  getExpenseCategoryEmoji,
+  getExpenseCategoryLabel,
 } from '@/lib/utils/format';
 import type { Expense } from '@/types/database';
 
 export default async function ExpensesTrashPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { locale, t } = await getDictionary();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data } = await supabase
     .from('expenses')
@@ -25,55 +31,63 @@ export default async function ExpensesTrashPage() {
     <div>
       <div className="mb-4">
         <Link href="/expenses" className="text-sm text-neutral-500 hover:text-neutral-700">
-          ← К расходам
+          ← {t.expensesPage.detailsBack}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-1">🗑 Корзина расходов</h1>
-      <p className="text-sm text-neutral-500 mb-4">
-        Удалённые расходы. Можно восстановить или удалить окончательно.
-      </p>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{t.expensesPage.trashTitle}</h1>
+        <span className="text-sm text-neutral-500">
+          {expenses.length} {t.expensesPage.countSuffix}
+        </span>
+      </div>
+
+      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <strong>{t.expensesPage.trashInfoTitle}:</strong> {t.expensesPage.trashInfo}
+      </div>
 
       {expenses.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500">
-          Корзина пуста
+          {t.expensesPage.trashEmpty}
         </div>
       ) : (
         <ul className="space-y-2">
-          {expenses.map((e) => {
-            const dateLabel = new Date(e.expense_date).toLocaleDateString('de-DE');
-            const deletedLabel = e.deleted_at
-              ? new Date(e.deleted_at).toLocaleString('de-DE')
-              : '';
-            return (
-              <li key={e.id}>
-                <Link
-                  href={`/expenses/${e.id}`}
-                  className="block bg-white border border-neutral-200 rounded-xl p-4 hover:border-red-500 transition opacity-75 hover:opacity-100"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${EXPENSE_CATEGORY_COLORS[e.category]}`}>
-                          {EXPENSE_CATEGORY_EMOJIS[e.category]} {EXPENSE_CATEGORY_LABELS[e.category]}
-                        </span>
-                        <span className="text-xs text-neutral-500">{dateLabel}</span>
-                      </div>
-                      <h3 className="font-medium truncate">
-                        {e.vendor ?? e.description ?? 'Без названия'}
-                      </h3>
-                      <div className="text-xs text-red-700 mt-1">
-                        Удалён: {deletedLabel}
-                      </div>
+          {expenses.map((expense) => (
+            <li key={expense.id}>
+              <Link
+                href={`/expenses/${expense.id}`}
+                className="block rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-amber-500"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${EXPENSE_CATEGORY_COLORS[expense.category]}`}
+                      >
+                        {getExpenseCategoryEmoji(expense.category)}{' '}
+                        {getExpenseCategoryLabel(expense.category, locale)}
+                      </span>
+                      <span className="text-xs text-neutral-500">
+                        {formatDate(expense.expense_date, locale)}
+                      </span>
                     </div>
-                    <div className="text-right whitespace-nowrap">
-                      <div className="font-semibold text-rose-700">{formatPrice(Number(e.amount))}</div>
+                    <h3 className="truncate font-medium">
+                      {expense.vendor ?? expense.description ?? t.expensesPage.untitled}
+                    </h3>
+                    <div className="mt-1 text-xs text-neutral-500">
+                      {t.expensesPage.hiddenAt}: {formatDateTime(expense.deleted_at, locale)}
                     </div>
+                    {expense.receipt_file_path && (
+                      <div className="mt-1 text-xs text-amber-700">{t.expensesPage.receiptArchived}</div>
+                    )}
                   </div>
-                </Link>
-              </li>
-            );
-          })}
+                  <div className="whitespace-nowrap text-right">
+                    <div className="font-semibold text-rose-700">{formatPrice(Number(expense.amount))}</div>
+                  </div>
+                </div>
+              </Link>
+            </li>
+          ))}
         </ul>
       )}
     </div>

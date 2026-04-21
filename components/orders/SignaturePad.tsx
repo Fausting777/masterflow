@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveSignatureAction } from '@/app/(dashboard)/orders/[id]/signature/actions';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 
 type Props = {
   orderId: string;
 };
 
 export default function SignaturePad({ orderId }: Props) {
+  const { locale } = useI18n();
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
@@ -18,7 +20,27 @@ export default function SignaturePad({ orderId }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Готовим canvas — учитываем device pixel ratio, чтобы линия не была размытой на ретине
+  const text =
+    locale === 'de'
+      ? {
+          signatureEmpty: 'Es wurde keine Unterschrift gesetzt',
+          signatureRenderFailed: 'Das Bild konnte nicht erstellt werden',
+          genericError: 'Fehler beim Speichern',
+          signHere: 'Bitte hier mit Finger oder Maus unterschreiben',
+          clear: 'Leeren',
+          saveSignature: 'Unterschrift speichern',
+          saving: 'Wird gespeichert...',
+        }
+      : {
+          signatureEmpty: 'Подпись не поставлена',
+          signatureRenderFailed: 'Не удалось создать изображение',
+          genericError: 'Ошибка сохранения',
+          signHere: 'Подпишитесь пальцем или мышью',
+          clear: 'Очистить',
+          saveSignature: 'Сохранить подпись',
+          saving: 'Сохранение...',
+        };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -40,7 +62,6 @@ export default function SignaturePad({ orderId }: Props) {
 
     setupCanvas();
 
-    // Перерисовываем при повороте экрана
     window.addEventListener('resize', setupCanvas);
     return () => window.removeEventListener('resize', setupCanvas);
   }, []);
@@ -96,20 +117,21 @@ export default function SignaturePad({ orderId }: Props) {
 
   async function handleSave() {
     if (isEmpty) {
-      setError('Подпись не поставлена');
+      setError(text.signatureEmpty);
       return;
     }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     setError(null);
 
-    // Конвертируем canvas в Blob (PNG)
     const blob: Blob | null = await new Promise((resolve) =>
       canvas.toBlob(resolve, 'image/png')
     );
+
     if (!blob) {
-      setError('Не удалось создать изображение');
+      setError(text.signatureRenderFailed);
       return;
     }
 
@@ -122,50 +144,48 @@ export default function SignaturePad({ orderId }: Props) {
       if (res.ok) {
         router.push(`/orders/${orderId}`);
       } else {
-        setError(res.error ?? 'Ошибка сохранения');
+        setError(res.error ?? text.genericError);
       }
     });
   }
 
   return (
     <div>
-      <div className="rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 overflow-hidden">
+      <div className="overflow-hidden rounded-xl border-2 border-dashed border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-900">
         <canvas
           ref={canvasRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="w-full h-64 touch-none cursor-crosshair"
+          className="h-64 w-full touch-none cursor-crosshair"
         />
       </div>
 
-      <p className="text-xs text-neutral-500 mt-2 text-center">
-        Подпишитесь пальцем в рамке
-      </p>
+      <p className="mt-2 text-center text-xs text-neutral-500">{text.signHere}</p>
 
       {error && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-3 py-2 text-sm text-red-700 dark:text-red-300 mt-3">
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
           {error}
         </div>
       )}
 
-      <div className="flex gap-2 mt-4">
+      <div className="mt-4 flex gap-2">
         <button
           type="button"
           onClick={handleClear}
           disabled={isPending || isEmpty}
-          className="rounded-lg border border-neutral-300 dark:border-neutral-700 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50"
+          className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
         >
-          Очистить
+          {text.clear}
         </button>
         <button
           type="button"
           onClick={handleSave}
           disabled={isPending || isEmpty}
-          className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
+          className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
         >
-          {isPending ? 'Сохранение...' : 'Сохранить подпись'}
+          {isPending ? text.saving : text.saveSignature}
         </button>
       </div>
     </div>

@@ -3,8 +3,9 @@
 import { useActionState, useCallback, useState } from 'react';
 import Link from 'next/link';
 import type { ClientFormState } from '@/app/(dashboard)/clients/actions';
-
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
+import { useI18n } from '@/components/i18n/LocaleProvider';
+import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 
 type Props = {
   action: (prevState: ClientFormState, formData: FormData) => Promise<ClientFormState>;
@@ -28,6 +29,7 @@ export default function ClientForm({
   submitLabel,
 }: Props) {
   const [state, formAction, isPending] = useActionState<ClientFormState, FormData>(action, {});
+  const { t } = useI18n();
 
   const values = state.values ?? {
     full_name: initial?.full_name ?? '',
@@ -52,9 +54,10 @@ export default function ClientForm({
 
   return (
     <form action={formAction} className="space-y-4">
+      <CsrfTokenInput />
       <div>
         <label htmlFor="full_name" className="mb-1 block text-sm font-medium">
-          Имя клиента <span className="text-red-500">*</span>
+          {t.clientForm.fullName} <span className="text-red-500">*</span>
         </label>
         <input
           id="full_name"
@@ -70,7 +73,7 @@ export default function ClientForm({
 
       <div>
         <label htmlFor="phone" className="mb-1 block text-sm font-medium">
-          Телефон
+          {t.clientForm.phone}
         </label>
         <input
           id="phone"
@@ -96,12 +99,12 @@ export default function ClientForm({
           className={inputCls}
         />
         {state.errors?.email && <p className="mt-1 text-xs text-red-600">{state.errors.email}</p>}
-        <p className="mt-1 text-xs text-neutral-500">Нужен для отправки счетов</p>
+        <p className="mt-1 text-xs text-neutral-500">{t.clientForm.emailHelp}</p>
       </div>
 
       <div>
         <label htmlFor="address" className="mb-1 block text-sm font-medium">
-          Улица и дом
+          {t.clientForm.address}
         </label>
         <input
           id="address"
@@ -135,7 +138,7 @@ export default function ClientForm({
 
         <div className="col-span-2">
           <label htmlFor="city" className="mb-1 block text-sm font-medium">
-            Город
+            {t.clientForm.city}
           </label>
           <input
             id="city"
@@ -147,7 +150,7 @@ export default function ClientForm({
             className={inputCls}
           />
           {state.errors?.city && <p className="mt-1 text-xs text-red-600">{state.errors.city}</p>}
-          <p className="mt-1 text-xs text-neutral-500">Подставится автоматически по PLZ</p>
+          <p className="mt-1 text-xs text-neutral-500">{t.clientForm.cityHelp}</p>
         </div>
       </div>
 
@@ -155,7 +158,7 @@ export default function ClientForm({
 
       <div>
         <label htmlFor="note" className="mb-1 block text-sm font-medium">
-          Заметка
+          {t.clientForm.note}
         </label>
         <textarea
           id="note"
@@ -179,13 +182,13 @@ export default function ClientForm({
           disabled={isPending}
           className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
         >
-          {isPending ? 'Сохранение...' : submitLabel}
+          {isPending ? t.clientForm.saving : submitLabel}
         </button>
         <Link
           href={cancelHref}
           className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
         >
-          Отмена
+          {t.clientForm.cancel}
         </Link>
       </div>
     </form>

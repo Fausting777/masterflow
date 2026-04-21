@@ -1,8 +1,10 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { getLocale } from '@/lib/i18n/server';
+import { validateCsrfFormData } from '@/lib/csrf/server';
+import { createClient } from '@/lib/supabase/server';
 import {
   normalizeOrderInput,
   validateOrder,
@@ -32,6 +34,83 @@ export type OrderFormState = {
   };
 };
 
+type UiLocale = 'ru' | 'de';
+
+function getMessages(locale: UiLocale) {
+  if (locale === 'de') {
+    return {
+      csrfFailed: 'CSRF-Pruefung fehlgeschlagen',
+      unauthorized: 'Nicht autorisiert',
+      genericError: 'Fehler',
+      chooseClient: 'Bitte waehlen Sie einen Kunden aus',
+      clientCreateError: 'Fehler beim Erstellen des Kunden',
+      orderCreateError: 'Fehler beim Erstellen des Auftrags',
+      orderNotFound: 'Auftrag nicht gefunden',
+      invoiceEditBlockedLog:
+        'Bearbeitungsversuch nach Rechnungserstellung wurde blockiert',
+      invoiceEditBlocked:
+        'Dieser Auftrag ist bereits mit einer Rechnung verknuepft. Originaldaten koennen nicht mehr direkt bearbeitet werden. Verwenden Sie stattdessen eine Rechnungskorrektur.',
+      customerRequired: 'Bitte waehlen Sie einen Kunden aus',
+      orderUpdatedLog: 'Auftragsdaten wurden nach dem Speichern aktualisiert',
+      sourceOrderNotFound: 'Ausgangsauftrag nicht gefunden',
+      correctionNeedsInvoice:
+        'Ein Korrekturentwurf kann erst erstellt werden, wenn fuer den Auftrag bereits eine Rechnung existiert.',
+      correctionAlreadyFromCorrection:
+        'Fuer eine bestehende Korrektur kann kein weiterer Korrekturentwurf erstellt werden.',
+      correctionReasonPrefix: 'Korrektur zu Rechnung',
+      correctionCreateError: 'Korrekturentwurf konnte nicht erstellt werden',
+      correctionCreatedLogPrefix: 'Korrektur zur Rechnung erstellt',
+      correctionDraftCreatedLogPrefix: 'Korrekturentwurf erstellt fuer Rechnung',
+      movedToTrashLog: 'Auftrag in den Papierkorb verschoben',
+      restoredLog: 'Auftrag aus dem Papierkorb wiederhergestellt',
+      cannotDeleteInvoice:
+        'Endgueltiges Loeschen ist nicht moeglich, weil fuer diesen Auftrag bereits eine Rechnung erstellt wurde.',
+      moveToTrashFirst:
+        'Der Auftrag muss zuerst in den Papierkorb verschoben werden.',
+    };
+  }
+
+  return {
+    csrfFailed: '\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 CSRF \u043d\u0435 \u043f\u0440\u043e\u0439\u0434\u0435\u043d\u0430',
+    unauthorized: '\u041d\u0435\u0442 \u0430\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u0438',
+    genericError: '\u041e\u0448\u0438\u0431\u043a\u0430',
+    chooseClient: '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+    clientCreateError: '\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0438 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+    orderCreateError: '\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0438 \u0437\u0430\u043a\u0430\u0437\u0430',
+    orderNotFound: '\u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
+    invoiceEditBlockedLog:
+      '\u041f\u043e\u043f\u044b\u0442\u043a\u0430 \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0437\u0430\u043a\u0430\u0437 \u043f\u043e\u0441\u043b\u0435 \u0432\u044b\u043f\u0438\u0441\u0430\u043d\u043d\u043e\u0433\u043e \u0441\u0447\u0435\u0442\u0430 \u0431\u044b\u043b\u0430 \u0437\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u0430',
+    invoiceEditBlocked:
+      '\u042d\u0442\u043e\u0442 \u0437\u0430\u043a\u0430\u0437 \u0443\u0436\u0435 \u0441\u0432\u044f\u0437\u0430\u043d \u0441\u043e \u0441\u0447\u0435\u0442\u043e\u043c. \u0418\u0441\u0445\u043e\u0434\u043d\u044b\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u0438\u0437\u043c\u0435\u043d\u044f\u0442\u044c \u043d\u0430\u043f\u0440\u044f\u043c\u0443\u044e. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0443 \u0441\u0447\u0435\u0442\u0430.',
+    customerRequired: '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+    orderUpdatedLog:
+      '\u0414\u0430\u043d\u043d\u044b\u0435 \u0437\u0430\u043a\u0430\u0437\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u044b \u043f\u043e\u0441\u043b\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f',
+    sourceOrderNotFound:
+      '\u0418\u0441\u0445\u043e\u0434\u043d\u044b\u0439 \u0437\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
+    correctionNeedsInvoice:
+      '\u0427\u0435\u0440\u043d\u043e\u0432\u0438\u043a \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438 \u043c\u043e\u0436\u043d\u043e \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u043e\u0441\u043b\u0435 \u0432\u044b\u043f\u0438\u0441\u0430\u043d\u043d\u043e\u0433\u043e \u0441\u0447\u0435\u0442\u0430.',
+    correctionAlreadyFromCorrection:
+      '\u0414\u043b\u044f \u0443\u0436\u0435 \u0441\u043e\u0437\u0434\u0430\u043d\u043d\u043e\u0439 \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438 \u043d\u0435\u043b\u044c\u0437\u044f \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0435\u0449\u0435 \u043e\u0434\u0438\u043d \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a.',
+    correctionReasonPrefix: '\u041a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u043a \u0441\u0447\u0435\u0442\u0443',
+    correctionCreateError:
+      '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438',
+    correctionCreatedLogPrefix:
+      '\u0421\u043e\u0437\u0434\u0430\u043d\u0430 \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u043a \u0441\u0447\u0435\u0442\u0443',
+    correctionDraftCreatedLogPrefix:
+      '\u0427\u0435\u0440\u043d\u043e\u0432\u0438\u043a \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438 \u0441\u043e\u0437\u0434\u0430\u043d \u0434\u043b\u044f \u0441\u0447\u0435\u0442\u0430',
+    movedToTrashLog: '\u0417\u0430\u043a\u0430\u0437 \u043f\u0435\u0440\u0435\u043c\u0435\u0449\u0435\u043d \u0432 \u043a\u043e\u0440\u0437\u0438\u043d\u0443',
+    restoredLog: '\u0417\u0430\u043a\u0430\u0437 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u0438\u0437 \u043a\u043e\u0440\u0437\u0438\u043d\u044b',
+    cannotDeleteInvoice:
+      '\u041d\u0435\u043b\u044c\u0437\u044f \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043d\u0430\u0432\u0441\u0435\u0433\u0434\u0430: \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0437\u0430\u043a\u0430\u0437\u0430 \u0443\u0436\u0435 \u0441\u043e\u0437\u0434\u0430\u043d \u0441\u0447\u0435\u0442.',
+    moveToTrashFirst:
+      '\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u0435 \u0437\u0430\u043a\u0430\u0437 \u0432 \u043a\u043e\u0440\u0437\u0438\u043d\u0443.',
+  };
+}
+
+function prefixError(prefix: string, message: string) {
+  return `${prefix}: ${message}`;
+}
+
 function readFormData(formData: FormData): OrderFormState['values'] & object {
   return {
     client_id: String(formData.get('client_id') ?? ''),
@@ -56,8 +135,16 @@ export async function createOrderAction(
   _prevState: OrderFormState,
   formData: FormData
 ): Promise<OrderFormState> {
-  const raw = readFormData(formData);
+  const locale = await getLocale();
+  const m = getMessages(locale);
 
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: m.csrfFailed };
+  }
+
+  const raw = readFormData(formData);
   const errors = validateOrder(raw);
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
@@ -65,7 +152,8 @@ export async function createOrderAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { formError: 'Не авторизован', values: raw };
+
+  if (!user) return { formError: m.unauthorized, values: raw };
 
   const normalized = normalizeOrderInput(raw);
 
@@ -90,14 +178,16 @@ export async function createOrderAction(
       .select('id')
       .single();
 
-    if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
+    if (error) {
+      return { formError: prefixError(m.orderCreateError, error.message), values: raw };
+    }
 
     revalidatePath('/orders');
     redirect(`/orders/${data.id}`);
   }
 
   if (!normalized.client_quick_name) {
-    return { formError: 'Укажите клиента', values: raw };
+    return { formError: m.chooseClient, values: raw };
   }
 
   const { data: client, error: clientError } = await supabase
@@ -114,7 +204,10 @@ export async function createOrderAction(
     .single();
 
   if (clientError || !client) {
-    return { formError: `Ошибка создания клиента: ${clientError?.message ?? 'unknown error'}`, values: raw };
+    return {
+      formError: prefixError(m.clientCreateError, clientError?.message ?? m.genericError),
+      values: raw,
+    };
   }
 
   const { data: order, error: orderError } = await supabase
@@ -138,7 +231,10 @@ export async function createOrderAction(
     .single();
 
   if (orderError || !order) {
-    return { formError: `Ошибка создания заказа: ${orderError?.message ?? 'unknown error'}`, values: raw };
+    return {
+      formError: prefixError(m.orderCreateError, orderError?.message ?? m.genericError),
+      values: raw,
+    };
   }
 
   revalidatePath('/orders');
@@ -151,6 +247,15 @@ export async function updateOrderAction(
   _prevState: OrderFormState,
   formData: FormData
 ): Promise<OrderFormState> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
+
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: m.csrfFailed };
+  }
+
   const raw = readFormData(formData);
   const errors = validateOrder(raw);
   delete errors.client_quick_name;
@@ -160,7 +265,7 @@ export async function updateOrderAction(
   delete errors.client_quick_city;
 
   if (!raw.client_id.trim()) {
-    errors.client_id = 'Выберите клиента';
+    errors.client_id = m.customerRequired;
   }
 
   if (Object.keys(errors).length > 0) return { errors, values: raw };
@@ -169,7 +274,8 @@ export async function updateOrderAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { formError: 'Не авторизован', values: raw };
+
+  if (!user) return { formError: m.unauthorized, values: raw };
 
   const { data: currentOrder } = await supabase
     .from('orders')
@@ -179,7 +285,7 @@ export async function updateOrderAction(
     .maybeSingle();
 
   if (!currentOrder) {
-    return { formError: 'Заказ не найден', values: raw };
+    return { formError: m.orderNotFound, values: raw };
   }
 
   if (currentOrder.invoice_number || currentOrder.invoice_locked_at) {
@@ -187,14 +293,10 @@ export async function updateOrderAction(
       order_id: id,
       user_id: user.id,
       action_type: 'invoice_edit_blocked',
-      action_text: 'Попытка изменить заказ после выпуска счета была заблокирована',
+      action_text: m.invoiceEditBlockedLog,
     });
 
-    return {
-      formError:
-        'Этот заказ уже зафиксирован счетом. Изменение исходных данных заблокировано. Для исправления нужен отдельный документ-коррекция.',
-      values: raw,
-    };
+    return { formError: m.invoiceEditBlocked, values: raw };
   }
 
   const normalized = normalizeOrderInput(raw);
@@ -213,25 +315,18 @@ export async function updateOrderAction(
   void client_quick_city;
 
   if (!updateData.client_id) {
-    return {
-      formError: 'Не удалось определить клиента',
-      values: raw,
-    };
+    return { formError: m.chooseClient, values: raw };
   }
 
-  const { error } = await supabase
-    .from('orders')
-    .update(updateData)
-    .eq('id', id)
-    .eq('user_id', user.id);
+  const { error } = await supabase.from('orders').update(updateData).eq('id', id).eq('user_id', user.id);
 
-  if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
+  if (error) return { formError: prefixError(m.genericError, error.message), values: raw };
 
   await supabase.from('activity_logs').insert({
     order_id: id,
     user_id: user.id,
     action_type: 'order_updated',
-    action_text: 'Данные заказа обновлены до выпуска счета',
+    action_text: m.orderUpdatedLog,
   });
 
   revalidatePath('/orders');
@@ -239,15 +334,15 @@ export async function updateOrderAction(
   redirect(`/orders/${id}`);
 }
 
-export async function changeOrderStatusAction(
-  id: string,
-  status: OrderStatus
-): Promise<void> {
+export async function changeOrderStatusAction(id: string, status: OrderStatus): Promise<void> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+
+  if (!user) throw new Error(m.unauthorized);
 
   const updates: Record<string, unknown> = { status };
 
@@ -264,11 +359,7 @@ export async function changeOrderStatusAction(
     }
   }
 
-  const { error } = await supabase
-    .from('orders')
-    .update(updates)
-    .eq('id', id)
-    .eq('user_id', user.id);
+  const { error } = await supabase.from('orders').update(updates).eq('id', id).eq('user_id', user.id);
 
   if (error) throw new Error(error.message);
 
@@ -277,11 +368,14 @@ export async function changeOrderStatusAction(
 }
 
 export async function createCorrectionDraftAction(orderId: string): Promise<void> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+
+  if (!user) throw new Error(m.unauthorized);
 
   const { data: sourceOrder } = await supabase
     .from('orders')
@@ -292,13 +386,9 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!sourceOrder) throw new Error('Исходный заказ не найден');
-  if (!sourceOrder.invoice_number) {
-    throw new Error('Корректировку можно создавать только для уже выпущенного счета');
-  }
-  if (sourceOrder.correction_of_order_id) {
-    throw new Error('Нельзя создавать корректировку поверх другой корректировки');
-  }
+  if (!sourceOrder) throw new Error(m.sourceOrderNotFound);
+  if (!sourceOrder.invoice_number) throw new Error(m.correctionNeedsInvoice);
+  if (sourceOrder.correction_of_order_id) throw new Error(m.correctionAlreadyFromCorrection);
 
   const snapshot =
     sourceOrder.invoice_snapshot_json && typeof sourceOrder.invoice_snapshot_json === 'object'
@@ -310,7 +400,7 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
     .insert({
       user_id: user.id,
       correction_of_order_id: sourceOrder.id,
-      correction_reason: `Korrektur zu Rechnung ${sourceOrder.invoice_number}`,
+      correction_reason: `${m.correctionReasonPrefix} ${sourceOrder.invoice_number}`,
       status: 'new',
       client_id: sourceOrder.client_id,
       service_id: sourceOrder.service_id,
@@ -332,7 +422,7 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
     .single();
 
   if (error || !created) {
-    throw new Error(error?.message ?? 'Не удалось создать корректировку');
+    throw new Error(error?.message ?? m.correctionCreateError);
   }
 
   await supabase.from('activity_logs').insert([
@@ -340,13 +430,13 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
       order_id: sourceOrder.id,
       user_id: user.id,
       action_type: 'invoice_correction_created',
-      action_text: `Создана корректировка к счету ${sourceOrder.invoice_number}`,
+      action_text: `${m.correctionCreatedLogPrefix} ${sourceOrder.invoice_number}`,
     },
     {
       order_id: created.id,
       user_id: user.id,
       action_type: 'correction_draft_created',
-      action_text: `Черновик корректировки создан для счета ${sourceOrder.invoice_number}`,
+      action_text: `${m.correctionDraftCreatedLogPrefix} ${sourceOrder.invoice_number}`,
     },
   ]);
 
@@ -356,11 +446,14 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
 }
 
 export async function softDeleteOrderAction(id: string): Promise<void> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+
+  if (!user) throw new Error(m.unauthorized);
 
   const { error } = await supabase
     .from('orders')
@@ -374,7 +467,7 @@ export async function softDeleteOrderAction(id: string): Promise<void> {
     order_id: id,
     user_id: user.id,
     action_type: 'soft_deleted',
-    action_text: 'Перемещен в корзину',
+    action_text: m.movedToTrashLog,
   });
 
   revalidatePath('/orders');
@@ -383,11 +476,14 @@ export async function softDeleteOrderAction(id: string): Promise<void> {
 }
 
 export async function restoreOrderAction(id: string): Promise<void> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+
+  if (!user) throw new Error(m.unauthorized);
 
   const { error } = await supabase
     .from('orders')
@@ -401,7 +497,7 @@ export async function restoreOrderAction(id: string): Promise<void> {
     order_id: id,
     user_id: user.id,
     action_type: 'restored',
-    action_text: 'Восстановлен из корзины',
+    action_text: m.restoredLog,
   });
 
   revalidatePath('/orders');
@@ -411,11 +507,14 @@ export async function restoreOrderAction(id: string): Promise<void> {
 }
 
 export async function permanentDeleteOrderAction(id: string): Promise<void> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+
+  if (!user) throw new Error(m.unauthorized);
 
   const { data: order } = await supabase
     .from('orders')
@@ -424,20 +523,11 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!order) throw new Error('Заказ не найден');
-  if (order.invoice_number) {
-    throw new Error(
-      'Нельзя удалить: по заказу выставлен счет. Исходные документы нужно хранить и не удалять silently.'
-    );
-  }
-  if (!order.deleted_at) {
-    throw new Error('Сначала переместите в корзину');
-  }
+  if (!order) throw new Error(m.orderNotFound);
+  if (order.invoice_number) throw new Error(m.cannotDeleteInvoice);
+  if (!order.deleted_at) throw new Error(m.moveToTrashFirst);
 
-  const { data: photos } = await supabase
-    .from('order_photos')
-    .select('file_path')
-    .eq('order_id', id);
+  const { data: photos } = await supabase.from('order_photos').select('file_path').eq('order_id', id);
 
   if (photos && photos.length > 0) {
     await supabase.storage.from('order-photos').remove(photos.map((p) => p.file_path));
@@ -457,11 +547,7 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
     await supabase.storage.from('order-pdfs').remove([fullOrder.pdf_file_path]);
   }
 
-  const { error } = await supabase
-    .from('orders')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
+  const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', user.id);
 
   if (error) throw new Error(error.message);
 

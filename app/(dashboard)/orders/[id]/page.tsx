@@ -1,27 +1,32 @@
-import TrashActions from '@/components/orders/TrashActions';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import TrashActions from '@/components/orders/TrashActions';
 import OrderForm from '@/components/forms/OrderForm';
 import OrderStatusSwitcher from '@/components/forms/OrderStatusSwitcher';
 import DeleteOrderButton from '@/components/forms/DeleteOrderButton';
 import CreateCorrectionButton from '@/components/orders/CreateCorrectionButton';
 import PhotoUploader from '@/components/orders/PhotoUploader';
 import PhotoGallery from '@/components/orders/PhotoGallery';
-import { updateOrderAction } from '../actions';
-import { getSignedUrl, getSignedUrls } from '@/lib/supabase/storage';
 import PdfSection from '@/components/orders/PdfSection';
-import {
-  formatPrice,
-  formatDateTime,
-  STATUS_LABELS,
-  STATUS_COLORS,
-  PAYMENT_METHOD_LABELS,
-} from '@/lib/utils/format';
-import type { Order, Client, Service, ActivityLog, OrderPhoto } from '@/types/database';
+import { getDictionary, getLocale } from '@/lib/i18n/server';
+import { createClient } from '@/lib/supabase/server';
+import { getSignedUrl, getSignedUrls } from '@/lib/supabase/storage';
+import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
+import type {
+  ActivityLog,
+  Client,
+  Order,
+  OrderPhoto,
+  OrderStatus,
+  PaymentMethod,
+  Service,
+} from '@/types/database';
+import { updateOrderAction } from '../actions';
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ edit?: string }>;
+
+const DASH = '—';
 
 export default async function OrderPage({
   params,
@@ -35,6 +40,7 @@ export default async function OrderPage({
   const requestedEdit = edit === '1';
 
   const supabase = await createClient();
+  const [{ t }, locale] = await Promise.all([getDictionary(), getLocale()]);
 
   const { data: order } = await supabase.from('orders').select('*').eq('id', id).maybeSingle();
   if (!order) notFound();
@@ -73,9 +79,17 @@ export default async function OrderPage({
     isEditing ? supabase.from('services').select('*').order('title') : Promise.resolve({ data: [] }),
     supabase.from('profiles').select('full_name, company_name').eq('id', o.user_id).maybeSingle(),
     o.correction_of_order_id
-      ? supabase.from('orders').select('id, invoice_number').eq('id', o.correction_of_order_id).maybeSingle()
+      ? supabase
+          .from('orders')
+          .select('id, invoice_number')
+          .eq('id', o.correction_of_order_id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from('orders').select('id, invoice_number, created_at').eq('correction_of_order_id', o.id).order('created_at', { ascending: false }),
+    supabase
+      .from('orders')
+      .select('id, invoice_number, created_at')
+      .eq('correction_of_order_id', o.id)
+      .order('created_at', { ascending: false }),
   ]);
 
   const client = clientRes.data as Client | null;
@@ -87,7 +101,9 @@ export default async function OrderPage({
     company_name: string | null;
   } | null;
   const correctionSource = correctionSourceRes.data as Pick<Order, 'id' | 'invoice_number'> | null;
-  const corrections = (correctionsRes.data ?? []) as Array<Pick<Order, 'id' | 'invoice_number' | 'created_at'>>;
+  const corrections = (correctionsRes.data ?? []) as Array<
+    Pick<Order, 'id' | 'invoice_number' | 'created_at'>
+  >;
 
   const photoPaths = photos.map((p) => p.file_path);
   const photoSignedUrls = await getSignedUrls(supabase, 'order-photos', photoPaths);
@@ -104,29 +120,61 @@ export default async function OrderPage({
     ? await getSignedUrl(supabase, 'order-signatures', o.signature_file_path)
     : null;
 
-  const serviceTitle = service?.title ?? o.custom_service_title ?? '—';
+  const serviceTitle = service?.title ?? o.custom_service_title ?? DASH;
   const priceToShow = o.custom_price ?? service?.default_price ?? null;
   const boundUpdate = updateOrderAction.bind(null, o.id);
+
+  const statusLabels: Record<OrderStatus, string> = {
+    new: locale === 'de' ? 'Neu' : '\u041d\u043e\u0432\u044b\u0439',
+    in_progress: locale === 'de' ? 'In Arbeit' : '\u0412 \u0440\u0430\u0431\u043e\u0442\u0435',
+    completed: locale === 'de' ? 'Abgeschlossen' : '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d',
+    canceled: locale === 'de' ? 'Abgebrochen' : '\u041e\u0442\u043c\u0435\u043d\u0435\u043d',
+  };
+
+  const paymentLabels: Record<PaymentMethod, string> = {
+    cash: locale === 'de' ? 'Barzahlung' : '\u041d\u0430\u043b\u0438\u0447\u043d\u044b\u0435',
+    transfer:
+      locale === 'de'
+        ? 'Ueberweisung'
+        : '\u0411\u0430\u043d\u043a\u043e\u0432\u0441\u043a\u0438\u0439 \u043f\u0435\u0440\u0435\u0432\u043e\u0434',
+    ec_card: 'EC-Karte',
+    paypal: 'PayPal',
+  };
+
+  const formatDateTimeLocal = (value: string | null | undefined) =>
+    value
+      ? new Date(value).toLocaleString(locale === 'de' ? 'de-DE' : 'ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : DASH;
+
+  const deletedAtLabel = o.deleted_at
+    ? new Date(o.deleted_at).toLocaleString(locale === 'de' ? 'de-DE' : 'ru-RU')
+    : null;
 
   return (
     <div className="max-w-2xl">
       <div className="mb-4">
         <Link href="/orders" className="text-sm text-neutral-500 hover:text-neutral-700">
-          ← Назад к списку
+          ← {t.orderPage.backToList}
         </Link>
       </div>
 
       {isEditing ? (
         <>
-          <h1 className="text-2xl font-semibold mb-4">Редактировать заказ</h1>
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
+          <h1 className="mb-4 text-2xl font-semibold">{t.orderPage.editTitle}</h1>
+          <div className="rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <OrderForm
               action={boundUpdate}
               clients={(clientsListRes.data ?? []) as Client[]}
               services={(servicesListRes.data ?? []) as Service[]}
               initial={o}
               cancelHref={`/orders/${o.id}`}
-              submitLabel="Сохранить"
+              submitLabel={t.orderPage.save}
             />
           </div>
         </>
@@ -134,77 +182,80 @@ export default async function OrderPage({
         <>
           {requestedEdit && isInvoiceLocked && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Редактирование заказа отключено: счет уже выпущен и исходные данные зафиксированы.
+              {t.orderPage.editLocked}
             </div>
           )}
 
           {isInvoiceLocked && (
             <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-              Этот заказ находится в режиме архивного счета. Исходные поля, подпись и фото больше нельзя
-              менять обычным редактированием.
+              {t.orderPage.invoiceLocked}
             </div>
           )}
 
           {o.correction_of_order_id && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Это корректировка к счету{' '}
+              {t.orderPage.correctionOfInvoice}{' '}
               {correctionSource?.invoice_number ? (
                 <Link href={`/orders/${correctionSource.id}`} className="font-medium underline">
                   {correctionSource.invoice_number}
                 </Link>
               ) : (
-                'исходного документа'
+                t.orderPage.sourceDocument
               )}
               .
-              {o.correction_reason && <div className="mt-2 text-xs">Причина: {o.correction_reason}</div>}
+              {o.correction_reason && (
+                <div className="mt-2 text-xs">
+                  {t.orderPage.correctionReason}: {o.correction_reason}
+                </div>
+              )}
             </div>
           )}
 
-          <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status]}`}>
-                  {STATUS_LABELS[o.status]}
+              <div className="mb-2 flex items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[o.status]}`}>
+                  {statusLabels[o.status]}
                 </span>
               </div>
-              <h1 className="text-2xl font-semibold truncate">{serviceTitle}</h1>
+              <h1 className="truncate text-2xl font-semibold">{serviceTitle}</h1>
               {o.deleted_at && (
-                <div className="mt-2 text-xs bg-red-100 text-red-800 inline-block px-2 py-1 rounded font-medium">
-                  🗑 В корзине
+                <div className="mt-2 inline-block rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
+                  {t.orderPage.inTrash}
                 </div>
               )}
             </div>
             {!isInvoiceLocked && (
               <Link
                 href={`/orders/${o.id}?edit=1`}
-                className="rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium px-4 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 whitespace-nowrap"
+                className="whitespace-nowrap rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
               >
-                Редактировать
+                {t.orderPage.edit}
               </Link>
             )}
           </div>
 
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
-            <div className="text-sm text-neutral-500 mb-2">Сменить статус</div>
+          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-2 text-sm text-neutral-500">{t.orderPage.changeStatus}</div>
             <OrderStatusSwitcher orderId={o.id} currentStatus={o.status} />
           </div>
 
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 space-y-3 mb-4">
+          <div className="mb-4 space-y-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <Row
-              label="Клиент"
+              label={t.orderPage.client}
               value={
                 client ? (
                   <Link href={`/clients/${client.id}`} className="text-blue-600 hover:underline">
                     {client.full_name}
                   </Link>
                 ) : (
-                  '—'
+                  DASH
                 )
               }
             />
             {client?.phone && (
               <Row
-                label="Телефон клиента"
+                label={t.orderPage.clientPhone}
                 value={
                   <a href={`tel:${client.phone}`} className="text-blue-600 hover:underline">
                     {client.phone}
@@ -212,82 +263,76 @@ export default async function OrderPage({
                 }
               />
             )}
-            <Row label="Цена" value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
-            {o.payment_method && (
-              <Row label="Способ оплаты" value={PAYMENT_METHOD_LABELS[o.payment_method]} />
-            )}
-            <Row label="Адрес работы" value={o.order_address ?? client?.address ?? '—'} />
-            <Row label="Запланирован" value={formatDateTime(o.scheduled_at)} />
+            <Row label={t.orderPage.price} value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
+            {o.payment_method && <Row label={t.orderPage.paymentMethod} value={paymentLabels[o.payment_method]} />}
+            <Row label={t.orderPage.workAddress} value={o.order_address ?? client?.address ?? DASH} />
+            <Row label={t.orderPage.scheduledAt} value={formatDateTimeLocal(o.scheduled_at)} />
             <Row
-              label="Дата выполнения"
+              label={t.orderPage.serviceDate}
               value={
                 o.service_date ? (
-                  formatDateTime(o.service_date)
+                  formatDateTimeLocal(o.service_date)
                 ) : (
-                  <span className="text-neutral-400 italic">не указана</span>
+                  <span className="italic text-neutral-400">{t.orderPage.notSpecified}</span>
                 )
               }
             />
-            {o.completed_at && <Row label="Завершен" value={formatDateTime(o.completed_at)} />}
+            {o.completed_at && <Row label={t.orderPage.completedAt} value={formatDateTimeLocal(o.completed_at)} />}
             {o.invoice_number && (
-              <Row label="Номер счета" value={<span className="font-mono font-semibold">{o.invoice_number}</span>} />
+              <Row label={t.orderPage.invoiceNumber} value={<span className="font-mono font-semibold">{o.invoice_number}</span>} />
             )}
             {o.invoice_sent_at && (
               <Row
-                label="Счет отправлен"
+                label={t.orderPage.invoiceSent}
                 value={
                   <span className="text-xs">
-                    {formatDateTime(o.invoice_sent_at)}
+                    {formatDateTimeLocal(o.invoice_sent_at)}
                     {o.invoice_sent_to && (
                       <>
                         <br />
-                        на {o.invoice_sent_to}
+                        {t.orderPage.sentTo} {o.invoice_sent_to}
                       </>
                     )}
                   </span>
                 }
               />
             )}
-            <Row label="Создан" value={formatDateTime(o.created_at)} />
+            <Row label={t.orderPage.createdAt} value={formatDateTimeLocal(o.created_at)} />
             {o.description && (
-              <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
-                <div className="text-sm text-neutral-500 mb-1">Описание</div>
-                <p className="text-sm whitespace-pre-wrap">{o.description}</p>
+              <div className="border-t border-neutral-100 pt-2 dark:border-neutral-800">
+                <div className="mb-1 text-sm text-neutral-500">{t.orderPage.description}</div>
+                <p className="whitespace-pre-wrap text-sm">{o.description}</p>
               </div>
             )}
           </div>
 
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
-            <h2 className="text-sm font-medium text-neutral-500 mb-3">Фото до работы</h2>
+          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.beforePhotos}</h2>
             <div className="mb-3">
               <PhotoGallery photos={beforePhotos} />
             </div>
-            {!isInvoiceLocked && (
-              <PhotoUploader orderId={o.id} photoType="before" label="Добавить фото «до»" />
-            )}
+            {!isInvoiceLocked && <PhotoUploader orderId={o.id} photoType="before" label={t.orderPage.addBeforePhoto} />}
           </div>
 
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
-            <h2 className="text-sm font-medium text-neutral-500 mb-3">Фото после работы</h2>
+          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.afterPhotos}</h2>
             <div className="mb-3">
               <PhotoGallery photos={afterPhotos} />
             </div>
-            {!isInvoiceLocked && (
-              <PhotoUploader orderId={o.id} photoType="after" label="Добавить фото «после»" />
-            )}
+            {!isInvoiceLocked && <PhotoUploader orderId={o.id} photoType="after" label={t.orderPage.addAfterPhoto} />}
           </div>
 
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
-            <h2 className="text-sm font-medium text-neutral-500 mb-3">Подпись клиента</h2>
+          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.signature}</h2>
             {signatureUrl ? (
               <div>
-                <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white overflow-hidden mb-3">
+                <div className="mb-3 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={signatureUrl} alt="Подпись клиента" className="w-full" />
+                  <img src={signatureUrl} alt={t.orderPage.signatureAlt} className="w-full" />
                 </div>
                 {!isInvoiceLocked && (
                   <Link href={`/orders/${o.id}/signature`} className="text-sm text-blue-600 hover:underline">
-                    Переподписать
+                    {t.orderPage.resign}
                   </Link>
                 )}
               </div>
@@ -295,23 +340,25 @@ export default async function OrderPage({
               !isInvoiceLocked && (
                 <Link
                   href={`/orders/${o.id}/signature`}
-                  className="inline-flex items-center justify-center w-full rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:border-blue-500 hover:text-blue-600 transition"
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 dark:border-neutral-700 dark:text-neutral-300"
                 >
-                  ✍️ Получить подпись клиента
+                  {t.orderPage.requestSignature}
                 </Link>
               )
             )}
           </div>
 
-          <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-4">
-            <h2 className="text-sm font-medium text-neutral-500 mb-3">PDF-счет</h2>
+          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5">
+            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.pdfInvoice}</h2>
             <PdfSection
               orderId={o.id}
               hasPdf={!!o.pdf_file_path}
               invoiceNumber={o.invoice_number}
               clientEmail={client?.email ?? null}
-              clientName={client?.full_name ?? 'Kunde'}
-              masterName={masterProfile?.full_name ?? masterProfile?.company_name ?? 'Мастер'}
+              clientName={
+                client?.full_name ?? (locale === 'de' ? 'Kunde' : '\u041a\u043b\u0438\u0435\u043d\u0442')
+              }
+              masterName={masterProfile?.full_name ?? masterProfile?.company_name ?? t.orderPage.masterFallback}
               invoiceSentAt={o.invoice_sent_at}
               invoiceSentTo={o.invoice_sent_to}
             />
@@ -323,16 +370,16 @@ export default async function OrderPage({
           </div>
 
           {corrections.length > 0 && (
-            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
-              <h2 className="text-sm font-medium text-neutral-500 mb-3">Корректировки</h2>
+            <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+              <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.corrections}</h2>
               <ul className="space-y-2">
                 {corrections.map((correction) => (
                   <li key={correction.id} className="text-sm">
                     <Link href={`/orders/${correction.id}`} className="text-blue-600 hover:underline">
-                      {correction.invoice_number ?? 'Черновик корректировки'}
+                      {correction.invoice_number ?? t.orderPage.correctionDraft}
                     </Link>{' '}
                     <span className="text-neutral-500">
-                      от {formatDateTime(correction.created_at)}
+                      {t.orderPage.from} {formatDateTimeLocal(correction.created_at)}
                     </span>
                   </li>
                 ))}
@@ -341,13 +388,13 @@ export default async function OrderPage({
           )}
 
           {logs.length > 0 && (
-            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
-              <h2 className="text-sm font-medium text-neutral-500 mb-3">История</h2>
+            <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+              <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.history}</h2>
               <ul className="space-y-2">
                 {logs.map((l) => (
-                  <li key={l.id} className="text-sm flex items-start gap-3">
-                    <span className="text-xs text-neutral-400 whitespace-nowrap mt-0.5">
-                      {formatDateTime(l.created_at)}
+                  <li key={l.id} className="flex items-start gap-3 text-sm">
+                    <span className="mt-0.5 whitespace-nowrap text-xs text-neutral-400">
+                      {formatDateTimeLocal(l.created_at)}
                     </span>
                     <span>{l.action_text ?? l.action_type}</span>
                   </li>
@@ -357,14 +404,15 @@ export default async function OrderPage({
           )}
 
           {o.deleted_at ? (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-              <div className="flex items-start gap-2 mb-3">
-                <span className="text-xl">🗑</span>
+            <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+              <div className="mb-3 flex items-start gap-2">
                 <div>
-                  <div className="font-medium text-red-900">Заказ в корзине</div>
-                  <div className="text-xs text-red-700 mt-0.5">
-                    Удален {new Date(o.deleted_at).toLocaleString('ru-RU')}
-                  </div>
+                  <div className="font-medium text-red-900">{t.orderPage.orderInTrash}</div>
+                  {deletedAtLabel && (
+                    <div className="mt-0.5 text-xs text-red-700">
+                      {t.orderPage.deletedAt} {deletedAtLabel}
+                    </div>
+                  )}
                 </div>
               </div>
               <TrashActions orderId={o.id} hasInvoice={!!o.invoice_number} />
@@ -382,7 +430,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-sm text-neutral-500">{label}</dt>
-      <dd className="text-sm text-right">{value}</dd>
+      <dd className="text-right text-sm">{value}</dd>
     </div>
   );
 }

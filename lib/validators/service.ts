@@ -1,4 +1,3 @@
-// lib/validators/service.ts
 import { parsePriceInput } from '@/lib/utils/format';
 
 export type ServiceInput = {
@@ -14,20 +13,20 @@ export function validateService(data: ServiceInput): ServiceValidationErrors {
 
   const title = data.title.trim();
   if (title.length === 0) {
-    errors.title = 'Название обязательно';
+    errors.title = 'Name ist erforderlich';
   } else if (title.length > 200) {
-    errors.title = 'Название слишком длинное';
+    errors.title = 'Name ist zu lang';
   }
 
   if (data.default_price.trim() !== '') {
     const price = parsePriceInput(data.default_price);
     if (price === null) {
-      errors.default_price = 'Некорректная цена';
+      errors.default_price = 'Ungueltiger Preis';
     }
   }
 
   if (data.description.length > 2000) {
-    errors.description = 'Описание слишком длинное';
+    errors.description = 'Beschreibung ist zu lang';
   }
 
   return errors;

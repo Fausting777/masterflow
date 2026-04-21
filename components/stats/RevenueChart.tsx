@@ -1,14 +1,16 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LocaleProvider';
 import { formatPrice } from '@/lib/utils/format';
 
 type Props = {
   months: Array<{ label: string; fullLabel: string }>;
-  values: number[];       // доходы
-  expenses?: number[];    // расходы (опционально)
+  values: number[];
+  expenses?: number[];
 };
 
 export default function RevenueChart({ months, values, expenses }: Props) {
+  const { locale } = useI18n();
   const hasExpenses = Boolean(expenses && expenses.length > 0);
   const allValues = hasExpenses ? [...values, ...(expenses ?? [])] : values;
   const max = Math.max(...allValues, 1);
@@ -16,24 +18,37 @@ export default function RevenueChart({ months, values, expenses }: Props) {
   const totalRevenue = values.reduce((a, b) => a + b, 0);
   const totalExpenses = hasExpenses ? (expenses ?? []).reduce((a, b) => a + b, 0) : 0;
 
+  const text =
+    locale === 'de'
+      ? {
+          revenue: 'Einnahmen',
+          expenses: 'Ausgaben',
+          profit: 'Gewinn',
+        }
+      : {
+          revenue: 'Доход',
+          expenses: 'Расходы',
+          profit: 'Прибыль',
+        };
+
   return (
     <div>
-      <div className="flex items-center gap-4 text-xs mb-2">
+      <div className="mb-2 flex items-center gap-4 text-xs">
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-gradient-to-t from-blue-600 to-blue-400 inline-block" />
-          <span className="text-neutral-500">Доход:</span>
+          <span className="inline-block h-3 w-3 rounded bg-gradient-to-t from-blue-600 to-blue-400" />
+          <span className="text-neutral-500">{text.revenue}:</span>
           <span className="font-semibold text-neutral-900">{formatPrice(totalRevenue)}</span>
         </div>
         {hasExpenses && (
           <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-gradient-to-t from-rose-500 to-rose-300 inline-block" />
-            <span className="text-neutral-500">Расходы:</span>
+            <span className="inline-block h-3 w-3 rounded bg-gradient-to-t from-rose-500 to-rose-300" />
+            <span className="text-neutral-500">{text.expenses}:</span>
             <span className="font-semibold text-neutral-900">{formatPrice(totalExpenses)}</span>
           </div>
         )}
       </div>
 
-      <div className="flex items-end gap-1 h-48 mt-4">
+      <div className="mt-4 flex h-48 items-end gap-1">
         {months.map((m, i) => {
           const v = values[i];
           const e = hasExpenses ? (expenses ?? [])[i] : 0;
@@ -43,12 +58,8 @@ export default function RevenueChart({ months, values, expenses }: Props) {
           const isZeroE = e === 0;
 
           return (
-            <div
-              key={i}
-              className="flex-1 flex flex-col items-center gap-1 group relative"
-            >
-              {/* 2 столбца рядом */}
-              <div className="w-full flex items-end justify-center gap-0.5 flex-1">
+            <div key={i} className="group relative flex flex-1 flex-col items-center gap-1">
+              <div className="flex flex-1 items-end justify-center gap-0.5 w-full">
                 <div
                   className={`flex-1 rounded-t transition-all ${
                     isZeroV
@@ -56,7 +67,7 @@ export default function RevenueChart({ months, values, expenses }: Props) {
                       : 'bg-gradient-to-t from-blue-600 to-blue-400 group-hover:from-blue-700 group-hover:to-blue-500'
                   }`}
                   style={{ height: isZeroV ? '3px' : `${Math.max(hPctV, 3)}%` }}
-                  title={`${m.fullLabel}: Доход ${formatPrice(v)}`}
+                  title={`${m.fullLabel}: ${text.revenue} ${formatPrice(v)}`}
                 />
                 {hasExpenses && (
                   <div
@@ -66,23 +77,26 @@ export default function RevenueChart({ months, values, expenses }: Props) {
                         : 'bg-gradient-to-t from-rose-500 to-rose-300 group-hover:from-rose-600 group-hover:to-rose-400'
                     }`}
                     style={{ height: isZeroE ? '3px' : `${Math.max(hPctE, 3)}%` }}
-                    title={`${m.fullLabel}: Расходы ${formatPrice(e)}`}
+                    title={`${m.fullLabel}: ${text.expenses} ${formatPrice(e)}`}
                   />
                 )}
               </div>
-              <div className="text-[10px] text-neutral-500 truncate w-full text-center">
-                {m.label}
-              </div>
+              <div className="w-full truncate text-center text-[10px] text-neutral-500">{m.label}</div>
 
-              {/* Tooltip */}
-              <div className="absolute bottom-full mb-1 hidden group-hover:block bg-neutral-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap z-10 space-y-0.5">
+              <div className="absolute bottom-full z-10 mb-1 hidden space-y-0.5 rounded bg-neutral-900 px-2 py-1 text-[10px] text-white whitespace-nowrap group-hover:block">
                 <div>{m.fullLabel}</div>
-                <div className="text-blue-300">Доход: {formatPrice(v)}</div>
+                <div className="text-blue-300">
+                  {text.revenue}: {formatPrice(v)}
+                </div>
                 {hasExpenses && (
-                  <div className="text-rose-300">Расход: {formatPrice(e)}</div>
+                  <div className="text-rose-300">
+                    {text.expenses}: {formatPrice(e)}
+                  </div>
                 )}
                 {hasExpenses && (
-                  <div className="font-semibold">Прибыль: {formatPrice(v - e)}</div>
+                  <div className="font-semibold">
+                    {text.profit}: {formatPrice(v - e)}
+                  </div>
                 )}
               </div>
             </div>

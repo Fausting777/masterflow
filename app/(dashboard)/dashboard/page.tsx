@@ -1,116 +1,131 @@
-import { getExpensesSummary } from '@/lib/stats/expenses';
-import { toDateOnly } from '@/lib/utils/date-range';
-import InvoiceBadges from '@/components/orders/InvoiceBadges';
-import { getRange } from '@/lib/utils/date-range';
-import { getRevenueStats } from '@/lib/stats/calculate';
 import Link from 'next/link';
+import { getDictionary, getLocale } from '@/lib/i18n/server';
+import { getExpensesSummary } from '@/lib/stats/expenses';
+import { getRevenueStats } from '@/lib/stats/calculate';
 import { createClient } from '@/lib/supabase/server';
-import {
-  formatPrice,
-  formatDate,
-  STATUS_LABELS,
-  STATUS_COLORS,
-} from '@/lib/utils/format';
-import type { OrderWithClient } from '@/types/database';
+import { getRange, toDateOnly } from '@/lib/utils/date-range';
+import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
+import type { OrderStatus, OrderWithClient } from '@/types/database';
+
+const DASH = '—';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: auth }, { t }, locale] = await Promise.all([
+    supabase.auth.getUser(),
+    getDictionary(),
+    getLocale(),
+  ]);
+  const user = auth.user;
 
   const [clientsCountRes, servicesCountRes, ordersActiveCountRes, recentOrdersRes] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }),
     supabase.from('services').select('*', { count: 'exact', head: true }),
-    supabase.from('orders').select('*', { count: 'exact', head: true })
-  .in('status', ['new', 'in_progress'])
-  .is('deleted_at', null),
     supabase
-  .from('orders_with_client')
-  .select('*')
-  .is('deleted_at', null)
-  .order('created_at', { ascending: false })
-  .limit(5),
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['new', 'in_progress'])
+      .is('deleted_at', null),
+    supabase
+      .from('orders_with_client')
+      .select('*')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(5),
   ]);
 
   const recent = (recentOrdersRes.data ?? []) as OrderWithClient[];
-// Статистика за текущий месяц
-const monthRange = getRange('month');
-const monthStats = await getRevenueStats(
-  supabase,
-  user!.id,
-  monthRange.from,
-  monthRange.to
-);
-// Расходы за текущий месяц
-const monthExpenses = await getExpensesSummary(
-  supabase,
-  user!.id,
-  toDateOnly(monthRange.from),
-  toDateOnly(monthRange.to)
-);
-const monthProfit = monthStats.total - monthExpenses.total;
+  const monthRange = getRange('month', new Date(), { locale });
+  const monthStats = await getRevenueStats(supabase, user!.id, monthRange.from, monthRange.to);
+  const monthExpenses = await getExpensesSummary(
+    supabase,
+    user!.id,
+    toDateOnly(monthRange.from),
+    toDateOnly(monthRange.to)
+  );
+  const monthProfit = monthStats.total - monthExpenses.total;
+
+  const statusLabels: Record<OrderStatus, string> =
+    locale === 'de'
+      ? {
+          new: 'Neu',
+          in_progress: 'In Arbeit',
+          completed: 'Abgeschlossen',
+          canceled: 'Abgebrochen',
+        }
+      : {
+          new: 'Новый',
+          in_progress: 'В работе',
+          completed: 'Завершен',
+          canceled: 'Отменен',
+        };
+
+  const formatDateLocal = (value: string | null | undefined) =>
+    value
+      ? new Date(value).toLocaleDateString(locale === 'de' ? 'de-DE' : 'ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        })
+      : DASH;
+
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-1">Рабочий стол</h1>
-      <p className="text-sm text-neutral-500 mb-6">{user!.email}</p>
-{/* Финансы за месяц */}
-<div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-4">
-  <div className="flex items-start justify-between mb-3 gap-3">
-    <div className="min-w-0">
-      <div className="text-xs text-neutral-500 uppercase tracking-wide">
-        {monthRange.label}
-      </div>
-      <div className={`text-3xl font-bold mt-1 ${
-        monthProfit >= 0 ? 'text-blue-900' : 'text-orange-700'
-      }`}>
-        {formatPrice(monthProfit)}
-      </div>
-      <div className="text-xs text-neutral-500 mt-0.5">
-        {monthProfit >= 0 ? 'Прибыль' : 'Убыток'} за месяц
-      </div>
-    </div>
-    <Link
-      href="/stats"
-      className="text-sm text-blue-700 hover:text-blue-900 font-medium whitespace-nowrap"
-    >
-      Подробнее →
-    </Link>
-  </div>
-  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-blue-200">
-    <div>
-      <div className="text-xs text-neutral-500">💰 Доход</div>
-      <div className="text-sm font-semibold text-green-700">{formatPrice(monthStats.total)}</div>
-    </div>
-    <div>
-      <div className="text-xs text-neutral-500">💸 Расход</div>
-      <div className="text-sm font-semibold text-rose-700">{formatPrice(monthExpenses.total)}</div>
-    </div>
-    <div>
-      <div className="text-xs text-neutral-500">Счетов</div>
-      <div className="text-sm font-semibold">{monthStats.invoicesCount}</div>
-    </div>
-  </div>
-</div>
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mb-6">
-        <StatCard href="/orders" label="Активные заказы" value={ordersActiveCountRes.count ?? 0} accent />
-        <StatCard href="/clients" label="Клиенты" value={clientsCountRes.count ?? 0} />
-        <StatCard href="/services" label="Услуги" value={servicesCountRes.count ?? 0} />
+      <h1 className="mb-1 text-2xl font-semibold">{t.dashboard.title}</h1>
+      <p className="mb-6 text-sm text-neutral-500">{user!.email}</p>
+
+      <div className="mb-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-wide text-neutral-500">{monthRange.label}</div>
+            <div className={`mt-1 text-3xl font-bold ${monthProfit >= 0 ? 'text-blue-900' : 'text-orange-700'}`}>
+              {formatPrice(monthProfit)}
+            </div>
+            <div className="mt-0.5 text-xs text-neutral-500">
+              {monthProfit >= 0 ? t.dashboard.profit : t.dashboard.loss} {t.dashboard.forMonth}
+            </div>
+          </div>
+          <Link href="/stats" className="whitespace-nowrap text-sm font-medium text-blue-700 hover:text-blue-900">
+            {t.dashboard.details} →
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 gap-2 border-t border-blue-200 pt-3">
+          <div>
+            <div className="text-xs text-neutral-500">{t.dashboard.revenue}</div>
+            <div className="text-sm font-semibold text-green-700">{formatPrice(monthStats.total)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-neutral-500">{t.dashboard.expenses}</div>
+            <div className="text-sm font-semibold text-rose-700">{formatPrice(monthExpenses.total)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-neutral-500">{t.dashboard.invoices}</div>
+            <div className="text-sm font-semibold">{monthStats.invoicesCount}</div>
+          </div>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between mb-3 gap-3">
-  <h2 className="text-sm font-medium text-neutral-500">Последние заказы</h2>
-  <div className="flex items-center gap-3">
-    <Link href="/orders/trash" className="text-sm text-neutral-500 hover:text-neutral-700">
-      🗑 Корзина
-    </Link>
-    <Link href="/orders/new" className="text-sm text-blue-600 hover:underline">
-      + Новый
-    </Link>
-  </div>
-</div>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard href="/orders" label={t.dashboard.activeOrders} value={ordersActiveCountRes.count ?? 0} accent />
+        <StatCard href="/clients" label={t.nav.clients} value={clientsCountRes.count ?? 0} />
+        <StatCard href="/services" label={t.nav.services} value={servicesCountRes.count ?? 0} />
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-medium text-neutral-500">{t.dashboard.recentOrders}</h2>
+        <div className="flex items-center gap-3">
+          <Link href="/orders/trash" className="text-sm text-neutral-500 hover:text-neutral-700">
+            {t.dashboard.trash}
+          </Link>
+          <Link href="/orders/new" className="text-sm text-blue-600 hover:underline">
+            + {t.dashboard.new}
+          </Link>
+        </div>
+      </div>
 
       {recent.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-8 text-center text-sm text-neutral-500">
-          Пока нет заказов
+        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
+          {t.dashboard.empty}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -118,22 +133,20 @@ const monthProfit = monthStats.total - monthExpenses.total;
             <li key={o.id}>
               <Link
                 href={`/orders/${o.id}`}
-                className="block bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 hover:border-blue-500 transition"
+                className="block rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-blue-500 dark:border-neutral-800 dark:bg-neutral-900"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status]}`}>
-                        {STATUS_LABELS[o.status]}
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[o.status]}`}>
+                        {statusLabels[o.status]}
                       </span>
-                      <span className="text-xs text-neutral-500">{formatDate(o.created_at)}</span>
+                      <span className="text-xs text-neutral-500">{formatDateLocal(o.created_at)}</span>
                     </div>
-                    <div className="font-medium truncate">{o.client_name}</div>
-                    <div className="text-sm text-neutral-500 truncate">{o.custom_service_title ?? '—'}</div>
+                    <div className="truncate font-medium">{o.client_name}</div>
+                    <div className="truncate text-sm text-neutral-500">{o.custom_service_title ?? DASH}</div>
                   </div>
-                  <div className="text-right font-semibold whitespace-nowrap">
-                    {formatPrice(o.custom_price)}
-                  </div>
+                  <div className="whitespace-nowrap text-right font-semibold">{formatPrice(o.custom_price)}</div>
                 </div>
               </Link>
             </li>
@@ -158,13 +171,13 @@ function StatCard({
   return (
     <Link
       href={href}
-      className={`block rounded-xl p-4 border transition ${
+      className={`block rounded-xl border p-4 transition ${
         accent
-          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900 hover:border-blue-400'
-          : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-blue-500'
+          ? 'border-blue-200 bg-blue-50 hover:border-blue-400 dark:border-blue-900 dark:bg-blue-950/30'
+          : 'border-neutral-200 bg-white hover:border-blue-500 dark:border-neutral-800 dark:bg-neutral-900'
       }`}
     >
-      <div className="text-xs text-neutral-500 mb-1">{label}</div>
+      <div className="mb-1 text-xs text-neutral-500">{label}</div>
       <div className="text-2xl font-semibold">{value}</div>
     </Link>
   );

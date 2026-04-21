@@ -5,8 +5,9 @@ import {
   generatePdfAction,
   getPdfSignedUrlAction,
 } from '@/app/(dashboard)/orders/[id]/pdf/actions';
-import SendInvoiceDialog from './SendInvoiceDialog';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 import { formatDateTime } from '@/lib/utils/format';
+import SendInvoiceDialog from './SendInvoiceDialog';
 
 type Props = {
   orderId: string;
@@ -29,12 +30,45 @@ export default function PdfSection({
   invoiceSentAt,
   invoiceSentTo,
 }: Props) {
+  const { locale } = useI18n();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [pdfExists, setPdfExists] = useState(hasPdf);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const isIssued = Boolean(invoiceNumber);
+  const text =
+    locale === 'de'
+      ? {
+          genericError: 'Fehler',
+          pdfUrlFailed: 'Signierte PDF-URL konnte nicht geladen werden',
+          ready: 'PDF-Rechnung ist bereit',
+          openPdf: 'PDF öffnen',
+          regeneratePdf: 'PDF neu erzeugen',
+          sendByEmail: 'An Kunden per E-Mail senden',
+          lastSent: 'Zuletzt gesendet',
+          draftLocked:
+            'Nach Ausstellung der Rechnung ist das PDF fixiert. Eine Neuerzeugung über das Ursprungsdokument hinaus ist nicht mehr möglich.',
+          draftHint:
+            'Vor Ausstellung der Rechnung kann das PDF neu erzeugt werden, wenn Daten geändert oder Fotos hinzugefügt wurden.',
+          generating: 'PDF wird erzeugt...',
+          generatePdf: 'PDF-Rechnung erzeugen',
+        }
+      : {
+          genericError: 'Ошибка',
+          pdfUrlFailed: 'Не удалось получить ссылку',
+          ready: 'PDF-счет готов',
+          openPdf: 'Открыть PDF',
+          regeneratePdf: 'Пересоздать PDF',
+          sendByEmail: 'Отправить клиенту на email',
+          lastSent: 'Последняя отправка',
+          draftLocked:
+            'После выпуска счета PDF фиксируется. Пересоздавать его поверх исходного документа больше нельзя.',
+          draftHint:
+            'До выпуска счета PDF можно пересоздать, если ты изменил данные или добавил фото.',
+          generating: 'Генерация PDF...',
+          generatePdf: 'Создать PDF-счет',
+        };
 
   function handleGenerate() {
     setError(null);
@@ -43,7 +77,7 @@ export default function PdfSection({
       if (res.ok) {
         setPdfExists(true);
       } else {
-        setError(res.error ?? 'Ошибка');
+        setError(res.error ?? text.genericError);
       }
     });
   }
@@ -54,7 +88,7 @@ export default function PdfSection({
     if (res.url) {
       window.open(res.url, '_blank');
     } else {
-      setError(res.error ?? 'Не удалось получить ссылку');
+      setError(res.error ?? text.pdfUrlFailed);
     }
   }
 
@@ -63,27 +97,30 @@ export default function PdfSection({
       {pdfExists ? (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-green-700">
-            <span>📄</span>
-            <span>PDF-счет готов{invoiceNumber && ` — ${invoiceNumber}`}</span>
+            <span>✔</span>
+            <span>
+              {text.ready}
+              {invoiceNumber && ` - ${invoiceNumber}`}
+            </span>
           </div>
 
           <div className="flex gap-2">
             <button
               type="button"
               onClick={openPdf}
-              className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 text-sm transition"
+              className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
             >
-              Открыть PDF
+              {text.openPdf}
             </button>
             {!isIssued && (
               <button
                 type="button"
                 onClick={handleGenerate}
                 disabled={isPending}
-                title="Пересоздать PDF"
+                title={text.regeneratePdf}
                 className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
               >
-                {isPending ? '...' : '⟳'}
+                {isPending ? '...' : '↻'}
               </button>
             )}
           </div>
@@ -91,36 +128,32 @@ export default function PdfSection({
           <button
             type="button"
             onClick={() => setDialogOpen(true)}
-            className="w-full rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium py-2.5 text-sm transition"
+            className="w-full rounded-lg border border-blue-300 bg-blue-50 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
           >
-            📧 Отправить клиенту на email
+            {text.sendByEmail}
           </button>
 
           {invoiceSentAt && (
-            <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-2">
-              Последняя отправка: {formatDateTime(invoiceSentAt)}
-              {invoiceSentTo && <> на <span className="font-medium">{invoiceSentTo}</span></>}
+            <div className="rounded-lg bg-neutral-50 p-2 text-xs text-neutral-500">
+              {text.lastSent}: {formatDateTime(invoiceSentAt, locale)}
+              {invoiceSentTo && <> {locale === 'de' ? 'an' : 'на'} <span className="font-medium">{invoiceSentTo}</span></>}
             </div>
           )}
 
-          <p className="text-xs text-neutral-500">
-            {isIssued
-              ? 'Архивный PDF счета зафиксирован. Пересоздавать его поверх исходного документа больше нельзя.'
-              : 'До выпуска счета PDF можно пересобрать, если ты изменил данные или добавил фото.'}
-          </p>
+          <p className="text-xs text-neutral-500">{isIssued ? text.draftLocked : text.draftHint}</p>
         </div>
       ) : (
         <button
           type="button"
           onClick={handleGenerate}
           disabled={isPending}
-          className="w-full rounded-lg border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-700 hover:border-blue-500 hover:text-blue-600 disabled:opacity-50 transition"
+          className="w-full rounded-lg border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 disabled:opacity-50"
         >
-          {isPending ? 'Генерация PDF...' : '📄 Создать PDF-счет'}
+          {isPending ? text.generating : text.generatePdf}
         </button>
       )}
 
-      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
       {dialogOpen && (
         <SendInvoiceDialog

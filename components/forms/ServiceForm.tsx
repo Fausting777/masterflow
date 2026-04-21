@@ -3,6 +3,8 @@
 import { useActionState } from 'react';
 import Link from 'next/link';
 import type { ServiceFormState } from '@/app/(dashboard)/services/actions';
+import { useI18n } from '@/components/i18n/LocaleProvider';
+import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 
 type Props = {
   action: (prev: ServiceFormState, fd: FormData) => Promise<ServiceFormState>;
@@ -22,6 +24,7 @@ export default function ServiceForm({
   submitLabel,
 }: Props) {
   const [state, formAction, isPending] = useActionState<ServiceFormState, FormData>(action, {});
+  const { t } = useI18n();
 
   const v = state.values ?? {
     title: initial?.title ?? '',
@@ -32,11 +35,15 @@ export default function ServiceForm({
     description: initial?.description ?? '',
   };
 
+  const inputCls =
+    'w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+
   return (
     <form action={formAction} className="space-y-4">
+      <CsrfTokenInput />
       <div>
         <label htmlFor="title" className="block text-sm font-medium mb-1">
-          Название услуги <span className="text-red-500">*</span>
+          {t.serviceForm.title} <span className="text-red-500">*</span>
         </label>
         <input
           id="title"
@@ -44,15 +51,15 @@ export default function ServiceForm({
           type="text"
           required
           defaultValue={v.title}
-          placeholder="Например: Türöffnung"
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder={t.serviceForm.titlePlaceholder}
+          className={inputCls}
         />
         {state.errors?.title && <p className="text-xs text-red-600 mt-1">{state.errors.title}</p>}
       </div>
 
       <div>
         <label htmlFor="default_price" className="block text-sm font-medium mb-1">
-          Стандартная цена, €
+          {t.serviceForm.price}
         </label>
         <input
           id="default_price"
@@ -61,22 +68,22 @@ export default function ServiceForm({
           inputMode="decimal"
           defaultValue={v.default_price}
           placeholder="80.00"
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputCls}
         />
         {state.errors?.default_price && <p className="text-xs text-red-600 mt-1">{state.errors.default_price}</p>}
-        <p className="text-xs text-neutral-500 mt-1">Можно оставить пустым — указывать цену при каждом заказе</p>
+        <p className="text-xs text-neutral-500 mt-1">{t.serviceForm.priceHelp}</p>
       </div>
 
       <div>
         <label htmlFor="description" className="block text-sm font-medium mb-1">
-          Описание
+          {t.serviceForm.description}
         </label>
         <textarea
           id="description"
           name="description"
           rows={3}
           defaultValue={v.description}
-          className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          className={`${inputCls} resize-y`}
         />
         {state.errors?.description && <p className="text-xs text-red-600 mt-1">{state.errors.description}</p>}
       </div>
@@ -93,13 +100,13 @@ export default function ServiceForm({
           disabled={isPending}
           className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
         >
-          {isPending ? 'Сохранение...' : submitLabel}
+          {isPending ? t.serviceForm.saving : submitLabel}
         </button>
         <Link
           href={cancelHref}
           className="rounded-lg border border-neutral-300 dark:border-neutral-700 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800"
         >
-          Отмена
+          {t.serviceForm.cancel}
         </Link>
       </div>
     </form>

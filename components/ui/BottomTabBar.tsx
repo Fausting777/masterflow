@@ -3,12 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, ClipboardList, Users, Menu } from 'lucide-react';
-
-const TABS = [
-  { href: '/dashboard', label: 'Главная', icon: Home, matcher: /^\/dashboard/ },
-  { href: '/orders', label: 'Заказы', icon: ClipboardList, matcher: /^\/orders/ },
-  { href: '/clients', label: 'Клиенты', icon: Users, matcher: /^\/clients/ },
-];
+import { useI18n } from '@/components/i18n/LocaleProvider';
 
 type Props = {
   onOpenMore: () => void;
@@ -16,9 +11,15 @@ type Props = {
 
 export default function BottomTabBar({ onOpenMore }: Props) {
   const pathname = usePathname() ?? '';
+  const { t } = useI18n();
 
-  // Активен ли пункт «Ещё» — если pathname не совпадает ни с одним из других табов
-  const matchedTab = TABS.find(t => t.matcher.test(pathname));
+  const tabs = [
+    { href: '/dashboard', label: t.nav.dashboard, icon: Home, matcher: /^\/dashboard/ },
+    { href: '/orders', label: t.nav.orders, icon: ClipboardList, matcher: /^\/orders/ },
+    { href: '/clients', label: t.nav.clients, icon: Users, matcher: /^\/clients/ },
+  ];
+
+  const matchedTab = tabs.find((tab) => tab.matcher.test(pathname));
   const moreActive = !matchedTab;
 
   return (
@@ -27,7 +28,7 @@ export default function BottomTabBar({ onOpenMore }: Props) {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-stretch justify-around">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = tab.matcher.test(pathname);
           return (
@@ -52,7 +53,7 @@ export default function BottomTabBar({ onOpenMore }: Props) {
           }`}
         >
           <Menu size={22} strokeWidth={moreActive ? 2.5 : 2} />
-          <span className="text-[10px] font-medium">Ещё</span>
+          <span className="text-[10px] font-medium">{t.nav.more}</span>
         </button>
       </div>
     </nav>

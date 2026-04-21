@@ -1,13 +1,14 @@
 'use server';
 
+import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
-import { EXPENSE_CATEGORY_LABELS } from '@/lib/utils/format';
+import { formatDate, getExpenseCategoryLabel } from '@/lib/utils/format';
 import type { ExpenseCategory } from '@/types/database';
 
 export type ExportFilter = {
-  fromDate: string;    // YYYY-MM-DD
+  fromDate: string;
   toDate: string;
-  category?: string;   // 'all' или ExpenseCategory
+  category?: string;
 };
 
 export async function exportExpensesCsvAction(
@@ -18,13 +19,64 @@ export async function exportExpensesCsvAction(
   filename?: string;
   error?: string;
 }> {
+  const locale = await getLocale();
+  const text =
+    locale === 'de'
+      ? {
+          unauthorized: 'Nicht autorisiert',
+          empty: 'Keine Ausgaben im gewählten Zeitraum',
+          unknownClient: '—',
+          headers: [
+            'Datum',
+            'Kategorie',
+            'Betrag',
+            'Beschreibung',
+            'Anbieter',
+            'Steuerlich absetzbar',
+            'Zugehöriger Auftrag',
+            'Rechnungsnummer',
+            'Beleg vorhanden',
+          ],
+          yes: 'Ja',
+          no: 'Nein',
+          total: 'Gesamt',
+          deductible: 'Davon absetzbar',
+          filename: 'Ausgaben',
+        }
+      : {
+          unauthorized: 'Не авторизован',
+          empty: 'Нет расходов в выбранном периоде',
+          unknownClient: '—',
+          headers: [
+            'Дата',
+            'Категория',
+            'Сумма',
+            'Описание',
+            'Поставщик',
+            'К вычету',
+            'Связанный заказ',
+            'Номер счета',
+            'Есть чек',
+          ],
+          yes: 'Да',
+          no: 'Нет',
+          total: 'Итого',
+          deductible: 'Из них к вычету',
+          filename: 'Расходы',
+        };
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Не авторизован' };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, error: text.unauthorized };
 
   let query = supabase
     .from('expenses')
-    .select('id, category, amount, description, vendor, expense_date, tax_deductible, order_id, created_at, receipt_file_path')
+    .select(
+      'id, category, amount, description, vendor, expense_date, tax_deductible, order_id, created_at, receipt_file_path'
+    )
     .eq('user_id', user.id)
     .is('deleted_at', null)
     .order('expense_date', { ascending: true });
@@ -37,61 +89,46 @@ export async function exportExpensesCsvAction(
 
   const { data: expenses, error } = await query;
   if (error) return { ok: false, error: error.message };
-  if (!expenses || expenses.length === 0) {
-    return { ok: false, error: 'Нет расходов в выбранном периоде' };
-  }
+  if (!expenses || expenses.length === 0) return { ok: false, error: text.empty };
 
-  // Подтягиваем связанные заказы для колонки "Заказ"
-  const orderIds = [...new Set(expenses.filter(e => e.order_id).map(e => e.order_id!))];
+  const orderIds = [...new Set(expenses.filter((expense) => expense.order_id).map((expense) => expense.order_id!))];
   const orderMap = new Map<string, { invoice_number: string | null; client_name: string }>();
+
   if (orderIds.length > 0) {
     const { data: orders } = await supabase
       .from('orders')
       .select('id, client_id, invoice_number')
       .in('id', orderIds);
 
-    const clientIds = [...new Set((orders ?? []).map(o => o.client_id))];
+    const clientIds = [...new Set((orders ?? []).map((order) => order.client_id))];
     const { data: clients } = await supabase
       .from('clients')
       .select('id, full_name')
       .in('id', clientIds);
-    const clientNames = new Map((clients ?? []).map(c => [c.id, c.full_name]));
+    const clientNames = new Map((clients ?? []).map((client) => [client.id, client.full_name]));
 
-    for (const o of orders ?? []) {
-      orderMap.set(o.id, {
-        invoice_number: o.invoice_number,
-        client_name: clientNames.get(o.client_id) ?? '—',
+    for (const order of orders ?? []) {
+      orderMap.set(order.id, {
+        invoice_number: order.invoice_number,
+        client_name: clientNames.get(order.client_id) ?? text.unknownClient,
       });
     }
   }
 
-  // CSV
-  const headers = [
-    'Datum',
-    'Kategorie',
-    'Betrag',
-    'Beschreibung',
-    'Anbieter',
-    'Steuerlich absetzbar',
-    'Zugehöriger Auftrag',
-    'Rechnungsnummer',
-    'Beleg vorhanden',
-  ];
-
-  const rows = expenses.map(e => {
-    const dateLabel = new Date(e.expense_date).toLocaleDateString('de-DE');
-    const category = EXPENSE_CATEGORY_LABELS[e.category as ExpenseCategory];
-    const amountStr = Number(e.amount).toFixed(2).replace('.', ',');
-    const taxLabel = e.tax_deductible ? 'Ja' : 'Nein';
-    const receiptLabel = e.receipt_file_path ? 'Ja' : 'Nein';
-    const orderInfo = e.order_id ? orderMap.get(e.order_id) : null;
+  const rows = expenses.map((expense) => {
+    const dateLabel = formatDate(expense.expense_date, locale);
+    const category = getExpenseCategoryLabel(expense.category as ExpenseCategory, locale);
+    const amountStr = Number(expense.amount).toFixed(2).replace('.', ',');
+    const taxLabel = expense.tax_deductible ? text.yes : text.no;
+    const receiptLabel = expense.receipt_file_path ? text.yes : text.no;
+    const orderInfo = expense.order_id ? orderMap.get(expense.order_id) : null;
 
     return [
       dateLabel,
       category,
       amountStr,
-      e.description ?? '',
-      e.vendor ?? '',
+      expense.description ?? '',
+      expense.vendor ?? '',
       taxLabel,
       orderInfo?.client_name ?? '',
       orderInfo?.invoice_number ?? '',
@@ -99,29 +136,29 @@ export async function exportExpensesCsvAction(
     ];
   });
 
-  const escape = (v: string) => {
-    if (v.includes(';') || v.includes('"') || v.includes('\n')) {
-      return `"${v.replace(/"/g, '""')}"`;
+  const escape = (value: string) => {
+    if (value.includes(';') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
     }
-    return v;
+    return value;
   };
 
   const lines = [
-    headers.map(escape).join(';'),
-    ...rows.map(r => r.map(c => escape(String(c))).join(';')),
+    text.headers.map(escape).join(';'),
+    ...rows.map((row) => row.map((cell) => escape(String(cell))).join(';')),
   ];
 
-  const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const taxTotal = expenses
-    .filter(e => e.tax_deductible)
-    .reduce((sum, e) => sum + Number(e.amount), 0);
+    .filter((expense) => expense.tax_deductible)
+    .reduce((sum, expense) => sum + Number(expense.amount), 0);
 
   lines.push('');
-  lines.push(`Gesamt;;${total.toFixed(2).replace('.', ',')};;;;;;`);
-  lines.push(`Davon absetzbar;;${taxTotal.toFixed(2).replace('.', ',')};;;;;;`);
+  lines.push(`${text.total};;${total.toFixed(2).replace('.', ',')};;;;;;`);
+  lines.push(`${text.deductible};;${taxTotal.toFixed(2).replace('.', ',')};;;;;;`);
 
   const csv = '\uFEFF' + lines.join('\r\n');
-  const filename = `Ausgaben_${filter.fromDate}_${filter.toDate}.csv`;
+  const filename = `${text.filename}_${filter.fromDate}_${filter.toDate}.csv`;
 
   return { ok: true, csv, filename };
 }

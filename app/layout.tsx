@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import type { Metadata, Viewport } from 'next';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
+import { LocaleProvider } from '@/components/i18n/LocaleProvider';
+import { getDictionary } from '@/lib/i18n/server';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'MasterFlow',
-  description: 'Приложение для мастеров',
+  description: 'MasterFlow',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
@@ -28,28 +31,44 @@ export const viewport: Viewport = {
   colorScheme: 'light',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, t } = await getDictionary();
+
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="bg-white text-neutral-900 antialiased">
-        <div className="min-h-screen">{children}</div>
-        <footer className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 text-xs text-neutral-500">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-            <p>MasterFlow</p>
-            <div className="flex items-center gap-4">
-              <Link href="/impressum" className="hover:text-neutral-900">
-                Impressum
-              </Link>
-              <Link href="/datenschutz" className="hover:text-neutral-900">
-                Datenschutz
-              </Link>
+        <LocaleProvider locale={locale}>
+          <div className="min-h-screen">{children}</div>
+
+          <footer className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 text-xs text-neutral-500">
+            <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-center sm:text-left">MasterFlow</p>
+              <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-end">
+                <div className="rounded-full border border-neutral-200 bg-white px-2 py-1">
+                  <LanguageSwitcher />
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
+                  <Link
+                    href="/impressum"
+                    className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+                  >
+                    {t.footer.impressum}
+                  </Link>
+                  <Link
+                    href="/datenschutz"
+                    className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+                  >
+                    {t.footer.privacy}
+                  </Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </footer>
+          </footer>
+        </LocaleProvider>
       </body>
     </html>
   );

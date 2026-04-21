@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BUSINESS_INFO } from '@/lib/legal/business-info';
 
 export const metadata = {
@@ -8,6 +9,12 @@ export const metadata = {
 export default function ImpressumPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
+      <div className="mb-4">
+        <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-700">
+          ← Zurueck zum Dashboard
+        </Link>
+      </div>
+
       <h1 className="text-3xl font-semibold">Impressum</h1>
 
       <div className="mt-8 space-y-8 text-sm leading-6 text-neutral-700">

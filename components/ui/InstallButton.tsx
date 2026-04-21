@@ -15,13 +15,14 @@ export default function InstallButton() {
 
   useEffect(() => {
     // Проверяем, установлено ли уже
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
       setInstalled(true);
-      return;
     }
 
     // Смотрим localStorage — если пользователь уже жал «Не сейчас»
-    if (localStorage.getItem('install-dismissed')) {
+    const isDismissed = localStorage.getItem('install-dismissed');
+    if (isDismissed) {
       setDismissed(true);
     }
 

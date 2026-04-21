@@ -1,7 +1,12 @@
 'use server';
 
+import { validateCsrfFormData } from '@/lib/csrf/server';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import {
+  validatePasswordChange,
+  type PasswordChangeValidationErrors,
+} from '@/lib/validators/auth';
 
 export type ProfileFormState = {
   formError?: string;
@@ -17,8 +22,9 @@ export type ProfileFormState = {
     vat_id: string;
     is_kleinunternehmer: boolean;
     iban: string;
+    bic: string;
     bank_name: string;
-    business_email: string;         // ← новое
+    business_email: string;
   };
 };
 
@@ -26,6 +32,12 @@ export async function updateProfileAction(
   _prevState: ProfileFormState,
   formData: FormData
 ): Promise<ProfileFormState> {
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: 'CSRF validation failed' };
+  }
+
   const raw = {
     full_name: String(formData.get('full_name') ?? '').trim(),
     phone: String(formData.get('phone') ?? '').trim(),
@@ -35,14 +47,20 @@ export async function updateProfileAction(
     city: String(formData.get('city') ?? '').trim(),
     tax_number: String(formData.get('tax_number') ?? '').trim(),
     vat_id: String(formData.get('vat_id') ?? '').trim(),
-    business_email: String(formData.get('business_email') ?? ''),
+    business_email: String(formData.get('business_email') ?? '').trim(),
     is_kleinunternehmer: formData.get('is_kleinunternehmer') === 'on',
     iban: String(formData.get('iban') ?? '').trim().replace(/\s+/g, ' '),
+    bic: String(formData.get('bic') ?? '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toUpperCase(),
     bank_name: String(formData.get('bank_name') ?? '').trim(),
   };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { formError: 'Не авторизован', values: raw };
 
   const { error } = await supabase
@@ -56,30 +74,23 @@ export async function updateProfileAction(
       city: raw.city || null,
       tax_number: raw.tax_number || null,
       vat_id: raw.vat_id || null,
+      business_email: raw.business_email || null,
       is_kleinunternehmer: raw.is_kleinunternehmer,
       iban: raw.iban || null,
+      bic: raw.bic || null,
       bank_name: raw.bank_name || null,
-      business_email: raw.business_email?.trim() || null,
     })
     .eq('id', user.id);
 
   if (error) return { formError: error.message, values: raw };
 
-  
   revalidatePath('/settings');
   return { success: true, values: raw };
 }
-// ==================================================================
-// СМЕНА ПАРОЛЯ
-// ==================================================================
 
 export type PasswordChangeState = {
   formError?: string;
-  errors?: {
-    currentPassword?: string;
-    newPassword?: string;
-    confirmPassword?: string;
-  };
+  errors?: PasswordChangeValidationErrors;
   success?: boolean;
 };
 
@@ -87,60 +98,52 @@ export async function changePasswordAction(
   _prevState: PasswordChangeState,
   formData: FormData
 ): Promise<PasswordChangeState> {
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: 'CSRF validation failed' };
+  }
+
   const currentPassword = String(formData.get('currentPassword') ?? '');
   const newPassword = String(formData.get('newPassword') ?? '');
   const confirmPassword = String(formData.get('confirmPassword') ?? '');
 
-  // Базовая валидация
-  const errors: PasswordChangeState['errors'] = {};
-
-  if (!currentPassword) {
-    errors.currentPassword = 'Укажите текущий пароль';
-  }
-
-  if (!newPassword) {
-    errors.newPassword = 'Укажите новый пароль';
-  } else if (newPassword.length < 8) {
-    errors.newPassword = 'Минимум 8 символов';
-  } else if (newPassword.length > 72) {
-    errors.newPassword = 'Максимум 72 символа';
-  }
-
-  if (newPassword && newPassword !== confirmPassword) {
-    errors.confirmPassword = 'Пароли не совпадают';
-  }
-
-  if (newPassword && currentPassword && newPassword === currentPassword) {
-    errors.newPassword = 'Новый пароль должен отличаться от текущего';
-  }
+  const errors = validatePasswordChange({
+    currentPassword,
+    newPassword,
+    confirmPassword,
+  });
 
   if (Object.keys(errors).length > 0) {
     return { errors };
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user || !user.email) {
     return { formError: 'Не авторизован' };
   }
 
-  // Меняем пароль — Supabase сам проверит текущий
-const { error: updateError } = await supabase.auth.updateUser({
-  password: newPassword,
-  
-  current_password: currentPassword,
-});
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPassword,
+    current_password: currentPassword,
+  });
 
-if (updateError) {
-  // Определяем тип ошибки по сообщению
-  const msg = updateError.message.toLowerCase();
-  if (msg.includes('invalid') || msg.includes('incorrect') || msg.includes('wrong')) {
-    return {
-      errors: { currentPassword: 'Неверный текущий пароль' },
-    };
+  if (updateError) {
+    const msg = updateError.message.toLowerCase();
+    if (
+      msg.includes('invalid') ||
+      msg.includes('incorrect') ||
+      msg.includes('wrong')
+    ) {
+      return {
+        errors: { currentPassword: 'Неверный текущий пароль' },
+      };
+    }
+    return { formError: `Ошибка: ${updateError.message}` };
   }
-  return { formError: `Ошибка: ${updateError.message}` };
-}
 
-return { success: true };
+  return { success: true };
 }

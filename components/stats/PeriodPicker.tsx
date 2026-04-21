@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 
 type Props = {
   currentPeriod: string;
@@ -11,13 +12,6 @@ type Props = {
   monthOptions: Array<{ value: string; label: string }>;
 };
 
-const PRESETS = [
-  { key: 'month', label: 'Этот месяц' },
-  { key: 'quarter', label: 'Квартал' },
-  { key: 'year', label: 'Год' },
-  { key: 'all', label: 'Всё' },
-];
-
 export default function PeriodPicker({
   currentPeriod,
   currentFrom,
@@ -25,9 +19,42 @@ export default function PeriodPicker({
   currentMonth,
   monthOptions,
 }: Props) {
+  const { locale } = useI18n();
   const router = useRouter();
   const [customFrom, setCustomFrom] = useState(currentFrom ?? '');
   const [customTo, setCustomTo] = useState(currentTo ?? '');
+
+  const text =
+    locale === 'de'
+      ? {
+          month: 'Monat',
+          quarter: 'Quartal',
+          year: 'Jahr',
+          all: 'Alles',
+          monthLabel: 'Monat:',
+          select: 'auswaehlen',
+          period: 'Zeitraum:',
+          apply: 'Anwenden',
+          applied: 'Aktiv',
+        }
+      : {
+          month: 'Этот месяц',
+          quarter: 'Квартал',
+          year: 'Год',
+          all: 'Все',
+          monthLabel: 'Месяц:',
+          select: 'выбрать',
+          period: 'Период:',
+          apply: 'Применить',
+          applied: 'Применено',
+        };
+
+  const presets = [
+    { key: 'month', label: text.month },
+    { key: 'quarter', label: text.quarter },
+    { key: 'year', label: text.year },
+    { key: 'all', label: text.all },
+  ];
 
   function goPreset(key: string) {
     router.push(`/stats?period=${key}`);
@@ -50,57 +77,56 @@ export default function PeriodPicker({
   const isSpecificMonth = currentPeriod === 'month' && currentMonth;
 
   return (
-    <div className="space-y-3 mb-6">
-      {/* Быстрые пресеты */}
+    <div className="mb-6 space-y-3">
       <div className="flex flex-wrap gap-2">
-        {PRESETS.map((p) => {
-          // "Этот месяц" активен только если period=month без m
+        {presets.map((preset) => {
           const active =
-            p.key === currentPeriod && !isCustomActive && !(p.key === 'month' && isSpecificMonth);
+            preset.key === currentPeriod &&
+            !isCustomActive &&
+            !(preset.key === 'month' && isSpecificMonth);
+
           return (
             <button
-              key={p.key}
+              key={preset.key}
               type="button"
-              onClick={() => goPreset(p.key)}
-              className={`text-sm font-medium px-3 py-1.5 rounded-full transition ${
+              onClick={() => goPreset(preset.key)}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 active
                   ? 'bg-blue-600 text-white'
                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
               }`}
             >
-              {p.label}
+              {preset.label}
             </button>
           );
         })}
       </div>
 
-      {/* Выбор конкретного месяца */}
       <div className="flex items-center gap-2">
-        <label className="text-sm text-neutral-600 whitespace-nowrap">Месяц:</label>
+        <label className="whitespace-nowrap text-sm text-neutral-600">{text.monthLabel}</label>
         <select
           value={currentMonth ?? ''}
           onChange={(e) => goMonth(e.target.value)}
-          className="flex-1 sm:flex-none rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-none"
         >
-          <option value="">— выбрать —</option>
-          {monthOptions.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
+          <option value="">{`- ${text.select} -`}</option>
+          {monthOptions.map((month) => (
+            <option key={month.value} value={month.value}>
+              {month.label}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Произвольный период */}
       <div className="flex flex-wrap items-center gap-2">
-        <label className="text-sm text-neutral-600 whitespace-nowrap">Период:</label>
+        <label className="whitespace-nowrap text-sm text-neutral-600">{text.period}</label>
         <input
           type="date"
           value={customFrom}
           onChange={(e) => setCustomFrom(e.target.value)}
           className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm"
         />
-        <span className="text-neutral-400">—</span>
+        <span className="text-neutral-400">-</span>
         <input
           type="date"
           value={customTo}
@@ -111,13 +137,13 @@ export default function PeriodPicker({
           type="button"
           onClick={applyCustom}
           disabled={!customFrom || !customTo}
-          className={`text-sm font-medium px-3 py-1.5 rounded-lg transition ${
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
             isCustomActive
               ? 'bg-blue-600 text-white'
               : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 disabled:opacity-50'
           }`}
         >
-          {isCustomActive ? 'Применено' : 'Применить'}
+          {isCustomActive ? text.applied : text.apply}
         </button>
       </div>
     </div>

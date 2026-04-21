@@ -27,54 +27,54 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
   const hasQuickName = data.client_quick_name.trim().length > 0;
 
   if (!hasClientId && !hasQuickName) {
-    errors.client_id = 'Выберите клиента или введите имя';
+    errors.client_id = 'Bitte Kunden auswaehlen oder neuen Namen eingeben';
   }
   if (hasQuickName && data.client_quick_name.trim().length > 200) {
-    errors.client_quick_name = 'Имя слишком длинное';
+    errors.client_quick_name = 'Kundenname ist zu lang';
   }
 
   const hasService = data.service_id.trim().length > 0;
   const hasCustom = data.custom_service_title.trim().length > 0;
 
   if (!hasService && !hasCustom) {
-    errors.service_id = 'Выберите услугу или введите ее название';
+    errors.service_id = 'Bitte Service auswaehlen oder eigenen Titel eingeben';
   }
 
   if (data.custom_price.trim() !== '') {
     const price = parsePriceInput(data.custom_price);
-    if (price === null) errors.custom_price = 'Некорректная цена';
+    if (price === null) errors.custom_price = 'Ungueltiger Preis';
   }
 
   if (data.correction_reason.length > 1000) {
-    errors.correction_reason = 'Причина корректировки слишком длинная';
+    errors.correction_reason = 'Korrekturgrund ist zu lang';
   }
 
   if (data.description.length > 5000) {
-    errors.description = 'Описание слишком длинное';
+    errors.description = 'Beschreibung ist zu lang';
   }
 
   if (data.order_address.length > 500) {
-    errors.order_address = 'Адрес слишком длинный';
+    errors.order_address = 'Auftragsadresse ist zu lang';
   }
 
   if (data.scheduled_at && Number.isNaN(Date.parse(data.scheduled_at))) {
-    errors.scheduled_at = 'Некорректная дата';
+    errors.scheduled_at = 'Ungueltiges Datum';
   }
 
   if (data.service_date && Number.isNaN(Date.parse(data.service_date))) {
-    errors.service_date = 'Некорректная дата';
+    errors.service_date = 'Ungueltiges Datum';
   }
 
   if (data.payment_method && !['cash', 'transfer', 'ec_card', 'paypal'].includes(data.payment_method)) {
-    errors.payment_method = 'Некорректный способ оплаты';
+    errors.payment_method = 'Ungueltige Zahlungsart';
   }
 
   if (data.client_quick_phone.length > 50) {
-    errors.client_quick_phone = 'Телефон слишком длинный';
+    errors.client_quick_phone = 'Telefonnummer ist zu lang';
   }
 
   if (hasQuickName && data.client_quick_address.length > 500) {
-    errors.client_quick_address = 'Адрес клиента слишком длинный';
+    errors.client_quick_address = 'Kundenadresse ist zu lang';
   }
 
   if (
@@ -82,11 +82,11 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
     data.client_quick_postal_code.trim().length > 0 &&
     !/^\d{5}$/.test(data.client_quick_postal_code.trim())
   ) {
-    errors.client_quick_postal_code = 'PLZ должен быть 5 цифр';
+    errors.client_quick_postal_code = 'PLZ muss aus 5 Ziffern bestehen';
   }
 
   if (hasQuickName && data.client_quick_city.length > 200) {
-    errors.client_quick_city = 'Название города слишком длинное';
+    errors.client_quick_city = 'Stadtname ist zu lang';
   }
 
   return errors;

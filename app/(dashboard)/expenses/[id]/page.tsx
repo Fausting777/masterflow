@@ -1,22 +1,28 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import ExpenseActions from '@/components/expenses/ExpenseActions';
+import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import {
-  formatPrice,
-  EXPENSE_CATEGORY_LABELS,
-  EXPENSE_CATEGORY_EMOJIS,
   EXPENSE_CATEGORY_COLORS,
+  formatDate,
+  formatDateTime,
+  formatPrice,
+  getExpenseCategoryEmoji,
+  getExpenseCategoryLabel,
 } from '@/lib/utils/format';
-import ExpenseActions from '@/components/expenses/ExpenseActions';
 import type { Expense } from '@/types/database';
 
 type Params = Promise<{ id: string }>;
 
 export default async function ExpensePage({ params }: { params: Params }) {
   const { id } = await params;
+  const { locale, t } = await getDictionary();
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: expense } = await supabase
     .from('expenses')
@@ -28,7 +34,6 @@ export default async function ExpensePage({ params }: { params: Params }) {
   if (!expense) notFound();
   const e = expense as Expense;
 
-  // Связанный заказ (если привязан)
   let orderInfo: { id: string; client_name: string; service_title: string; created_at: string } | null = null;
   if (e.order_id) {
     const { data: order } = await supabase
@@ -63,7 +68,6 @@ export default async function ExpensePage({ params }: { params: Params }) {
     }
   }
 
-  // Signed URL для чека
   let receiptUrl: string | null = null;
   if (e.receipt_file_path) {
     const { data: signed } = await supabase.storage
@@ -72,117 +76,108 @@ export default async function ExpensePage({ params }: { params: Params }) {
     receiptUrl = signed?.signedUrl ?? null;
   }
 
-  const dateLabel = new Date(e.expense_date).toLocaleDateString('de-DE');
-
   return (
     <div className="max-w-2xl">
       <div className="mb-4">
         <Link href="/expenses" className="text-sm text-neutral-500 hover:text-neutral-700">
-          ← К расходам
+          ← {t.expensesPage.detailsBack}
         </Link>
       </div>
 
-      {/* Шапка */}
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${EXPENSE_CATEGORY_COLORS[e.category]}`}>
-              {EXPENSE_CATEGORY_EMOJIS[e.category]} {EXPENSE_CATEGORY_LABELS[e.category]}
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${EXPENSE_CATEGORY_COLORS[e.category]}`}
+            >
+              {getExpenseCategoryEmoji(e.category)} {getExpenseCategoryLabel(e.category, locale)}
             </span>
             {e.tax_deductible ? (
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-medium">
-                ✓ Налог. вычет
+              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                {t.expensesPage.deductibleYes}
               </span>
             ) : (
-              <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full font-medium">
-                ⊘ Без вычета
+              <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600">
+                {t.expensesPage.deductibleNo}
               </span>
             )}
           </div>
-          <h1 className="text-2xl font-semibold truncate">
-            {e.vendor ?? 'Расход'}
+          <h1 className="truncate text-2xl font-semibold">
+            {e.vendor ?? t.expensesPage.detailsTitle}
           </h1>
           {e.deleted_at && (
-            <div className="mt-2 text-xs bg-red-100 text-red-800 inline-block px-2 py-1 rounded font-medium">
-              🗑 В корзине
+            <div className="mt-2 inline-block rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
+              {t.expensesPage.inTrash}
             </div>
           )}
         </div>
         <Link
           href={`/expenses/${e.id}/edit`}
-          className="rounded-lg border border-neutral-300 text-sm font-medium px-4 py-2 hover:bg-neutral-50 whitespace-nowrap"
+          className="whitespace-nowrap rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
         >
-          Редактировать
+          {t.expensesPage.edit}
         </Link>
       </div>
 
-      {/* Основная информация */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 space-y-3 mb-4">
+      <div className="mb-4 space-y-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <Row
-          label="Сумма"
+          label={t.expensesPage.amount}
           value={<span className="text-lg font-bold text-rose-700">{formatPrice(Number(e.amount))}</span>}
         />
-        <Row label="Дата расхода" value={dateLabel} />
-        {e.vendor && <Row label="Продавец / Получатель" value={e.vendor} />}
+        <Row label={t.expensesPage.expenseDate} value={formatDate(e.expense_date, locale)} />
+        {e.vendor && <Row label={t.expensesPage.vendor} value={e.vendor} />}
         {e.description && (
-          <div className="pt-2 border-t border-neutral-100">
-            <div className="text-sm text-neutral-500 mb-1">Описание</div>
-            <p className="text-sm whitespace-pre-wrap">{e.description}</p>
+          <div className="border-t border-neutral-100 pt-2">
+            <div className="mb-1 text-sm text-neutral-500">{t.expensesPage.description}</div>
+            <p className="whitespace-pre-wrap text-sm">{e.description}</p>
           </div>
         )}
       </div>
 
-      {/* Связанный заказ */}
       {orderInfo && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-2">
-            🔗 Связан с заказом
+        <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <div className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+            {t.expensesPage.linkedOrder}
           </div>
-          <Link
-            href={`/orders/${orderInfo.id}`}
-            className="block hover:bg-blue-100/50 rounded p-2 -mx-2"
-          >
+          <Link href={`/orders/${orderInfo.id}`} className="-mx-2 block rounded p-2 hover:bg-blue-100/50">
             <div className="font-medium">{orderInfo.client_name}</div>
             <div className="text-sm text-neutral-600">
-              {orderInfo.service_title} · {new Date(orderInfo.created_at).toLocaleDateString('de-DE')}
+              {orderInfo.service_title} · {formatDate(orderInfo.created_at, locale)}
             </div>
           </Link>
         </div>
       )}
 
-      {/* Чек */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 mb-4">
-        <h2 className="text-sm font-medium text-neutral-500 mb-3">Фото чека</h2>
+      <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+        <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.expensesPage.receiptPhoto}</h2>
         {receiptUrl ? (
           <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={receiptUrl}
-              alt="Чек"
-              className="max-h-96 rounded-lg border border-neutral-200 hover:opacity-90 transition"
+              alt={t.expensesPage.receiptAlt}
+              className="max-h-96 rounded-lg border border-neutral-200 transition hover:opacity-90"
             />
-            <p className="text-xs text-neutral-500 mt-2">Нажми чтобы открыть в полном размере</p>
+            <p className="mt-2 text-xs text-neutral-500">{t.expensesPage.openFullSize}</p>
           </a>
         ) : (
-          <div className="text-sm text-neutral-400 italic">Чек не загружен</div>
+          <div className="text-sm italic text-neutral-400">{t.expensesPage.noReceipt}</div>
         )}
       </div>
 
-      {/* Даты */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 space-y-2 mb-4">
+      <div className="mb-4 space-y-2 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex justify-between text-xs text-neutral-500">
-          <span>Создан:</span>
-          <span>{new Date(e.created_at).toLocaleString('de-DE')}</span>
+          <span>{t.expensesPage.createdAt}:</span>
+          <span>{formatDateTime(e.created_at, locale)}</span>
         </div>
         {e.updated_at !== e.created_at && (
           <div className="flex justify-between text-xs text-neutral-500">
-            <span>Обновлён:</span>
-            <span>{new Date(e.updated_at).toLocaleString('de-DE')}</span>
+            <span>{t.expensesPage.updatedAt}:</span>
+            <span>{formatDateTime(e.updated_at, locale)}</span>
           </div>
         )}
       </div>
 
-      {/* Действия */}
       <ExpenseActions expenseId={e.id} isDeleted={Boolean(e.deleted_at)} />
     </div>
   );
@@ -192,7 +187,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-sm text-neutral-500">{label}</dt>
-      <dd className="text-sm text-right">{value}</dd>
+      <dd className="text-right text-sm">{value}</dd>
     </div>
   );
 }

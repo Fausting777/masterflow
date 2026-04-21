@@ -40,7 +40,7 @@ export default function IosInstallHint() {
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm">Добавить на главный экран</div>
           <div className="text-xs text-neutral-500 mt-1 leading-relaxed">
-            Нажми <strong>«Поделиться»</strong> <span className="inline-block">⤴</span> внизу Safari, затем <strong>«На экран "Домой"»</strong>
+            Нажми <strong>«Поделиться»</strong> <span className="inline-block">⤴</span> внизу Safari, затем <strong>«На экран &quot;Домой&quot;»</strong>
           </div>
           <button
             type="button"

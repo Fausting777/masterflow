@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 
 export default function LoginForm() {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useI18n();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +33,6 @@ export default function LoginForm() {
       return;
     }
 
-    // router.refresh() нужен, чтобы Server Components перечитали сессию из cookies
     router.refresh();
     router.push('/dashboard');
   }
@@ -40,7 +41,7 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="email" className="block text-sm font-medium mb-1">
-          Email
+          {t.auth.email}
         </label>
         <input
           id="email"
@@ -55,7 +56,7 @@ export default function LoginForm() {
 
       <div>
         <label htmlFor="password" className="block text-sm font-medium mb-1">
-          Пароль
+          {t.auth.password}
         </label>
         <input
           id="password"
@@ -80,13 +81,13 @@ export default function LoginForm() {
         disabled={loading}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
       >
-        {loading ? 'Входим...' : 'Войти'}
+        {loading ? t.auth.signingIn : t.auth.signIn}
       </button>
 
       <p className="text-sm text-center text-neutral-600 dark:text-neutral-400">
-        Нет аккаунта?{' '}
+        {t.auth.noAccount}{' '}
         <Link href="/register" className="text-blue-600 hover:underline">
-          Зарегистрироваться
+          {t.auth.registerLink}
         </Link>
       </p>
     </form>

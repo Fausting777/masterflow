@@ -1,11 +1,13 @@
 'use client';
 
-import { useActionState, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useActionState, useRef, useState } from 'react';
 import type { ExpenseFormState } from '@/app/(dashboard)/expenses/actions';
+import { useI18n } from '@/components/i18n/LocaleProvider';
+import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 import {
-  EXPENSE_CATEGORY_LABELS,
-  EXPENSE_CATEGORY_EMOJIS,
+  getExpenseCategoryEmoji,
+  getExpenseCategoryLabel,
 } from '@/lib/utils/format';
 import type { ExpenseCategory } from '@/types/database';
 
@@ -17,10 +19,7 @@ type OrderOption = {
 };
 
 type Props = {
-  action: (
-    prevState: ExpenseFormState,
-    formData: FormData
-  ) => Promise<ExpenseFormState>;
+  action: (prevState: ExpenseFormState, formData: FormData) => Promise<ExpenseFormState>;
   initial?: {
     category?: ExpenseCategory | null;
     amount?: number | null;
@@ -48,7 +47,6 @@ const CATEGORIES: ExpenseCategory[] = [
   'sonstiges',
 ];
 
-// Сегодня в формате YYYY-MM-DD (для input type=date)
 function todayIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -62,10 +60,8 @@ export default function ExpenseForm({
   cancelHref,
   submitLabel,
 }: Props) {
-  const [state, formAction, isPending] = useActionState<ExpenseFormState, FormData>(
-    action,
-    {}
-  );
+  const [state, formAction, isPending] = useActionState<ExpenseFormState, FormData>(action, {});
+  const { locale, t } = useI18n();
 
   const v = state.values ?? {
     category: initial?.category ?? '',
@@ -80,7 +76,6 @@ export default function ExpenseForm({
     order_id: initial?.order_id ?? '',
   };
 
-  // Превью нового фото
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newPreview, setNewPreview] = useState<string | null>(null);
 
@@ -101,38 +96,30 @@ export default function ExpenseForm({
   }
 
   const inputCls =
-    'w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900';
 
   return (
     <form action={formAction} className="space-y-4">
-      {/* Категория */}
+      <CsrfTokenInput />
+
       <div>
-        <label htmlFor="category" className="block text-sm font-medium mb-1">
-          Категория <span className="text-red-500">*</span>
+        <label htmlFor="category" className="mb-1 block text-sm font-medium">
+          {t.expenseForm.category} <span className="text-red-500">*</span>
         </label>
-        <select
-          id="category"
-          name="category"
-          required
-          defaultValue={v.category}
-          className={inputCls}
-        >
-          <option value="">— выберите —</option>
-          {CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {EXPENSE_CATEGORY_EMOJIS[cat]} {EXPENSE_CATEGORY_LABELS[cat]}
+        <select id="category" name="category" required defaultValue={v.category} className={inputCls}>
+          <option value="">{t.expenseForm.select}</option>
+          {CATEGORIES.map((category) => (
+            <option key={category} value={category}>
+              {getExpenseCategoryEmoji(category)} {getExpenseCategoryLabel(category, locale)}
             </option>
           ))}
         </select>
-        {state.errors?.category && (
-          <p className="text-xs text-red-600 mt-1">{state.errors.category}</p>
-        )}
+        {state.errors?.category && <p className="mt-1 text-xs text-red-600">{state.errors.category}</p>}
       </div>
 
-      {/* Сумма */}
       <div>
-        <label htmlFor="amount" className="block text-sm font-medium mb-1">
-          Сумма, € <span className="text-red-500">*</span>
+        <label htmlFor="amount" className="mb-1 block text-sm font-medium">
+          {t.expenseForm.amount} <span className="text-red-500">*</span>
         </label>
         <input
           id="amount"
@@ -141,21 +128,16 @@ export default function ExpenseForm({
           inputMode="decimal"
           required
           defaultValue={v.amount}
-          placeholder="например, 45,80"
+          placeholder={t.expenseForm.amountPlaceholder}
           className={inputCls}
         />
-        <p className="text-xs text-neutral-500 mt-1">
-          Можно с запятой (45,80) или точкой (45.80)
-        </p>
-        {state.errors?.amount && (
-          <p className="text-xs text-red-600 mt-1">{state.errors.amount}</p>
-        )}
+        <p className="mt-1 text-xs text-neutral-500">{t.expenseForm.amountHelp}</p>
+        {state.errors?.amount && <p className="mt-1 text-xs text-red-600">{state.errors.amount}</p>}
       </div>
 
-      {/* Дата расхода */}
       <div>
-        <label htmlFor="expense_date" className="block text-sm font-medium mb-1">
-          Дата расхода <span className="text-red-500">*</span>
+        <label htmlFor="expense_date" className="mb-1 block text-sm font-medium">
+          {t.expenseForm.expenseDate} <span className="text-red-500">*</span>
         </label>
         <input
           id="expense_date"
@@ -166,123 +148,97 @@ export default function ExpenseForm({
           className={inputCls}
         />
         {state.errors?.expense_date && (
-          <p className="text-xs text-red-600 mt-1">{state.errors.expense_date}</p>
+          <p className="mt-1 text-xs text-red-600">{state.errors.expense_date}</p>
         )}
       </div>
 
-      {/* Продавец */}
       <div>
-        <label htmlFor="vendor" className="block text-sm font-medium mb-1">
-          Где купил / кому платил
+        <label htmlFor="vendor" className="mb-1 block text-sm font-medium">
+          {t.expenseForm.vendor}
         </label>
         <input
           id="vendor"
           name="vendor"
           type="text"
           defaultValue={v.vendor}
-          placeholder="Bauhaus, OBI, Vodafone..."
+          placeholder={t.expenseForm.vendorPlaceholder}
           className={inputCls}
         />
-        {state.errors?.vendor && (
-          <p className="text-xs text-red-600 mt-1">{state.errors.vendor}</p>
-        )}
+        {state.errors?.vendor && <p className="mt-1 text-xs text-red-600">{state.errors.vendor}</p>}
       </div>
 
-      {/* Описание */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium mb-1">
-          Описание
+        <label htmlFor="description" className="mb-1 block text-sm font-medium">
+          {t.expenseForm.description}
         </label>
         <textarea
           id="description"
           name="description"
           rows={2}
           defaultValue={v.description}
-          placeholder="Что купил / за что заплатил"
+          placeholder={t.expenseForm.descriptionPlaceholder}
           className={`${inputCls} resize-y`}
         />
         {state.errors?.description && (
-          <p className="text-xs text-red-600 mt-1">{state.errors.description}</p>
+          <p className="mt-1 text-xs text-red-600">{state.errors.description}</p>
         )}
       </div>
 
-      {/* Привязка к заказу */}
       <div>
-        <label htmlFor="order_id" className="block text-sm font-medium mb-1">
-          Привязать к заказу (опционально)
+        <label htmlFor="order_id" className="mb-1 block text-sm font-medium">
+          {t.expenseForm.orderLink}
         </label>
-        <select
-          id="order_id"
-          name="order_id"
-          defaultValue={v.order_id}
-          className={inputCls}
-        >
-          <option value="">— не привязывать —</option>
-          {orders.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.client_name} · {o.service_title} ·{' '}
-              {new Date(o.created_at).toLocaleDateString('de-DE')}
+        <select id="order_id" name="order_id" defaultValue={v.order_id} className={inputCls}>
+          <option value="">{t.expenseForm.noOrder}</option>
+          {orders.map((order) => (
+            <option key={order.id} value={order.id}>
+              {order.client_name} · {order.service_title} ·{' '}
+              {new Date(order.created_at).toLocaleDateString(locale === 'de' ? 'de-DE' : 'ru-RU')}
             </option>
           ))}
         </select>
-        <p className="text-xs text-neutral-500 mt-1">
-          Если расход был для конкретной работы — можно привязать
-        </p>
+        <p className="mt-1 text-xs text-neutral-500">{t.expenseForm.orderHelp}</p>
       </div>
 
-      {/* Налоговый вычет */}
       <div className="flex items-center gap-2">
         <input
           id="tax_deductible"
           name="tax_deductible"
           type="checkbox"
           defaultChecked={v.tax_deductible === 'on'}
-          className="w-4 h-4"
+          className="h-4 w-4"
         />
         <label htmlFor="tax_deductible" className="text-sm">
-          Учитывать при налоговом вычете
+          {t.expenseForm.deductible}
         </label>
       </div>
 
-      {/* Чек */}
       <div>
-        <label htmlFor="receipt" className="block text-sm font-medium mb-1">
-          Фото чека
+        <label htmlFor="receipt" className="mb-1 block text-sm font-medium">
+          {t.expenseForm.receipt}
         </label>
 
-        {/* Текущее фото (если есть и новое не выбрано) */}
         {receiptPreviewUrl && !newPreview && (
           <div className="mb-2">
-            <div className="relative rounded-lg border border-neutral-200 overflow-hidden inline-block">
+            <div className="relative inline-block overflow-hidden rounded-lg border border-neutral-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={receiptPreviewUrl}
-                alt="Чек"
-                className="max-h-48 object-contain"
-              />
+              <img src={receiptPreviewUrl} alt={t.expensesPage.receiptAlt} className="max-h-48 object-contain" />
             </div>
-            <p className="text-xs text-neutral-500 mt-1">
-              Текущий чек. Выбери новый файл — заменится.
-            </p>
+            <p className="mt-1 text-xs text-neutral-500">{t.expenseForm.currentReceipt}</p>
           </div>
         )}
 
-        {/* Новое фото превью */}
         {newPreview && (
           <div className="mb-2">
-            <div className="relative rounded-lg border border-neutral-200 overflow-hidden inline-block">
+            <div className="relative inline-block overflow-hidden rounded-lg border border-neutral-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={newPreview}
-                alt="Новый чек"
-                className="max-h-48 object-contain"
-              />
+              <img src={newPreview} alt={t.expenseForm.newReceipt} className="max-h-48 object-contain" />
               <button
                 type="button"
                 onClick={clearFileInput}
-                className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded px-2 py-0.5"
+                className="absolute right-1 top-1 rounded bg-black/60 px-2 py-0.5 text-xs text-white"
               >
-                ✕ Убрать
+                {t.expenseForm.remove}
               </button>
             </div>
           </div>
@@ -296,15 +252,13 @@ export default function ExpenseForm({
           accept="image/jpeg,image/png,image/webp"
           capture="environment"
           onChange={handleFileChange}
-          className="block w-full text-sm text-neutral-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          className="block w-full text-sm text-neutral-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
         />
-        <p className="text-xs text-neutral-500 mt-1">
-          📷 Сфотографируй чек для Finanzamt. Можно добавить позже.
-        </p>
+        <p className="mt-1 text-xs text-neutral-500">{t.expenseForm.receiptHelp}</p>
       </div>
 
       {state.formError && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
           {state.formError}
         </div>
       )}
@@ -313,15 +267,15 @@ export default function ExpenseForm({
         <button
           type="submit"
           disabled={isPending}
-          className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
+          className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
         >
-          {isPending ? 'Сохранение...' : submitLabel}
+          {isPending ? t.expenseForm.saving : submitLabel}
         </button>
         <Link
           href={cancelHref}
-          className="rounded-lg border border-neutral-300 dark:border-neutral-700 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800"
+          className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
         >
-          Отмена
+          {t.expenseForm.cancel}
         </Link>
       </div>
     </form>

@@ -1,40 +1,63 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
+import { getLocale } from '@/lib/i18n/server';
 import { validateUploadedFile } from '@/lib/security/file-validation';
 import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
 
 const MAX_SIGNATURE_SIZE = 2 * 1024 * 1024;
 const SIGNATURE_MIME_TYPES = ['image/png'] as const;
+
+async function getMessages() {
+  const locale = await getLocale();
+  return locale === 'de'
+    ? {
+        missingOrder: 'Auftrag ist nicht angegeben',
+        emptySignature: 'Leere Unterschrift',
+        fileTooLarge: 'Datei ist zu groß',
+        invalidType: 'Die Unterschrift muss eine PNG-Datei sein',
+        unauthorized: 'Nicht autorisiert',
+        orderNotFound: 'Auftrag nicht gefunden',
+        locked: 'Nach der Rechnungsausgabe darf die Unterschrift des Archivdokuments nicht mehr geändert werden',
+        uploadError: 'Upload-Fehler',
+      }
+    : {
+        missingOrder: 'Не указан заказ',
+        emptySignature: 'Пустая подпись',
+        fileTooLarge: 'Файл слишком большой',
+        invalidType: 'Подпись должна быть PNG-файлом',
+        unauthorized: 'Не авторизован',
+        orderNotFound: 'Заказ не найден',
+        locked: 'После выпуска счета нельзя менять подпись архивного документа',
+        uploadError: 'Ошибка загрузки',
+      };
+}
 
 export async function saveSignatureAction(formData: FormData): Promise<{
   ok: boolean;
   error?: string;
 }> {
+  const m = await getMessages();
   const orderId = String(formData.get('order_id') ?? '');
   const file = formData.get('file') as File | null;
 
-  if (!orderId) return { ok: false, error: 'Не указан заказ' };
+  if (!orderId) return { ok: false, error: m.missingOrder };
 
   const validation = await validateUploadedFile(file, {
     allowedMimeTypes: SIGNATURE_MIME_TYPES,
     maxBytes: MAX_SIGNATURE_SIZE,
   });
   if (!validation.ok) {
-    if (validation.error === 'missing') {
-      return { ok: false, error: 'Пустая подпись' };
-    }
-    if (validation.error === 'too_large') {
-      return { ok: false, error: 'Файл слишком большой' };
-    }
-    return { ok: false, error: 'Подпись должна быть PNG-файлом' };
+    if (validation.error === 'missing') return { ok: false, error: m.emptySignature };
+    if (validation.error === 'too_large') return { ok: false, error: m.fileTooLarge };
+    return { ok: false, error: m.invalidType };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Не авторизован' };
+  if (!user) return { ok: false, error: m.unauthorized };
 
   const { data: order } = await supabase
     .from('orders')
@@ -43,24 +66,17 @@ export async function saveSignatureAction(formData: FormData): Promise<{
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!order) return { ok: false, error: 'Заказ не найден' };
-  if (order.invoice_number || order.invoice_locked_at) {
-    return { ok: false, error: 'После выпуска счета нельзя менять подпись архивного документа' };
-  }
+  if (!order) return { ok: false, error: m.orderNotFound };
+  if (order.invoice_number || order.invoice_locked_at) return { ok: false, error: m.locked };
 
   const filePath = `${user.id}/${orderId}/signature.png`;
+  const { error: uploadError } = await supabase.storage.from('order-signatures').upload(filePath, file!, {
+    contentType: validation.detectedMimeType,
+    cacheControl: '3600',
+    upsert: true,
+  });
 
-  const { error: uploadError } = await supabase.storage
-    .from('order-signatures')
-    .upload(filePath, file!, {
-      contentType: validation.detectedMimeType,
-      cacheControl: '3600',
-      upsert: true,
-    });
-
-  if (uploadError) {
-    return { ok: false, error: `Ошибка загрузки: ${uploadError.message}` };
-  }
+  if (uploadError) return { ok: false, error: `${m.uploadError}: ${uploadError.message}` };
 
   const { error: updateError } = await supabase
     .from('orders')
@@ -68,9 +84,7 @@ export async function saveSignatureAction(formData: FormData): Promise<{
     .eq('id', orderId)
     .eq('user_id', user.id);
 
-  if (updateError) {
-    return { ok: false, error: updateError.message };
-  }
+  if (updateError) return { ok: false, error: updateError.message };
 
   revalidatePath(`/orders/${orderId}`);
   return { ok: true };
@@ -80,11 +94,12 @@ export async function deleteSignatureAction(orderId: string): Promise<{
   ok: boolean;
   error?: string;
 }> {
+  const m = await getMessages();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Не авторизован' };
+  if (!user) return { ok: false, error: m.unauthorized };
 
   const { data: order } = await supabase
     .from('orders')
@@ -93,7 +108,7 @@ export async function deleteSignatureAction(orderId: string): Promise<{
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!order) return { ok: false, error: 'Заказ не найден' };
+  if (!order) return { ok: false, error: m.orderNotFound };
 
   if (order.signature_file_path) {
     await supabase.storage.from('order-signatures').remove([order.signature_file_path]);

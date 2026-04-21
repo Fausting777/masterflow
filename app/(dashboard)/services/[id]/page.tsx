@@ -37,15 +37,15 @@ export default async function ServicePage({
     <div className="max-w-lg">
       <div className="mb-4">
         <Link href="/services" className="text-sm text-neutral-500 hover:text-neutral-700">
-          ← Назад к списку
+          Back to services
         </Link>
       </div>
 
       {isEditing ? (
         <>
-          <h1 className="text-2xl font-semibold mb-4">Редактировать услугу</h1>
+          <h1 className="text-2xl font-semibold mb-4">Edit service</h1>
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
-            <ServiceForm action={boundUpdate} initial={s} cancelHref={`/services/${s.id}`} submitLabel="Сохранить" />
+            <ServiceForm action={boundUpdate} initial={s} cancelHref={`/services/${s.id}`} submitLabel="Save" />
           </div>
         </>
       ) : (
@@ -56,18 +56,18 @@ export default async function ServicePage({
               href={`/services/${s.id}?edit=1`}
               className="rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium px-4 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 whitespace-nowrap"
             >
-              Редактировать
+              Edit
             </Link>
           </div>
 
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 space-y-3 mb-4">
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-500">Цена</span>
+              <span className="text-sm text-neutral-500">Price</span>
               <span className="text-sm font-medium">{formatPrice(s.default_price)}</span>
             </div>
             {s.description && (
               <div>
-                <span className="text-sm text-neutral-500">Описание</span>
+                <span className="text-sm text-neutral-500">Beschreibung</span>
                 <p className="text-sm mt-1 whitespace-pre-wrap">{s.description}</p>
               </div>
             )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { sendInvoiceEmailAction } from '@/app/(dashboard)/orders/[id]/email/actions';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 
 type Props = {
   orderId: string;
@@ -20,23 +21,67 @@ export default function SendInvoiceDialog({
   masterName,
   onClose,
 }: Props) {
-  const [to, setTo] = useState(clientEmail ?? '');
-  const [subject, setSubject] = useState(
-    invoiceNumber
-      ? `Rechnung ${invoiceNumber}`
-      : 'Rechnung für erbrachte Leistung'
-  );
-  const [body, setBody] = useState(
-    `Sehr geehrte/r ${clientName},
+  const { locale } = useI18n();
+  const text =
+    locale === 'de'
+      ? {
+          title: 'Rechnung per E-Mail senden',
+          close: 'Schließen',
+          success: 'E-Mail wurde gesendet',
+          recipient: 'Empfänger (E-Mail)',
+          missingClientEmail:
+            'Beim Kunden ist keine E-Mail hinterlegt. Füge sie in der Kundenkarte hinzu oder trage sie hier manuell ein.',
+          subjectLabel: 'Betreff',
+          bodyLabel: 'Nachricht',
+          attachmentHint:
+            'Die PDF-Rechnung wird automatisch angehängt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
+          cancel: 'Abbrechen',
+          send: 'Senden',
+          sending: 'Wird gesendet...',
+          genericError: 'Fehler beim Senden',
+          defaultSubject: invoiceNumber
+            ? `Rechnung ${invoiceNumber}`
+            : 'Rechnung für erbrachte Leistung',
+          defaultBody: `Sehr geehrte/r ${clientName},
 
 anbei finden Sie die Rechnung für die erbrachte Leistung.
 
 Bei Fragen melden Sie sich bitte gerne bei mir.
 
 Mit freundlichen Grüßen
-${masterName}`
-  );
+${masterName}`,
+        }
+      : {
+          title: 'Отправить счет на email',
+          close: 'Закрыть',
+          success: 'Письмо отправлено',
+          recipient: 'Кому (email)',
+          missingClientEmail:
+            'У клиента нет email. Добавь его в карточке клиента или подставь сам.',
+          subjectLabel: 'Тема',
+          bodyLabel: 'Текст письма',
+          attachmentHint:
+            'PDF-счет будет вложен автоматически.\nОтветы от клиента придут на твой email.',
+          cancel: 'Отмена',
+          send: 'Отправить',
+          sending: 'Отправка...',
+          genericError: 'Ошибка отправки',
+          defaultSubject: invoiceNumber
+            ? `Счет ${invoiceNumber}`
+            : 'Счет за выполненную работу',
+          defaultBody: `Здравствуйте, ${clientName}.
 
+Во вложении счет за выполненную работу.
+
+Если появятся вопросы, пожалуйста, свяжитесь со мной.
+
+С уважением
+${masterName}`,
+        };
+
+  const [to, setTo] = useState(clientEmail ?? '');
+  const [subject, setSubject] = useState(text.defaultSubject);
+  const [body, setBody] = useState(text.defaultBody);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -57,7 +102,7 @@ ${masterName}`
         setSuccess(true);
         setTimeout(onClose, 1500);
       } else {
-        setError(res.error ?? 'Ошибка отправки');
+        setError(res.error ?? text.genericError);
       }
     });
   }
@@ -71,33 +116,35 @@ ${masterName}`
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-5 border-b border-neutral-200 flex items-center justify-between">
-          <h2 className="font-semibold">Отправить счёт на email</h2>
+        <div className="flex items-center justify-between border-b border-neutral-200 p-5">
+          <h2 className="font-semibold">{text.title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100"
-            aria-label="Закрыть"
+            className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-neutral-100"
+            aria-label={text.close}
           >
-            ✕
+            ×
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="space-y-4 p-5">
           {success ? (
-            <div className="text-center py-6">
-              <div className="text-4xl mb-3">✅</div>
-              <div className="font-medium">Письмо отправлено</div>
-              <div className="text-sm text-neutral-500 mt-1">Получатель: {to}</div>
+            <div className="py-6 text-center">
+              <div className="mb-3 text-4xl">✓</div>
+              <div className="font-medium">{text.success}</div>
+              <div className="mt-1 text-sm text-neutral-500">
+                {locale === 'de' ? 'Gesendet an:' : 'Отправлено:'} {to}
+              </div>
             </div>
           ) : (
             <>
               <div>
-                <label htmlFor="to" className="block text-sm font-medium mb-1">
-                  Кому (email) <span className="text-red-500">*</span>
+                <label htmlFor="to" className="mb-1 block text-sm font-medium">
+                  {text.recipient} <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="to"
@@ -108,15 +155,13 @@ ${masterName}`
                   placeholder="kunde@example.com"
                 />
                 {!clientEmail && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    ⚠️ У клиента нет email — добавь его в карточку клиента, чтобы подставлялся сам
-                  </p>
+                  <p className="mt-1 text-xs text-amber-600">{text.missingClientEmail}</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="subject" className="block text-sm font-medium mb-1">
-                  Тема <span className="text-red-500">*</span>
+                <label htmlFor="subject" className="mb-1 block text-sm font-medium">
+                  {text.subjectLabel} <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="subject"
@@ -128,8 +173,8 @@ ${masterName}`
               </div>
 
               <div>
-                <label htmlFor="body" className="block text-sm font-medium mb-1">
-                  Текст письма
+                <label htmlFor="body" className="mb-1 block text-sm font-medium">
+                  {text.bodyLabel}
                 </label>
                 <textarea
                   id="body"
@@ -140,13 +185,14 @@ ${masterName}`
                 />
               </div>
 
-              <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-3">
-                📎 PDF-счёт будет вложен автоматически.<br />
-                📬 Ответы от клиента придут на твой email.
+              <div className="rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500">
+                {text.attachmentHint.split('\n').map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
               </div>
 
               {error && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {error}
                 </div>
               )}
@@ -155,21 +201,21 @@ ${masterName}`
         </div>
 
         {!success && (
-          <div className="p-5 border-t border-neutral-200 flex gap-2">
+          <div className="flex gap-2 border-t border-neutral-200 p-5">
             <button
               type="button"
               onClick={onClose}
               className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50"
             >
-              Отмена
+              {text.cancel}
             </button>
             <button
               type="button"
               onClick={handleSend}
               disabled={isPending || !to || !subject || !body}
-              className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
+              className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
             >
-              {isPending ? 'Отправка...' : '📧 Отправить'}
+              {isPending ? text.sending : text.send}
             </button>
           </div>
         )}

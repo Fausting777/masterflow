@@ -4,23 +4,23 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Plus, ClipboardList, UserPlus, Wallet, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 
-const ACTIONS = [
-  { href: '/orders/new', label: 'Новый заказ', icon: ClipboardList, color: 'bg-blue-600' },
-  { href: '/clients/new', label: 'Новый клиент', icon: UserPlus, color: 'bg-green-600' },
-  { href: '/expenses/new', label: 'Новый расход', icon: Wallet, color: 'bg-rose-600' },
-];
-
-// На каких страницах НЕ показываем FAB (чтобы не мешал формам)
 const HIDE_ON = ['/new', '/edit', '/signature', '/login', '/register'];
 
 export default function FabMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() ?? '';
+  const { t } = useI18n();
 
-  const shouldHide = HIDE_ON.some(segment => pathname.includes(segment));
+  const actions = [
+    { href: '/orders/new', label: t.fab.newOrder, icon: ClipboardList, color: 'bg-blue-600' },
+    { href: '/clients/new', label: t.fab.newClient, icon: UserPlus, color: 'bg-green-600' },
+    { href: '/expenses/new', label: t.fab.newExpense, icon: Wallet, color: 'bg-rose-600' },
+  ];
 
-  // Закрытие по Escape
+  const shouldHide = HIDE_ON.some((segment) => pathname.includes(segment));
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -30,16 +30,17 @@ export default function FabMenu() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  // Закрываем при смене страницы
   useEffect(() => {
-    setOpen(false);
+    const timer = setTimeout(() => {
+      setOpen(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   if (shouldHide) return null;
 
   return (
     <>
-      {/* Оверлей при открытом меню */}
       <div
         className={`sm:hidden fixed inset-0 bg-black/30 z-30 transition-opacity ${
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -47,7 +48,6 @@ export default function FabMenu() {
         onClick={() => setOpen(false)}
       />
 
-      {/* Всплывающие опции */}
       <div
         className={`sm:hidden fixed right-4 z-40 flex flex-col items-end gap-2 transition-all ${
           open
@@ -56,7 +56,7 @@ export default function FabMenu() {
         }`}
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)' }}
       >
-        {ACTIONS.map((action, i) => {
+        {actions.map((action, i) => {
           const Icon = action.icon;
           return (
             <div
@@ -81,13 +81,12 @@ export default function FabMenu() {
         })}
       </div>
 
-      {/* Сама кнопка + */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className="sm:hidden fixed right-4 z-40 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-transform active:scale-95"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
-        aria-label={open ? 'Закрыть меню' : 'Создать'}
+        aria-label={open ? t.fab.closeMenu : t.fab.create}
       >
         <div className={`transition-transform duration-300 ${open ? 'rotate-45' : ''}`}>
           {open ? <X size={24} /> : <Plus size={28} />}

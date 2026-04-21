@@ -1,5 +1,6 @@
 'use server';
 
+import { validateCsrfFormData } from '@/lib/csrf/server';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -31,6 +32,12 @@ export async function createClientAction(
   _prevState: ClientFormState,
   formData: FormData
 ): Promise<ClientFormState> {
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: 'CSRF validation failed' };
+  }
+
   const raw = {
     full_name: String(formData.get('full_name') ?? ''),
     phone: String(formData.get('phone') ?? ''),
@@ -78,6 +85,12 @@ export async function updateClientAction(
   _prevState: ClientFormState,
   formData: FormData
 ): Promise<ClientFormState> {
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: 'CSRF validation failed' };
+  }
+
   const raw = {
     full_name: String(formData.get('full_name') ?? ''),
     phone: String(formData.get('phone') ?? ''),

@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react';
 import { updateProfileAction, type ProfileFormState } from '@/app/(dashboard)/settings/actions';
+import { useI18n } from '@/components/i18n/LocaleProvider';
+import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 
 type Props = {
   initial: {
@@ -15,8 +17,9 @@ type Props = {
     vat_id: string | null;
     is_kleinunternehmer: boolean;
     iban: string | null;
+    bic: string | null;
     bank_name: string | null;
-    business_email: string | null;    // ← новое
+    business_email: string | null;
   };
 };
 
@@ -25,6 +28,7 @@ export default function ProfileForm({ initial }: Props) {
     updateProfileAction,
     {}
   );
+  const { t } = useI18n();
 
   const v = state.values ?? {
     full_name: initial.full_name ?? '',
@@ -37,8 +41,9 @@ export default function ProfileForm({ initial }: Props) {
     vat_id: initial.vat_id ?? '',
     is_kleinunternehmer: initial.is_kleinunternehmer,
     iban: initial.iban ?? '',
+    bic: initial.bic ?? '',
     bank_name: initial.bank_name ?? '',
-    business_email: initial.business_email ?? '',    // ← новое
+    business_email: initial.business_email ?? '',
   };
 
   const inputCls =
@@ -46,169 +51,240 @@ export default function ProfileForm({ initial }: Props) {
 
   return (
     <form action={formAction} className="space-y-6">
-      {/* Личные данные */}
+      <CsrfTokenInput />
       <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-neutral-700 border-b border-neutral-200 pb-2">
-          Личные данные
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+          {t.profileForm.personalTitle}
         </h3>
 
         <div>
-          <label htmlFor="full_name" className="block text-sm font-medium mb-1">
-            Ваше имя <span className="text-red-500">*</span>
+          <label htmlFor="full_name" className="mb-1 block text-sm font-medium">
+            {t.profileForm.fullName} <span className="text-red-500">*</span>
           </label>
-          <input id="full_name" name="full_name" type="text" defaultValue={v.full_name}
-            placeholder="Иван Петров" className={inputCls} />
+          <input
+            id="full_name"
+            name="full_name"
+            type="text"
+            defaultValue={v.full_name}
+            placeholder={t.profileForm.fullNamePlaceholder}
+            className={inputCls}
+          />
         </div>
 
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium mb-1">Телефон</label>
-          <input id="phone" name="phone" type="tel" defaultValue={v.phone}
-            placeholder="+49 176 ..." className={inputCls} />
+          <label htmlFor="phone" className="mb-1 block text-sm font-medium">
+            {t.profileForm.phone}
+          </label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            defaultValue={v.phone}
+            placeholder="+49 176 ..."
+            className={inputCls}
+          />
         </div>
 
         <div>
-          <label htmlFor="company_name" className="block text-sm font-medium mb-1">
-            Название компании
+          <label htmlFor="company_name" className="mb-1 block text-sm font-medium">
+            {t.profileForm.companyName}
           </label>
-          <input id="company_name" name="company_name" type="text" defaultValue={v.company_name}
-            placeholder="Petrov Handwerk" className={inputCls} />
+          <input
+            id="company_name"
+            name="company_name"
+            type="text"
+            defaultValue={v.company_name}
+            placeholder="Petrov Handwerk"
+            className={inputCls}
+          />
         </div>
       </section>
-      
 
-      {/* Адрес */}
       <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-neutral-700 border-b border-neutral-200 pb-2">
-          Адрес <span className="text-red-500">*</span>
-          <span className="text-xs font-normal text-neutral-500 ml-2">
-            (обязательно для счетов)
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+          {t.profileForm.addressTitle} <span className="text-red-500">*</span>
+          <span className="ml-2 text-xs font-normal text-neutral-500">
+            {t.profileForm.addressRequiredHint}
           </span>
         </h3>
-        <div>
-  <label htmlFor="business_email" className="block text-sm font-medium mb-1">
-    Корпоративная почта
-  </label>
-  <input
-    id="business_email"
-    name="business_email"
-    type="email"
-    defaultValue={v.business_email ?? ''}
-    placeholder="info@ihre-firma.de"
-    className="w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-  />
-  <p className="text-xs text-neutral-500 mt-1">
-    Этот email будет отображаться на PDF-счетах и использоваться как адрес для ответов клиентов.
-    Если не указан — используется email входа.
-  </p>
-  
-</div>
 
         <div>
-          <label htmlFor="address" className="block text-sm font-medium mb-1">Улица и дом</label>
-          <input id="address" name="address" type="text" defaultValue={v.address}
-            placeholder="Musterstraße 15" className={inputCls} />
+          <label htmlFor="business_email" className="mb-1 block text-sm font-medium">
+            {t.profileForm.businessEmail}
+          </label>
+          <input
+            id="business_email"
+            name="business_email"
+            type="email"
+            defaultValue={v.business_email}
+            placeholder="info@ihre-firma.de"
+            className={inputCls}
+          />
+          <p className="mt-1 text-xs text-neutral-500">{t.profileForm.businessEmailHelp}</p>
+        </div>
+
+        <div>
+          <label htmlFor="address" className="mb-1 block text-sm font-medium">
+            {t.profileForm.address}
+          </label>
+          <input
+            id="address"
+            name="address"
+            type="text"
+            defaultValue={v.address}
+            placeholder="Musterstrasse 15"
+            className={inputCls}
+          />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label htmlFor="postal_code" className="block text-sm font-medium mb-1">PLZ</label>
-            <input id="postal_code" name="postal_code" type="text" defaultValue={v.postal_code}
-              placeholder="20095" className={inputCls} />
+            <label htmlFor="postal_code" className="mb-1 block text-sm font-medium">
+              PLZ
+            </label>
+            <input
+              id="postal_code"
+              name="postal_code"
+              type="text"
+              defaultValue={v.postal_code}
+              placeholder="20095"
+              className={inputCls}
+            />
           </div>
           <div className="col-span-2">
-            <label htmlFor="city" className="block text-sm font-medium mb-1">Город</label>
-            <input id="city" name="city" type="text" defaultValue={v.city}
-              placeholder="Hamburg" className={inputCls} />
+            <label htmlFor="city" className="mb-1 block text-sm font-medium">
+              {t.profileForm.city}
+            </label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              defaultValue={v.city}
+              placeholder="Hamburg"
+              className={inputCls}
+            />
           </div>
         </div>
       </section>
 
-      {/* Налоговые данные */}
       <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-neutral-700 border-b border-neutral-200 pb-2">
-          Налоговые данные
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+          {t.profileForm.taxTitle}
         </h3>
 
-       <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50 transition">
-  <input
-    type="checkbox"
-    name="is_kleinunternehmer"
-    defaultChecked={v.is_kleinunternehmer}
-    className="mt-0.5 w-5 h-5 flex-shrink-0 accent-blue-600 cursor-pointer"
-    style={{
-      accentColor: '#2563eb',
-    }}
-  />
-  <div className="flex-1">
-    <div className="text-sm font-medium">Kleinunternehmer (§19 UStG)</div>
-    <div className="text-xs text-neutral-500 mt-0.5">
-      НДС не выставляется. В счетах автоматически добавится соответствующая пометка.
-    </div>
-  </div>
-</label>
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-200 p-3 transition hover:bg-neutral-50">
+          <input
+            type="checkbox"
+            name="is_kleinunternehmer"
+            defaultChecked={v.is_kleinunternehmer}
+            className="mt-0.5 h-5 w-5 flex-shrink-0 cursor-pointer accent-blue-600"
+            style={{ accentColor: '#2563eb' }}
+          />
+          <div className="flex-1">
+            <div className="text-sm font-medium">Kleinunternehmer (Paragraf 19 UStG)</div>
+            <div className="mt-0.5 text-xs text-neutral-500">{t.profileForm.kleinunternehmerHint}</div>
+          </div>
+        </label>
 
         <div>
-          <label htmlFor="tax_number" className="block text-sm font-medium mb-1">
+          <label htmlFor="tax_number" className="mb-1 block text-sm font-medium">
             Steuernummer <span className="text-red-500">*</span>
           </label>
-          <input id="tax_number" name="tax_number" type="text" defaultValue={v.tax_number}
-            placeholder="12/345/67890" className={inputCls} />
-          <p className="text-xs text-neutral-500 mt-1">
-            Выдаёт Finanzamt. Обязательно для счёта.
-          </p>
+          <input
+            id="tax_number"
+            name="tax_number"
+            type="text"
+            defaultValue={v.tax_number}
+            placeholder="12/345/67890"
+            className={inputCls}
+          />
+          <p className="mt-1 text-xs text-neutral-500">{t.profileForm.taxNumberHelp}</p>
         </div>
 
         <div>
-          <label htmlFor="vat_id" className="block text-sm font-medium mb-1">
+          <label htmlFor="vat_id" className="mb-1 block text-sm font-medium">
             USt-IdNr.
-            <span className="text-xs font-normal text-neutral-500 ml-2">(опционально)</span>
+            <span className="ml-2 text-xs font-normal text-neutral-500">{t.profileForm.optionalHint}</span>
           </label>
-          <input id="vat_id" name="vat_id" type="text" defaultValue={v.vat_id}
-            placeholder="DE123456789" className={inputCls} />
-          <p className="text-xs text-neutral-500 mt-1">
-            Если есть. Kleinunternehmer обычно не имеют.
-          </p>
+          <input
+            id="vat_id"
+            name="vat_id"
+            type="text"
+            defaultValue={v.vat_id}
+            placeholder="DE123456789"
+            className={inputCls}
+          />
+          <p className="mt-1 text-xs text-neutral-500">{t.profileForm.vatIdHelp}</p>
         </div>
       </section>
 
-      {/* Банковские реквизиты */}
       <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-neutral-700 border-b border-neutral-200 pb-2">
-          Банковские реквизиты
-          <span className="text-xs font-normal text-neutral-500 ml-2">(будут в счёте)</span>
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+          {t.profileForm.bankTitle}
+          <span className="ml-2 text-xs font-normal text-neutral-500">{t.profileForm.bankTitleHint}</span>
         </h3>
 
         <div>
-          <label htmlFor="iban" className="block text-sm font-medium mb-1">IBAN</label>
-          <input id="iban" name="iban" type="text" defaultValue={v.iban}
-            placeholder="DE89 3704 0044 0532 0130 00" className={inputCls} />
+          <label htmlFor="iban" className="mb-1 block text-sm font-medium">
+            IBAN
+          </label>
+          <input
+            id="iban"
+            name="iban"
+            type="text"
+            defaultValue={v.iban}
+            placeholder="DE89 3704 0044 0532 0130 00"
+            className={inputCls}
+          />
         </div>
 
         <div>
-          <label htmlFor="bank_name" className="block text-sm font-medium mb-1">Банк</label>
-          <input id="bank_name" name="bank_name" type="text" defaultValue={v.bank_name}
-            placeholder="Commerzbank" className={inputCls} />
+          <label htmlFor="bic" className="mb-1 block text-sm font-medium">
+            BIC
+          </label>
+          <input
+            id="bic"
+            name="bic"
+            type="text"
+            defaultValue={v.bic}
+            placeholder="COBADEFFXXX"
+            className={inputCls}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="bank_name" className="mb-1 block text-sm font-medium">
+            {t.profileForm.bankName}
+          </label>
+          <input
+            id="bank_name"
+            name="bank_name"
+            type="text"
+            defaultValue={v.bank_name}
+            placeholder="Commerzbank"
+            className={inputCls}
+          />
         </div>
       </section>
 
       {state.formError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.formError}
         </div>
       )}
 
       {state.success && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
-          ✓ Сохранено
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+          {t.profileForm.success}
         </div>
       )}
 
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
+        className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
       >
-        {isPending ? 'Сохранение...' : 'Сохранить'}
+        {isPending ? t.profileForm.saving : t.profileForm.save}
       </button>
     </form>
   );

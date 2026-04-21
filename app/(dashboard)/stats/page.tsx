@@ -1,33 +1,33 @@
 import Link from 'next/link';
+import ChangeIndicator from '@/components/stats/ChangeIndicator';
+import PeriodPicker from '@/components/stats/PeriodPicker';
+import RevenueChart from '@/components/stats/RevenueChart';
 import { createClient } from '@/lib/supabase/server';
+import { getLocale } from '@/lib/i18n/server';
 import {
-  getRange,
-  getPreviousRange,
   getLastMonths,
   getMonthOptions,
+  getPreviousRange,
+  getRange,
   toDateOnly,
   type PeriodKey,
 } from '@/lib/utils/date-range';
+import { getExpensesSummary, getMonthlyExpenses } from '@/lib/stats/expenses';
 import {
+  getMonthlyRevenue,
+  getOrdersWithoutInvoice,
   getRevenueStats,
   getStatusBreakdown,
-  getMonthlyRevenue,
   getTopClients,
   getTopServices,
-  getOrdersWithoutInvoice,
 } from '@/lib/stats/calculate';
-import { getExpensesSummary, getMonthlyExpenses } from '@/lib/stats/expenses';
-import RevenueChart from '@/components/stats/RevenueChart';
-import PeriodPicker from '@/components/stats/PeriodPicker';
-import ChangeIndicator from '@/components/stats/ChangeIndicator';
 import {
-  formatPrice,
-  STATUS_LABELS,
   STATUS_COLORS,
-  EXPENSE_CATEGORY_LABELS,
-  EXPENSE_CATEGORY_EMOJIS,
+  formatPrice,
+  getExpenseCategoryEmoji,
+  getExpenseCategoryLabel,
 } from '@/lib/utils/format';
-import type { OrderStatus, ExpenseCategory } from '@/types/database';
+import type { ExpenseCategory, OrderStatus } from '@/types/database';
 
 type SearchParams = Promise<{
   period?: string;
@@ -36,27 +36,127 @@ type SearchParams = Promise<{
   m?: string;
 }>;
 
+const DASH = '—';
+
 export default async function StatsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
+  const locale = await getLocale();
   const activePeriod = (sp.period ?? 'month') as PeriodKey;
+
+  const text =
+    locale === 'de'
+      ? {
+          back: 'Zurueck zum Dashboard',
+          title: 'Statistik',
+          previous: 'vs. vorher',
+          revenue: 'Umsatz',
+          invoices: 'Rechnungen',
+          avgCheck: 'Durchschnitt',
+          withoutInvoice: 'Ohne Rechnung',
+          income: 'Einnahmen',
+          expenses: 'Ausgaben',
+          deductible: 'Davon absetzbar',
+          profit: 'Gewinn',
+          loss: 'Verlust',
+          monthlyChart: 'Einnahmen und Ausgaben pro Monat',
+          statuses: 'Auftraege nach Status',
+          total: 'gesamt',
+          noOrders: 'Keine Auftraege in diesem Zeitraum',
+          byCategory: 'Ausgaben nach Kategorien',
+          details: 'Mehr',
+          pendingInvoices: 'Offene Rechnungen',
+          all: 'Alle',
+          showAll: 'Alle anzeigen',
+          topClients: 'Top-Kunden',
+          byRevenue: 'nach Umsatz',
+          noData: 'Keine Daten',
+          topServices: 'Top-Leistungen',
+          byFrequency: 'nach Haeufigkeit',
+          jobs: 'Jobs',
+          notes1: 'Im Umsatz zaehlen nur Auftraege mit ausgestellter Rechnung.',
+          notes2:
+            'Alle Kennzahlen beziehen sich primaer auf das Leistungsdatum. Wenn es fehlt, wird das Erstellungsdatum des Auftrags verwendet.',
+          notes3: 'Der Indikator vergleicht mit dem vorherigen passenden Zeitraum.',
+          new: 'Neu',
+          inProgress: 'In Arbeit',
+          completed: 'Abgeschlossen',
+          canceled: 'Abgebrochen',
+          of: 'von',
+        }
+      : {
+          back: '\u041d\u0430\u0437\u0430\u0434 \u043a \u0434\u0430\u0448\u0431\u043e\u0440\u0434\u0443',
+          title: '\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430',
+          previous: 'vs. \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u0439',
+          revenue: '\u0412\u044b\u0440\u0443\u0447\u043a\u0430',
+          invoices: '\u0421\u0447\u0435\u0442\u0430',
+          avgCheck: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439 \u0447\u0435\u043a',
+          withoutInvoice: '\u0411\u0435\u0437 \u0441\u0447\u0435\u0442\u0430',
+          income: '\u0414\u043e\u0445\u043e\u0434',
+          expenses: '\u0420\u0430\u0441\u0445\u043e\u0434\u044b',
+          deductible: '\u0418\u0437 \u043d\u0438\u0445 \u043a \u0432\u044b\u0447\u0435\u0442\u0443',
+          profit: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c',
+          loss: '\u0423\u0431\u044b\u0442\u043e\u043a',
+          monthlyChart: '\u0414\u043e\u0445\u043e\u0434\u044b \u0438 \u0440\u0430\u0441\u0445\u043e\u0434\u044b \u043f\u043e \u043c\u0435\u0441\u044f\u0446\u0430\u043c',
+          statuses: '\u0417\u0430\u043a\u0430\u0437\u044b \u043f\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430\u043c',
+          total: '\u0432\u0441\u0435\u0433\u043e',
+          noOrders: '\u041d\u0435\u0442 \u0437\u0430\u043a\u0430\u0437\u043e\u0432 \u0432 \u044d\u0442\u043e\u043c \u043f\u0435\u0440\u0438\u043e\u0434\u0435',
+          byCategory: '\u0420\u0430\u0441\u0445\u043e\u0434\u044b \u043f\u043e \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f\u043c',
+          details: '\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435',
+          pendingInvoices: '\u0416\u0434\u0443\u0442 \u0441\u0447\u0435\u0442',
+          all: '\u0412\u0441\u0435',
+          showAll: '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0432\u0441\u0435',
+          topClients: '\u0422\u043e\u043f \u043a\u043b\u0438\u0435\u043d\u0442\u043e\u0432',
+          byRevenue: '\u043f\u043e \u0432\u044b\u0440\u0443\u0447\u043a\u0435',
+          noData: '\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445',
+          topServices: '\u0422\u043e\u043f \u0443\u0441\u043b\u0443\u0433',
+          byFrequency: '\u043f\u043e \u0447\u0430\u0441\u0442\u043e\u0442\u0435',
+          jobs: '\u0437\u0430\u043a\u0430\u0437\u043e\u0432',
+          notes1: '\u0412 \u0432\u044b\u0440\u0443\u0447\u043a\u0435 \u0443\u0447\u0438\u0442\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0437\u0430\u043a\u0430\u0437\u044b \u0441 \u0432\u044b\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u043d\u044b\u043c \u0441\u0447\u0435\u0442\u043e\u043c.',
+          notes2:
+            '\u0412\u0441\u0435 \u0446\u0438\u0444\u0440\u044b \u0441\u0447\u0438\u0442\u0430\u044e\u0442\u0441\u044f \u043f\u043e \u0434\u0430\u0442\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f \u0440\u0430\u0431\u043e\u0442\u044b. \u0415\u0441\u043b\u0438 \u0435\u0451 \u043d\u0435\u0442, \u0431\u0435\u0440\u0451\u0442\u0441\u044f \u0434\u0430\u0442\u0430 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f \u0437\u0430\u043a\u0430\u0437\u0430.',
+          notes3: '\u0418\u043d\u0434\u0438\u043a\u0430\u0442\u043e\u0440 \u0441\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u0435\u0442 \u0441 \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u043c \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0438\u043c \u043f\u0435\u0440\u0438\u043e\u0434\u043e\u043c.',
+          new: '\u041d\u043e\u0432\u044b\u0439',
+          inProgress: '\u0412 \u0440\u0430\u0431\u043e\u0442\u0435',
+          completed: '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d',
+          canceled: '\u041e\u0442\u043c\u0435\u043d\u0435\u043d',
+          of: '\u0438\u0437',
+        };
+
+  const formatDate = (value: string | null | undefined) => {
+    if (!value) return DASH;
+    return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date(value));
+  };
+
+  const statusLabels: Record<OrderStatus, string> = {
+    new: text.new,
+    in_progress: text.inProgress,
+    completed: text.completed,
+    canceled: text.canceled,
+  };
 
   const rangeOptions: { from?: Date; to?: Date; specificMonth?: string } = {};
   if (activePeriod === 'custom' && sp.from && sp.to) {
-    rangeOptions.from = new Date(sp.from + 'T00:00:00');
-    rangeOptions.to = new Date(sp.to + 'T23:59:59');
+    rangeOptions.from = new Date(`${sp.from}T00:00:00`);
+    rangeOptions.to = new Date(`${sp.to}T23:59:59`);
   }
   if (activePeriod === 'month' && sp.m) {
     rangeOptions.specificMonth = sp.m;
   }
 
-  const range = getRange(activePeriod, new Date(), rangeOptions);
-  const previousRange = activePeriod === 'all' ? null : getPreviousRange(range);
+  const range = getRange(activePeriod, new Date(), { ...rangeOptions, locale });
+  const previousRange = activePeriod === 'all' ? null : getPreviousRange(range, locale);
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const months12 = getLastMonths(12);
-  const monthOptions = getMonthOptions(2024);
+  const months12 = getLastMonths(12, new Date(), locale);
+  const monthOptions = getMonthOptions(2024, new Date(), locale);
 
   const fromDate = toDateOnly(range.from);
   const toDate = toDateOnly(range.to);
@@ -78,11 +178,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
   ] = await Promise.all([
     getRevenueStats(supabase, user!.id, range.from, range.to),
     getStatusBreakdown(supabase, user!.id, range.from, range.to),
-    getMonthlyRevenue(
-      supabase,
-      user!.id,
-      months12.map(m => ({ from: m.from, to: m.to }))
-    ),
+    getMonthlyRevenue(supabase, user!.id, months12.map((m) => ({ from: m.from, to: m.to }))),
     getTopClients(supabase, user!.id, range.from, range.to),
     getTopServices(supabase, user!.id, range.from, range.to),
     getOrdersWithoutInvoice(supabase, user!.id, range.from, range.to),
@@ -101,29 +197,24 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           count: 0,
           byCategory: {} as Record<ExpenseCategory, number>,
         }),
-    getMonthlyExpenses(
-      supabase,
-      user!.id,
-      months12.map(m => ({ from: m.from, to: m.to }))
-    ),
+    getMonthlyExpenses(supabase, user!.id, months12.map((m) => ({ from: m.from, to: m.to }))),
   ]);
 
   const profit = revenue.total - expenses.total;
   const profitPrev = revenuePrev.total - expensesPrev.total;
-
   const statusOrder: OrderStatus[] = ['new', 'in_progress', 'completed', 'canceled'];
-  const totalOrders = Object.values(statuses).reduce((a, b) => a + b, 0);
+  const totalOrders = Object.values(statuses).reduce((sum, value) => sum + value, 0);
 
   return (
     <div>
       <div className="mb-4">
         <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-700">
-          ← На дашборд
+          ← {text.back}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-1">Статистика</h1>
-      <p className="text-sm text-neutral-500 mb-4">{range.label}</p>
+      <h1 className="mb-1 text-2xl font-semibold">{text.title}</h1>
+      <p className="mb-4 text-sm text-neutral-500">{range.label}</p>
 
       <PeriodPicker
         currentPeriod={activePeriod}
@@ -133,57 +224,38 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         monthOptions={monthOptions}
       />
 
-      {/* Главные цифры */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Выручка</div>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
+          <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{text.revenue}</div>
           <div className="text-2xl font-bold">{formatPrice(revenue.total)}</div>
           {previousRange && (
-            <ChangeIndicator
-              current={revenue.total}
-              previous={revenuePrev.total}
-              label="vs. прошлый"
-            />
+            <ChangeIndicator current={revenue.total} previous={revenuePrev.total} label={text.previous} />
           )}
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Счетов</div>
+        <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{text.invoices}</div>
           <div className="text-2xl font-bold">{revenue.invoicesCount}</div>
           {previousRange && (
-            <ChangeIndicator
-              current={revenue.invoicesCount}
-              previous={revenuePrev.invoicesCount}
-              label="vs. прошлый"
-            />
+            <ChangeIndicator current={revenue.invoicesCount} previous={revenuePrev.invoicesCount} label={text.previous} />
           )}
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Средний чек</div>
+        <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{text.avgCheck}</div>
           <div className="text-2xl font-bold">{formatPrice(revenue.avgCheck)}</div>
           {previousRange && (
-            <ChangeIndicator
-              current={revenue.avgCheck}
-              previous={revenuePrev.avgCheck}
-              label="vs. прошлый"
-            />
+            <ChangeIndicator current={revenue.avgCheck} previous={revenuePrev.avgCheck} label={text.previous} />
           )}
         </div>
 
         <div
-          className={`border rounded-xl p-5 ${
-            ordersNoInvoice.length > 0
-              ? 'bg-amber-50 border-amber-200'
-              : 'bg-white border-neutral-200'
+          className={`rounded-xl border p-5 ${
+            ordersNoInvoice.length > 0 ? 'border-amber-200 bg-amber-50' : 'border-neutral-200 bg-white'
           }`}
         >
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Без счёта</div>
-          <div
-            className={`text-2xl font-bold ${
-              ordersNoInvoice.length > 0 ? 'text-amber-700' : ''
-            }`}
-          >
+          <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{text.withoutInvoice}</div>
+          <div className={`text-2xl font-bold ${ordersNoInvoice.length > 0 ? 'text-amber-700' : ''}`}>
             {ordersNoInvoice.length}
           </div>
           {previousRange && (
@@ -191,107 +263,75 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
               current={ordersNoInvoice.length}
               previous={ordersNoInvoicePrev.length}
               higherIsBetter={false}
-              label="vs. прошлый"
+              label={text.previous}
             />
           )}
         </div>
       </div>
 
-      {/* Финансовая сводка — Доход / Расход / Прибыль */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💰 Доход</div>
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-5">
+          <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{text.income}</div>
           <div className="text-2xl font-bold text-green-700">{formatPrice(revenue.total)}</div>
-          {previousRange && (
-            <ChangeIndicator
-              current={revenue.total}
-              previous={revenuePrev.total}
-              label="vs. прошлый"
-            />
-          )}
+          {previousRange && <ChangeIndicator current={revenue.total} previous={revenuePrev.total} label={text.previous} />}
         </div>
 
-        <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-xl p-5">
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">💸 Расходы</div>
+        <div className="rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 p-5">
+          <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{text.expenses}</div>
           <div className="text-2xl font-bold text-rose-700">{formatPrice(expenses.total)}</div>
-          <div className="text-xs text-neutral-500 mt-1">
-            Из них к вычету:{' '}
-            <span className="font-semibold">{formatPrice(expenses.taxDeductible)}</span>
+          <div className="mt-1 text-xs text-neutral-500">
+            {text.deductible}: <span className="font-semibold">{formatPrice(expenses.taxDeductible)}</span>
           </div>
           {previousRange && (
-            <ChangeIndicator
-              current={expenses.total}
-              previous={expensesPrev.total}
-              higherIsBetter={false}
-              label="vs. прошлый"
-            />
+            <ChangeIndicator current={expenses.total} previous={expensesPrev.total} higherIsBetter={false} label={text.previous} />
           )}
         </div>
 
         <div
-          className={`border rounded-xl p-5 ${
+          className={`rounded-xl border p-5 ${
             profit >= 0
-              ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
-              : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200'
+              ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50'
+              : 'border-orange-200 bg-gradient-to-br from-orange-50 to-red-50'
           }`}
         >
-          <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">
-            {profit >= 0 ? '📈 Прибыль' : '📉 Убыток'}
-          </div>
-          <div
-            className={`text-2xl font-bold ${
-              profit >= 0 ? 'text-blue-700' : 'text-orange-700'
-            }`}
-          >
+          <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{profit >= 0 ? text.profit : text.loss}</div>
+          <div className={`text-2xl font-bold ${profit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
             {formatPrice(Math.abs(profit))}
           </div>
-          {previousRange && (
-            <ChangeIndicator
-              current={profit}
-              previous={profitPrev}
-              label="vs. прошлый"
-            />
-          )}
+          {previousRange && <ChangeIndicator current={profit} previous={profitPrev} label={text.previous} />}
         </div>
       </div>
 
-      {/* График по месяцам */}
-      <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-medium text-neutral-500 mb-1">Доход и расходы по месяцам</h2>
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="mb-1 text-sm font-medium text-neutral-500">{text.monthlyChart}</h2>
         <RevenueChart
-          months={months12.map(m => ({ label: m.label, fullLabel: m.fullLabel }))}
+          months={months12.map((month) => ({ label: month.label, fullLabel: month.fullLabel }))}
           values={monthly}
           expenses={monthlyExpenses}
         />
       </div>
 
-      {/* Статусы заказов */}
-      <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
-        <h2 className="text-sm font-medium text-neutral-500 mb-3">
-          Заказы по статусам <span className="text-neutral-400">· {totalOrders} всего</span>
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-medium text-neutral-500">
+          {text.statuses} <span className="text-neutral-400">· {totalOrders} {text.total}</span>
         </h2>
         {totalOrders === 0 ? (
-          <p className="text-sm text-neutral-400 italic">Нет заказов в этом периоде</p>
+          <p className="text-sm italic text-neutral-400">{text.noOrders}</p>
         ) : (
           <div className="space-y-2">
-            {statusOrder.map(s => {
-              const count = statuses[s];
+            {statusOrder.map((status) => {
+              const count = statuses[status];
               const pct = totalOrders > 0 ? (count / totalOrders) * 100 : 0;
               return (
-                <div key={s}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[s]}`}
-                    >
-                      {STATUS_LABELS[s]}
+                <div key={status}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[status]}`}>
+                      {statusLabels[status]}
                     </span>
                     <span className="font-semibold">{count}</span>
                   </div>
-                  <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                    <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
@@ -300,19 +340,14 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         )}
       </div>
 
-      {/* Расходы по категориям */}
       {expenses.total > 0 && (
-        <div className="bg-white border border-neutral-200 rounded-xl p-5 mb-6">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium text-neutral-500">
-              💸 Расходы по категориям{' '}
-              <span className="text-neutral-400">· {formatPrice(expenses.total)}</span>
+              {text.byCategory} <span className="text-neutral-400">· {formatPrice(expenses.total)}</span>
             </h2>
-            <Link
-              href="/expenses"
-              className="text-xs text-blue-700 hover:text-blue-900 font-medium"
-            >
-              Подробнее →
+            <Link href="/expenses" className="text-xs font-medium text-blue-700 hover:text-blue-900">
+              {text.details} →
             </Link>
           </div>
 
@@ -320,27 +355,21 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
             {(Object.entries(expenses.byCategory) as Array<[ExpenseCategory, number]>)
               .filter(([, amount]) => amount > 0)
               .sort(([, a], [, b]) => b - a)
-              .map(([cat, amount]) => {
+              .map(([category, amount]) => {
                 const pct = expenses.total > 0 ? (amount / expenses.total) * 100 : 0;
                 return (
-                  <div key={cat}>
-                    <div className="flex items-center justify-between text-sm mb-1">
+                  <div key={category}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
                       <span className="flex items-center gap-1">
-                        <span>{EXPENSE_CATEGORY_EMOJIS[cat]}</span>
-                        <span className="text-neutral-700">{EXPENSE_CATEGORY_LABELS[cat]}</span>
+                        <span>{getExpenseCategoryEmoji(category)}</span>
+                        <span className="text-neutral-700">{getExpenseCategoryLabel(category, locale)}</span>
                       </span>
                       <span className="font-semibold">
-                        {formatPrice(amount)}{' '}
-                        <span className="text-xs text-neutral-500 font-normal">
-                          ({Math.round(pct)}%)
-                        </span>
+                        {formatPrice(amount)} <span className="text-xs font-normal text-neutral-500">({Math.round(pct)}%)</span>
                       </span>
                     </div>
-                    <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-rose-400 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+                    <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                      <div className="h-full rounded-full bg-rose-400 transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -349,38 +378,32 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         </div>
       )}
 
-      {/* Ожидают счёт */}
       {ordersNoInvoice.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-amber-900 flex items-center gap-2">
-              ⚠️ Ожидают счёт
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-sm font-medium text-amber-900">
+              {text.pendingInvoices}
               <span className="text-amber-700">· {ordersNoInvoice.length}</span>
             </h2>
-            <Link
-              href="/orders?invoice=without"
-              className="text-xs text-amber-700 hover:text-amber-900 font-medium"
-            >
-              Все →
+            <Link href="/orders?invoice=without" className="text-xs font-medium text-amber-700 hover:text-amber-900">
+              {text.all} →
             </Link>
           </div>
 
           <ul className="space-y-2">
-            {ordersNoInvoice.slice(0, 10).map(o => (
-              <li key={o.id}>
+            {ordersNoInvoice.slice(0, 10).map((order) => (
+              <li key={order.id}>
                 <Link
-                  href={`/orders/${o.id}`}
-                  className="flex items-center justify-between gap-3 p-2 -mx-2 rounded hover:bg-amber-100/50"
+                  href={`/orders/${order.id}`}
+                  className="-mx-2 flex items-center justify-between gap-3 rounded p-2 hover:bg-amber-100/50"
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="text-sm font-medium truncate">{o.client_name}</span>
-                    <span className="text-xs text-neutral-500 truncate">· {o.service_title}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{order.client_name}</div>
+                    <div className="truncate text-xs text-neutral-500">{order.service_title}</div>
                   </div>
-                  <div className="text-right whitespace-nowrap">
-                    <div className="text-sm font-semibold">{formatPrice(o.price)}</div>
-                    <div className="text-xs text-neutral-500">
-                      {new Date(o.created_at).toLocaleDateString('de-DE')}
-                    </div>
+                  <div className="whitespace-nowrap text-right">
+                    <div className="text-sm font-semibold">{formatPrice(order.price)}</div>
+                    <div className="text-xs text-neutral-500">{formatDate(order.created_at)}</div>
                   </div>
                 </Link>
               </li>
@@ -388,43 +411,41 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           </ul>
 
           {ordersNoInvoice.length > 10 && (
-            <div className="text-xs text-amber-700 mt-3 text-center">
-              Показано 10 из {ordersNoInvoice.length}.{' '}
+            <div className="mt-3 text-center text-xs text-amber-700">
+              {locale === 'de'
+                ? `Es werden 10 ${text.of} ${ordersNoInvoice.length} gezeigt. `
+                : `Показано 10 ${text.of} ${ordersNoInvoice.length}. `}
               <Link href="/orders?invoice=without" className="underline">
-                Открыть все
+                {text.showAll}
               </Link>
             </div>
           )}
         </div>
       )}
 
-      {/* Топ-клиенты и топ-услуги */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white border border-neutral-200 rounded-xl p-5">
-          <h2 className="text-sm font-medium text-neutral-500 mb-3">
-            🏆 Топ клиентов <span className="text-neutral-400">по выручке</span>
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-medium text-neutral-500">
+            {text.topClients} <span className="text-neutral-400">{text.byRevenue}</span>
           </h2>
           {topClients.length === 0 ? (
-            <p className="text-sm text-neutral-400 italic">Нет данных</p>
+            <p className="text-sm italic text-neutral-400">{text.noData}</p>
           ) : (
             <ul className="space-y-2">
-              {topClients.map((c, i) => (
-                <li key={c.clientId}>
+              {topClients.map((client, index) => (
+                <li key={client.clientId}>
                   <Link
-                    href={`/clients/${c.clientId}`}
-                    className="flex items-center justify-between gap-3 p-2 -mx-2 rounded hover:bg-neutral-50"
+                    href={`/clients/${client.clientId}`}
+                    className="-mx-2 flex items-center justify-between gap-3 rounded p-2 hover:bg-neutral-50"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs w-5 text-center text-neutral-400 font-mono">
-                        {i + 1}.
-                      </span>
-                      <span className="text-sm truncate">{c.name}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="w-5 text-center font-mono text-xs text-neutral-400">{index + 1}.</span>
+                      <span className="truncate text-sm">{client.name}</span>
                     </div>
-                    <div className="text-right whitespace-nowrap">
-                      <div className="text-sm font-semibold">{formatPrice(c.total)}</div>
+                    <div className="whitespace-nowrap text-right">
+                      <div className="text-sm font-semibold">{formatPrice(client.total)}</div>
                       <div className="text-xs text-neutral-500">
-                        {c.count}{' '}
-                        {c.count === 1 ? 'счёт' : c.count < 5 ? 'счёта' : 'счетов'}
+                        {client.count} {text.jobs}
                       </div>
                     </div>
                   </Link>
@@ -434,26 +455,21 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           )}
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded-xl p-5">
-          <h2 className="text-sm font-medium text-neutral-500 mb-3">
-            🛠 Топ услуг <span className="text-neutral-400">по частоте</span>
+        <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-medium text-neutral-500">
+            {text.topServices} <span className="text-neutral-400">{text.byFrequency}</span>
           </h2>
           {topServices.length === 0 ? (
-            <p className="text-sm text-neutral-400 italic">Нет данных</p>
+            <p className="text-sm italic text-neutral-400">{text.noData}</p>
           ) : (
             <ul className="space-y-2">
-              {topServices.map((s, i) => (
-                <li
-                  key={`${i}-${s.title}`}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs w-5 text-center text-neutral-400 font-mono">
-                      {i + 1}.
-                    </span>
-                    <span className="text-sm truncate">{s.title}</span>
+              {topServices.map((service, index) => (
+                <li key={`${index}-${service.title}`} className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="w-5 text-center font-mono text-xs text-neutral-400">{index + 1}.</span>
+                    <span className="truncate text-sm">{service.title}</span>
                   </div>
-                  <span className="text-sm font-semibold whitespace-nowrap">{s.count}×</span>
+                  <span className="whitespace-nowrap text-sm font-semibold">{service.count}×</span>
                 </li>
               ))}
             </ul>
@@ -461,17 +477,10 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
         </div>
       </div>
 
-      {/* Подсказка */}
-      <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-3 space-y-1">
-        <div>
-          💡 В «Выручку» входят только заказы с выставленным счётом (есть номер вида 2026-XXXX).
-        </div>
-        <div>
-          📅 Все цифры считаются по{' '}
-          <strong>дате выполнения работы</strong> (Leistungsdatum). Если она не указана —
-          используется дата завершения заказа или дата создания.
-        </div>
-        <div>📊 Индикатор ↑/↓ — сравнение с предыдущим периодом такой же длины.</div>
+      <div className="space-y-1 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500">
+        <div>{text.notes1}</div>
+        <div>{text.notes2}</div>
+        <div>{text.notes3}</div>
       </div>
     </div>
   );

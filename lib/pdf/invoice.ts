@@ -17,6 +17,7 @@ export type InvoiceData = {
     vat_id: string | null;
     is_kleinunternehmer: boolean;
     iban: string | null;
+    bic: string | null;
     bank_name: string | null;
   };
   client: {
@@ -31,9 +32,10 @@ export type InvoiceData = {
     service_date: string;          // ISO — Leistungsdatum
     service_title: string;
     price: number | null;
+    correction_of_invoice_number?: string | null;
     description: string | null;
     order_address: string | null;
-    payment_method: 'cash' | 'transfer' | 'ec_card' | 'paypal' | null;   // ← новое
+    payment_method: 'cash' | 'transfer' | 'ec_card' | 'paypal' | null;
   };
   signature: Uint8Array | null;
   photosBefore: Uint8Array[];
@@ -80,7 +82,12 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     line: rgb(0.9, 0.9, 0.9),
     accent: rgb(0.15, 0.39, 0.92),
     tableHeader: rgb(0.97, 0.97, 0.97),
+    correctionBg: rgb(1, 0.97, 0.91),
+    correctionText: rgb(0.72, 0.37, 0.04),
   };
+  const isCorrectionDocument =
+    data.order.service_title.startsWith('Korrektur:') ||
+    data.order.description?.includes('Korrektur zu Rechnung') === true;
 
   let page = doc.addPage([595, 842]); // A4
   const W = 595;
@@ -168,26 +175,45 @@ if (data.client.phone) {
 }
 
   // Реквизиты справа: дата, номер счёта
-  let rightY = clientTop;
+  const rightY = clientTop;
   const rightX = W - margin;
   const savedY = y;
+  const metaLabelX = rightX - 110;
 
   y = rightY;
-  drawRight('Rechnungsnummer:', rightX - 80, regular, 9, COLORS.muted);
+  drawRight('Rechnungsnummer:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(data.order.invoice_number, rightX, bold, 10);
   y -= 14;
-  drawRight('Rechnungsdatum:', rightX - 80, regular, 9, COLORS.muted);
+  drawRight('Rechnungsdatum:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(formatDate(data.order.invoice_date), rightX, regular, 10);
   y -= 14;
-  drawRight('Leistungsdatum:', rightX - 80, regular, 9, COLORS.muted);
+  drawRight('Leistungsdatum:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(formatDate(data.order.service_date), rightX, regular, 10);
+  if (data.order.correction_of_invoice_number) {
+    y -= 14;
+    drawRight('Bezug auf Rechnung:', metaLabelX, regular, 9, COLORS.muted);
+    drawRight(data.order.correction_of_invoice_number, rightX, bold, 10, COLORS.correctionText);
+  }
 
   // Возвращаемся к левой колонке
-  y = Math.min(savedY, y) - 30;
+  y = Math.min(savedY, y) - 26;
 
   // ===================== ЗАГОЛОВОК =====================
-  drawText('Rechnung', margin, bold, 22, COLORS.text);
-  y -= 30;
+  if (isCorrectionDocument) {
+    page.drawRectangle({
+      x: margin,
+      y: y - 28,
+      width: 215,
+      height: 28,
+      color: COLORS.correctionBg,
+    });
+    y -= 18;
+    drawText('Rechnungskorrektur', margin + 12, bold, 13, COLORS.correctionText);
+    y -= 20;
+  }
+
+  drawText(isCorrectionDocument ? 'Korrigierte Rechnung' : 'Rechnung', margin, bold, 22, COLORS.text);
+  y -= 26;
 
   // ===================== ТАБЛИЦА УСЛУГ =====================
   const tableTop = y;
@@ -202,6 +228,7 @@ if (data.client.phone) {
   // Колонки: Pos | Leistung | Betrag
   const colPos = margin + 8;
   const colLeistung = margin + 40;
+  const colTotals = margin + 350;
   const colBetragRight = W - margin - 8;
 
   drawText('Pos.', colPos, bold, 9, COLORS.text);
@@ -240,7 +267,15 @@ if (data.client.phone) {
   // ===================== ИТОГО =====================
   // Netto = Brutto для Kleinunternehmer (без НДС)
   if (data.master.is_kleinunternehmer) {
-    drawText('Gesamtbetrag', colLeistung, bold, 12, COLORS.text);
+    page.drawRectangle({
+      x: margin + 250,
+      y: y - 20,
+      width: W - margin - (margin + 250),
+      height: 24,
+      color: rgb(0.98, 0.99, 1),
+    });
+    y -= 16;
+    drawText('Gesamtbetrag', colTotals, bold, 12, COLORS.text);
     drawRight(formatEUR(data.order.price), colBetragRight, bold, 13, COLORS.accent);
     y -= 24;
 
@@ -276,20 +311,20 @@ if (data.client.phone) {
     const netto = brutto / (1 + vatRate);
     const vat = brutto - netto;
 
-    drawText('Nettobetrag', colLeistung, regular, 10, COLORS.muted);
+    drawText('Nettobetrag', colTotals, regular, 10, COLORS.muted);
     drawRight(formatEUR(netto), colBetragRight, regular, 10);
     y -= 14;
-    drawText('MwSt. 19 %', colLeistung, regular, 10, COLORS.muted);
+    drawText('MwSt. 19 %', colTotals, regular, 10, COLORS.muted);
     drawRight(formatEUR(vat), colBetragRight, regular, 10);
     y -= 16;
     page.drawLine({
-      start: { x: colLeistung, y },
+      start: { x: colTotals, y },
       end: { x: W - margin, y },
       thickness: 0.5,
       color: COLORS.line,
     });
     y -= 14;
-    drawText('Gesamtbetrag (brutto)', colLeistung, bold, 12);
+    drawText('Gesamtbetrag (brutto)', colTotals, bold, 12);
     drawRight(formatEUR(brutto), colBetragRight, bold, 13, COLORS.accent);
     y -= 25;
   }
@@ -438,7 +473,8 @@ if (data.order.payment_method) {
       data.master.email,
     ].filter(Boolean);
 
-    let ly = footerY + 35;
+    p.drawText('Kontakt', { x: margin, y: footerY + 36, font: bold, size: 7, color: COLORS.text });
+    let ly = footerY + 26;
     for (const line of left) {
       p.drawText(String(line), { x: margin, y: ly, font: regular, size: 7, color: COLORS.muted });
       ly -= 9;
@@ -451,7 +487,8 @@ if (data.order.payment_method) {
       data.master.is_kleinunternehmer ? 'Kleinunternehmer (§19 UStG)' : null,
     ].filter(Boolean);
 
-    let my = footerY + 35;
+    p.drawText('Steuer', { x: margin + colW, y: footerY + 36, font: bold, size: 7, color: COLORS.text });
+    let my = footerY + 26;
     for (const line of middle) {
       p.drawText(String(line), { x: margin + colW, y: my, font: regular, size: 7, color: COLORS.muted });
       my -= 9;
@@ -461,9 +498,11 @@ if (data.order.payment_method) {
     const right = [
       data.master.bank_name ? `Bank: ${data.master.bank_name}` : null,
       data.master.iban ? `IBAN: ${data.master.iban}` : null,
+      data.master.bic ? `BIC: ${data.master.bic}` : null,
     ].filter(Boolean);
 
-    let ry = footerY + 35;
+    p.drawText('Bankverbindung', { x: margin + colW * 2, y: footerY + 36, font: bold, size: 7, color: COLORS.text });
+    let ry = footerY + 26;
     for (const line of right) {
       p.drawText(String(line), { x: margin + colW * 2, y: ry, font: regular, size: 7, color: COLORS.muted });
       ry -= 9;

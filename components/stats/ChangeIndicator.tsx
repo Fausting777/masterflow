@@ -3,7 +3,6 @@ import { calculateChange } from '@/lib/utils/date-range';
 type Props = {
   current: number;
   previous: number;
-  // Если true — падение это плохо. Если false — наоборот (например для "без счёта")
   higherIsBetter?: boolean;
   label?: string;
 };
@@ -16,7 +15,6 @@ export default function ChangeIndicator({
 }: Props) {
   const change = calculateChange(current, previous);
 
-  // Определяем цвет
   let color: string;
   if (change.direction === 'same') {
     color = 'text-neutral-500';
@@ -26,13 +24,14 @@ export default function ChangeIndicator({
     color = higherIsBetter ? 'text-red-600' : 'text-green-600';
   }
 
-  const arrow =
-    change.direction === 'up' ? '↑' : change.direction === 'down' ? '↓' : '→';
+  const arrow = change.direction === 'up' ? '↑' : change.direction === 'down' ? '↓' : '→';
 
   return (
     <div className={`text-xs font-medium ${color}`}>
-      <span>{arrow} {change.display}</span>
-      {label && <span className="text-neutral-500 ml-1">{label}</span>}
+      <span>
+        {arrow} {change.display}
+      </span>
+      {label && <span className="ml-1 text-neutral-500">{label}</span>}
     </div>
   );
 }

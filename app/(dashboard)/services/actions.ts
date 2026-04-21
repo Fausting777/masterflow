@@ -1,11 +1,13 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { validateCsrfFormData } from '@/lib/csrf/server';
+import { getLocale } from '@/lib/i18n/server';
+import { createClient } from '@/lib/supabase/server';
 import {
-  validateService,
   normalizeServiceInput,
+  validateService,
   type ServiceValidationErrors,
 } from '@/lib/validators/service';
 
@@ -19,10 +21,37 @@ export type ServiceFormState = {
   };
 };
 
+function getTexts(locale: 'ru' | 'de') {
+  if (locale === 'de') {
+    return {
+      csrfError: 'CSRF validation failed',
+      unauthorized: 'Nicht autorisiert',
+      genericError: 'Fehler',
+      deleteError: 'Fehler beim Loeschen',
+    };
+  }
+
+  return {
+    csrfError: 'CSRF validation failed',
+    unauthorized: 'Не авторизован',
+    genericError: 'Ошибка',
+    deleteError: 'Ошибка удаления',
+  };
+}
+
 export async function createServiceAction(
   _prevState: ServiceFormState,
   formData: FormData
 ): Promise<ServiceFormState> {
+  const locale = await getLocale();
+  const text = getTexts(locale);
+
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: text.csrfError };
+  }
+
   const raw = {
     title: String(formData.get('title') ?? ''),
     default_price: String(formData.get('default_price') ?? ''),
@@ -33,8 +62,11 @@ export async function createServiceAction(
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { formError: 'Не авторизован', values: raw };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { formError: text.unauthorized, values: raw };
 
   const normalized = normalizeServiceInput(raw);
   const { error } = await supabase.from('services').insert({
@@ -42,7 +74,7 @@ export async function createServiceAction(
     ...normalized,
   });
 
-  if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
+  if (error) return { formError: `${text.genericError}: ${error.message}`, values: raw };
 
   revalidatePath('/services');
   redirect('/services');
@@ -53,6 +85,15 @@ export async function updateServiceAction(
   _prevState: ServiceFormState,
   formData: FormData
 ): Promise<ServiceFormState> {
+  const locale = await getLocale();
+  const text = getTexts(locale);
+
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: text.csrfError };
+  }
+
   const raw = {
     title: String(formData.get('title') ?? ''),
     default_price: String(formData.get('default_price') ?? ''),
@@ -63,8 +104,11 @@ export async function updateServiceAction(
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { formError: 'Не авторизован', values: raw };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { formError: text.unauthorized, values: raw };
 
   const normalized = normalizeServiceInput(raw);
   const { error } = await supabase
@@ -73,7 +117,7 @@ export async function updateServiceAction(
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
+  if (error) return { formError: `${text.genericError}: ${error.message}`, values: raw };
 
   revalidatePath('/services');
   revalidatePath(`/services/${id}`);
@@ -81,17 +125,18 @@ export async function updateServiceAction(
 }
 
 export async function deleteServiceAction(id: string): Promise<void> {
+  const locale = await getLocale();
+  const text = getTexts(locale);
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { error } = await supabase
-    .from('services')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
+  if (!user) throw new Error(text.unauthorized);
 
-  if (error) throw new Error(`Ошибка удаления: ${error.message}`);
+  const { error } = await supabase.from('services').delete().eq('id', id).eq('user_id', user.id);
+
+  if (error) throw new Error(`${text.deleteError}: ${error.message}`);
 
   revalidatePath('/services');
   redirect('/services');

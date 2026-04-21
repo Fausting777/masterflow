@@ -1,7 +1,10 @@
 import MobileShell from '@/components/ui/MobileShell';
 import InstallButton from '@/components/ui/InstallButton';
 import IosInstallHint from '@/components/ui/IosInstallHint';
+import { CSRF_FORM_FIELD } from '@/lib/csrf/shared';
+import { getCsrfToken } from '@/lib/csrf/server';
 import { createClient } from '@/lib/supabase/server';
+import { getDictionary } from '@/lib/i18n/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
@@ -10,6 +13,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const csrfToken = await getCsrfToken();
+  const { t } = await getDictionary();
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,54 +32,51 @@ export default async function DashboardLayout({
             MasterFlow
           </Link>
 
-          {/* Десктоп-меню */}
           <nav className="hidden sm:flex items-center gap-4 text-sm">
             <Link href="/dashboard" className="text-neutral-700 hover:text-blue-600">
-              Главная
+              {t.nav.dashboard}
             </Link>
             <Link href="/orders" className="text-neutral-700 hover:text-blue-600">
-              Заказы
+              {t.nav.orders}
             </Link>
             <Link href="/invoices" className="text-neutral-700 hover:text-blue-600">
-              Счета
+              {t.nav.invoices}
             </Link>
             <Link href="/expenses" className="text-neutral-700 hover:text-blue-600">
-              Расходы
+              {t.nav.expenses}
             </Link>
             <Link href="/clients" className="text-neutral-700 hover:text-blue-600">
-              Клиенты
+              {t.nav.clients}
             </Link>
             <Link href="/services" className="text-neutral-700 hover:text-blue-600">
-              Услуги
+              {t.nav.services}
             </Link>
             <Link href="/stats" className="text-neutral-700 hover:text-blue-600">
-              Статистика
+              {t.nav.stats}
             </Link>
             <Link href="/settings" className="text-neutral-700 hover:text-blue-600">
-              Настройки
+              {t.nav.settings}
             </Link>
             <span className="text-neutral-300">|</span>
             <form action="/auth/signout" method="post">
+              <input type="hidden" name={CSRF_FORM_FIELD} value={csrfToken} />
               <button
                 type="submit"
                 className="text-sm text-neutral-600 hover:text-red-600"
               >
-                Выйти
+                {t.nav.logout}
               </button>
             </form>
           </nav>
         </div>
       </header>
 
-      {/* Контент — на мобилке добавлен большой padding снизу под таб-бар */}
       <main className="max-w-5xl mx-auto px-4 py-6 pb-24 sm:pb-6">
         {children}
       </main>
 
-      {/* Мобильные элементы — таб-бар, FAB, "Ещё" */}
-      <MobileShell />
+      <MobileShell csrfToken={csrfToken} />
 
-      {/* PWA */}
       <InstallButton />
       <IosInstallHint />
     </div>

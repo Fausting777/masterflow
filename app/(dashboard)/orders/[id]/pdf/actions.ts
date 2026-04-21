@@ -1,14 +1,15 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import {
   createInvoiceSnapshot,
   isInvoiceSnapshot,
   snapshotToInvoiceData,
   type InvoiceSnapshot,
 } from '@/lib/invoices/snapshot';
+import { getLocale } from '@/lib/i18n/server';
 import { generateInvoicePdf } from '@/lib/pdf/invoice';
 import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
 
 type InvoiceOrderRow = {
   id: string;
@@ -33,6 +34,67 @@ type InvoiceOrderRow = {
   correction_of_order_id: string | null;
   correction_reason: string | null;
 };
+
+async function getMessages() {
+  const locale = await getLocale();
+  return locale === 'de'
+    ? {
+        missingMasterName: 'Name oder Firmenname',
+        missingAddress: 'Adresse',
+        missingCity: 'Stadt',
+        fillSettings: 'Bitte in den Einstellungen ausfuellen',
+        clientNotFound: 'Kunde nicht gefunden',
+        missingClientName: 'Kundenname',
+        missingClientAddress: 'Strasse und Hausnummer des Kunden',
+        missingClientPostal: 'PLZ des Kunden',
+        missingClientCity: 'Stadt des Kunden',
+        fillClient: 'Fuer die Rechnung bitte beim Kunden ausfuellen',
+        missingPrice: 'Preis des Auftrags ist nicht angegeben',
+        missingSourceInvoice: 'Ausgangsrechnung fuer die Korrektur konnte nicht gefunden werden',
+        unauthorized: 'Nicht autorisiert',
+        orderNotFound: 'Auftrag nicht gefunden',
+        invoiceLocked:
+          'Die Rechnung wurde bereits erstellt und fixiert. Eine Neugenerierung ueber das Ausgangsdokument ist gesperrt. Fuer Aenderungen ist eine separate Rechnungskorrektur erforderlich.',
+        numberFailed: 'Rechnungsnummer konnte nicht erzeugt werden',
+        snapshotFailed: 'Rechnungssnapshot konnte nicht erstellt werden',
+        generationError: 'Fehler bei der PDF-Erzeugung',
+        correctionIssued: 'Rechnungskorrektur',
+        invoiceIssued: 'Rechnung',
+        wasIssued: 'wurde erstellt und fixiert',
+        pdfMissing: 'PDF wurde nicht erstellt',
+        genericError: 'Fehler',
+      }
+    : {
+        missingMasterName: '\u0418\u043c\u044f \u0438\u043b\u0438 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438',
+        missingAddress: '\u0410\u0434\u0440\u0435\u0441',
+        missingCity: '\u0413\u043e\u0440\u043e\u0434',
+        fillSettings: '\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0432 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430\u0445',
+        clientNotFound: '\u041a\u043b\u0438\u0435\u043d\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
+        missingClientName: '\u0418\u043c\u044f \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+        missingClientAddress: '\u0423\u043b\u0438\u0446\u0430 \u0438 \u0434\u043e\u043c \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+        missingClientPostal: 'PLZ \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+        missingClientCity: '\u0413\u043e\u0440\u043e\u0434 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+        fillClient:
+          '\u0414\u043b\u044f \u0432\u044b\u043f\u0438\u0441\u043a\u0438 \u0441\u0447\u0435\u0442\u0430 \u0437\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+        missingPrice: '\u041d\u0435 \u0443\u043a\u0430\u0437\u0430\u043d\u0430 \u0446\u0435\u043d\u0430 \u0437\u0430\u043a\u0430\u0437\u0430',
+        missingSourceInvoice:
+          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0439\u0442\u0438 \u0438\u0441\u0445\u043e\u0434\u043d\u044b\u0439 \u0441\u0447\u0451\u0442 \u0434\u043b\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438',
+        unauthorized: '\u041d\u0435\u0442 \u0430\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u0438',
+        orderNotFound: '\u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
+        invoiceLocked:
+          '\u0421\u0447\u0451\u0442 \u0443\u0436\u0435 \u0432\u044b\u043f\u0438\u0441\u0430\u043d \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d. \u041f\u043e\u0432\u0442\u043e\u0440\u043d\u0430\u044f \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u043f\u043e \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443 \u0437\u0430\u043f\u0440\u0435\u0449\u0435\u043d\u0430. \u0414\u043b\u044f \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0439 \u043d\u0443\u0436\u043d\u0430 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u0441\u0447\u0451\u0442\u0430.',
+        numberFailed:
+          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043d\u043e\u043c\u0435\u0440 \u0441\u0447\u0451\u0442\u0430',
+        snapshotFailed:
+          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c snapshot \u0441\u0447\u0451\u0442\u0430',
+        generationError: '\u041e\u0448\u0438\u0431\u043a\u0430 \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u0438',
+        correctionIssued: '\u041a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430',
+        invoiceIssued: '\u0421\u0447\u0451\u0442',
+        wasIssued: '\u0432\u044b\u043f\u0438\u0441\u0430\u043d \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d',
+        pdfMissing: 'PDF \u0435\u0449\u0435 \u043d\u0435 \u0441\u043e\u0437\u0434\u0430\u043d',
+        genericError: '\u041e\u0448\u0438\u0431\u043a\u0430',
+      };
+}
 
 async function downloadFile(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -80,47 +142,37 @@ async function buildLiveInvoiceSnapshot(
   invoiceNumber: string,
   invoiceIssuedAt: string
 ): Promise<{ snapshot: InvoiceSnapshot | null; error?: string }> {
+  const m = await getMessages();
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
 
   const missing: string[] = [];
-  if (!profile?.full_name && !profile?.company_name) missing.push('имя или компания');
-  if (!profile?.address) missing.push('адрес');
+  if (!profile?.full_name && !profile?.company_name) missing.push(m.missingMasterName);
+  if (!profile?.address) missing.push(m.missingAddress);
   if (!profile?.postal_code) missing.push('PLZ');
-  if (!profile?.city) missing.push('город');
+  if (!profile?.city) missing.push(m.missingCity);
   if (!profile?.tax_number) missing.push('Steuernummer');
   if (missing.length > 0) {
-    return { snapshot: null, error: `Заполните в настройках: ${missing.join(', ')}` };
+    return { snapshot: null, error: `${m.fillSettings}: ${missing.join(', ')}` };
   }
 
-  const { data: client } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('id', order.client_id)
-    .maybeSingle();
-  if (!client) {
-    return { snapshot: null, error: 'Клиент не найден' };
-  }
+  const { data: client } = await supabase.from('clients').select('*').eq('id', order.client_id).maybeSingle();
+  if (!client) return { snapshot: null, error: m.clientNotFound };
 
   const clientMissing: string[] = [];
-  if (!client.full_name?.trim()) clientMissing.push('имя клиента');
-  if (!client.address?.trim()) clientMissing.push('улица и дом клиента');
-  if (!client.postal_code?.trim()) clientMissing.push('PLZ клиента');
-  if (!client.city?.trim()) clientMissing.push('город клиента');
+  if (!client.full_name?.trim()) clientMissing.push(m.missingClientName);
+  if (!client.address?.trim()) clientMissing.push(m.missingClientAddress);
+  if (!client.postal_code?.trim()) clientMissing.push(m.missingClientPostal);
+  if (!client.city?.trim()) clientMissing.push(m.missingClientCity);
   if (clientMissing.length > 0) {
-    return {
-      snapshot: null,
-      error: `Для выпуска счета заполните у клиента: ${clientMissing.join(', ')}`,
-    };
+    return { snapshot: null, error: `${m.fillClient}: ${clientMissing.join(', ')}` };
   }
 
   let serviceTitle = order.custom_service_title ?? 'Leistung';
   let servicePrice = order.custom_price;
+  let correctionOfInvoiceNumber: string | null = null;
+
   if (order.service_id) {
-    const { data: service } = await supabase
-      .from('services')
-      .select('*')
-      .eq('id', order.service_id)
-      .maybeSingle();
+    const { data: service } = await supabase.from('services').select('*').eq('id', order.service_id).maybeSingle();
     if (service) {
       serviceTitle = service.title;
       if (servicePrice === null) servicePrice = service.default_price;
@@ -128,7 +180,7 @@ async function buildLiveInvoiceSnapshot(
   }
 
   if (servicePrice === null) {
-    return { snapshot: null, error: 'Не указана цена заказа' };
+    return { snapshot: null, error: m.missingPrice };
   }
 
   const serviceDate = order.service_date ?? order.completed_at ?? order.created_at;
@@ -143,17 +195,16 @@ async function buildLiveInvoiceSnapshot(
       .maybeSingle();
 
     if (!sourceOrder?.invoice_number) {
-      return { snapshot: null, error: 'Не удалось найти исходный счет для корректировки' };
+      return { snapshot: null, error: m.missingSourceInvoice };
     }
 
     if (!serviceTitle.startsWith('Korrektur: ')) {
       serviceTitle = `Korrektur: ${serviceTitle}`;
     }
 
-    const correctionIntro = [
-      `Korrektur zu Rechnung ${sourceOrder.invoice_number}`,
-      order.correction_reason ? `Grund: ${order.correction_reason}` : null,
-    ]
+    correctionOfInvoiceNumber = sourceOrder.invoice_number;
+
+    const correctionIntro = [order.correction_reason ? `Grund: ${order.correction_reason}` : null]
       .filter(Boolean)
       .join('\n');
 
@@ -178,6 +229,7 @@ async function buildLiveInvoiceSnapshot(
         vat_id: profile.vat_id,
         is_kleinunternehmer: profile.is_kleinunternehmer ?? true,
         iban: profile.iban,
+        bic: profile.bic ?? null,
         bank_name: profile.bank_name,
       },
       client: {
@@ -194,6 +246,7 @@ async function buildLiveInvoiceSnapshot(
         service_date: serviceDate,
         service_title: serviceTitle,
         price: servicePrice,
+        correction_of_invoice_number: correctionOfInvoiceNumber,
         description,
         order_address: order.order_address,
         payment_method: order.payment_method,
@@ -209,13 +262,8 @@ async function getOrBuildSnapshot(
   invoiceNumber: string,
   invoiceIssuedAt: string
 ): Promise<{ snapshot: InvoiceSnapshot | null; error?: string }> {
-  const storedSnapshot = isInvoiceSnapshot(order.invoice_snapshot_json)
-    ? order.invoice_snapshot_json
-    : null;
-  if (storedSnapshot) {
-    return { snapshot: storedSnapshot };
-  }
-
+  const storedSnapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
+  if (storedSnapshot) return { snapshot: storedSnapshot };
   return buildLiveInvoiceSnapshot(supabase, userId, order, invoiceNumber, invoiceIssuedAt);
 }
 
@@ -223,11 +271,12 @@ export async function generatePdfAction(orderId: string): Promise<{
   ok: boolean;
   error?: string;
 }> {
+  const m = await getMessages();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Не авторизован' };
+  if (!user) return { ok: false, error: m.unauthorized };
 
   const { data: orderData } = await supabase
     .from('orders')
@@ -238,19 +287,12 @@ export async function generatePdfAction(orderId: string): Promise<{
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!orderData) return { ok: false, error: 'Заказ не найден' };
+  if (!orderData) return { ok: false, error: m.orderNotFound };
   const order = orderData as InvoiceOrderRow;
 
-  const storedSnapshot = isInvoiceSnapshot(order.invoice_snapshot_json)
-    ? order.invoice_snapshot_json
-    : null;
-
+  const storedSnapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
   if (storedSnapshot && order.pdf_file_path) {
-    return {
-      ok: false,
-      error:
-        'Счет уже выпущен и зафиксирован. Перегенерация поверх исходного документа запрещена. Для исправления нужен отдельный документ-коррекция.',
-    };
+    return { ok: false, error: m.invoiceLocked };
   }
 
   let invoiceNumber = order.invoice_number;
@@ -264,26 +306,18 @@ export async function generatePdfAction(orderId: string): Promise<{
     });
 
     if (numberError || numberData === null) {
-      return { ok: false, error: `Не удалось получить номер: ${numberError?.message ?? 'error'}` };
+      return { ok: false, error: `${m.numberFailed}: ${numberError?.message ?? 'error'}` };
     }
 
     invoiceNumber = `${year}-${String(numberData).padStart(4, '0')}`;
     invoiceIssuedAt = new Date().toISOString();
   }
 
-  if (!invoiceIssuedAt) {
-    invoiceIssuedAt = new Date().toISOString();
-  }
+  if (!invoiceIssuedAt) invoiceIssuedAt = new Date().toISOString();
 
-  const snapshotResult = await getOrBuildSnapshot(
-    supabase,
-    user.id,
-    order,
-    invoiceNumber,
-    invoiceIssuedAt
-  );
+  const snapshotResult = await getOrBuildSnapshot(supabase, user.id, order, invoiceNumber, invoiceIssuedAt);
   if (!snapshotResult.snapshot) {
-    return { ok: false, error: snapshotResult.error ?? 'Не удалось сформировать snapshot счета' };
+    return { ok: false, error: snapshotResult.error ?? m.snapshotFailed };
   }
   const snapshot = snapshotResult.snapshot;
 
@@ -300,7 +334,7 @@ export async function generatePdfAction(orderId: string): Promise<{
   } catch (e) {
     return {
       ok: false,
-      error: `Ошибка генерации: ${e instanceof Error ? e.message : 'неизвестно'}`,
+      error: `${m.generationError}: ${e instanceof Error ? e.message : 'unknown'}`,
     };
   }
 
@@ -336,8 +370,8 @@ export async function generatePdfAction(orderId: string): Promise<{
     user_id: user.id,
     action_type: order.correction_of_order_id ? 'invoice_correction_issued' : 'invoice_issued',
     action_text: order.correction_of_order_id
-      ? `Корректировка ${snapshot.invoice_number} выпущена и зафиксирована`
-      : `Счет ${snapshot.invoice_number} выпущен и зафиксирован`,
+      ? `${m.correctionIssued} ${snapshot.invoice_number} ${m.wasIssued}`
+      : `${m.invoiceIssued} ${snapshot.invoice_number} ${m.wasIssued}`,
   });
 
   revalidatePath(`/orders/${orderId}`);
@@ -349,11 +383,12 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
   url: string | null;
   error?: string;
 }> {
+  const m = await getMessages();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { url: null, error: 'Не авторизован' };
+  if (!user) return { url: null, error: m.unauthorized };
 
   const { data: order } = await supabase
     .from('orders')
@@ -362,7 +397,7 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!order?.pdf_file_path) return { url: null, error: 'PDF не создан' };
+  if (!order?.pdf_file_path) return { url: null, error: m.pdfMissing };
 
   const prefix = order.correction_of_order_id ? 'Rechnungskorrektur' : 'Rechnung';
   const filename = order.invoice_number
@@ -375,6 +410,6 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
       download: filename,
     });
 
-  if (error || !data) return { url: null, error: error?.message ?? 'Ошибка' };
+  if (error || !data) return { url: null, error: error?.message ?? m.genericError };
   return { url: data.signedUrl };
 }

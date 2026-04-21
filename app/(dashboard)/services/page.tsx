@@ -1,38 +1,37 @@
 import Link from 'next/link';
+import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { formatPrice } from '@/lib/utils/format';
 import type { Service } from '@/types/database';
 
 export default async function ServicesPage() {
   const supabase = await createClient();
-  const { data: services, error } = await supabase
-    .from('services')
-    .select('*')
-    .order('title', { ascending: true });
+  const { t } = await getDictionary();
+  const { data: services, error } = await supabase.from('services').select('*').order('title', { ascending: true });
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Услуги</h1>
+        <h1 className="text-2xl font-semibold">{t.servicesPage.title}</h1>
         <Link
           href="/services/new"
           className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2"
         >
-          + Новая
+          + {t.servicesPage.new}
         </Link>
       </div>
 
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 mb-4">
-          Ошибка: {error.message}
+          {t.servicesPage.error}: {error.message}
         </div>
       )}
 
       {services && services.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-8 text-center text-sm text-neutral-500">
-          Пока нет услуг.{' '}
+          {t.servicesPage.empty}{' '}
           <Link href="/services/new" className="text-blue-600 hover:underline">
-            Добавить первую
+            {t.servicesPage.addFirst}
           </Link>
         </div>
       ) : (
@@ -46,11 +45,7 @@ export default async function ServicesPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="font-medium truncate">{s.title}</h3>
-                    {s.description && (
-                      <p className="text-sm text-neutral-500 mt-0.5 truncate">
-                        {s.description}
-                      </p>
-                    )}
+                    {s.description && <p className="text-sm text-neutral-500 mt-0.5 truncate">{s.description}</p>}
                   </div>
                   <div className="text-right">
                     <div className="font-semibold whitespace-nowrap">{formatPrice(s.default_price)}</div>

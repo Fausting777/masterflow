@@ -1,9 +1,10 @@
+import Link from 'next/link';
 import ExportButton from '@/components/invoices/ExportButton';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
+import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { getRange, type PeriodKey } from '@/lib/utils/date-range';
-import { formatDate, formatPrice } from '@/lib/utils/format';
-import Link from 'next/link';
+import { formatPrice } from '@/lib/utils/format';
 
 type SearchParams = Promise<{
   period?: string;
@@ -11,13 +12,6 @@ type SearchParams = Promise<{
   to?: string;
   q?: string;
 }>;
-
-const PERIOD_BUTTONS: Array<{ key: PeriodKey; label: string }> = [
-  { key: 'month', label: 'Месяц' },
-  { key: 'quarter', label: 'Квартал' },
-  { key: 'year', label: 'Год' },
-  { key: 'all', label: 'Все время' },
-];
 
 type InvoiceRow = {
   id: string;
@@ -33,11 +27,91 @@ type InvoiceRow = {
   correction_of_order_id: string | null;
 };
 
+const DASH = '—';
+
 export default async function InvoicesPage({ searchParams }: { searchParams: SearchParams }) {
   const { period, q } = await searchParams;
   const activePeriod = (period ?? 'year') as PeriodKey;
   const range = getRange(activePeriod);
   const search = (q ?? '').trim();
+  const locale = await getLocale();
+
+  const text =
+    locale === 'de'
+      ? {
+          title: 'Rechnungen',
+          month: 'Monat',
+          quarter: 'Quartal',
+          year: 'Jahr',
+          allTime: 'Alles',
+          periodDesc: 'Alle ausgestellten Rechnungen im Zeitraum',
+          searchPlaceholder: 'Freie Suche nach Rechnungsnummer, Kunde, Leistung oder Betrag...',
+          summaryTitle: 'Rechnungen in der aktuellen Auswahl',
+          total: 'Gesamt',
+          error: 'Fehler',
+          emptySearch: 'Nichts gefunden fuer die Suche',
+          emptyPeriod: 'Keine ausgestellten Rechnungen in diesem Zeitraum',
+          number: 'Nummer',
+          date: 'Datum',
+          client: 'Kunde',
+          service: 'Leistung',
+          amount: 'Betrag',
+          sentAt: 'Versendet',
+          correction: 'Korrektur',
+          archiveNote:
+            'Archivrechnungen werden aus dem Invoice-Snapshot zum Zeitpunkt der Ausstellung angezeigt. Korrekturen werden als separate Dokumente angezeigt und ersetzen nicht die urspruengliche Rechnung.',
+        }
+      : {
+          title: 'Счета',
+          month: 'Месяц',
+          quarter: 'Квартал',
+          year: 'Год',
+          allTime: 'Все время',
+          periodDesc: 'Все выставленные счета за период',
+          searchPlaceholder: 'Свободный поиск по номеру, клиенту, услуге или сумме...',
+          summaryTitle: 'Счета в текущей выборке',
+          total: 'Итого',
+          error: 'Ошибка',
+          emptySearch: 'Ничего не найдено по запросу',
+          emptyPeriod: 'Нет выставленных счетов за этот период',
+          number: 'Номер',
+          date: 'Дата',
+          client: 'Клиент',
+          service: 'Услуга',
+          amount: 'Сумма',
+          sentAt: 'Отправлен',
+          correction: 'Корректировка',
+          archiveNote:
+            'Архивные счета выводятся из invoice snapshot на момент выпуска. Корректировки показываются как отдельные документы и не заменяют исходный счет.',
+        };
+
+  const formatDate = (value: string | null | undefined) => {
+    if (!value) return DASH;
+    return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date(value));
+  };
+
+  const getInvoiceLabel = (count: number) => {
+    if (locale === 'de') {
+      return count === 1 ? 'Rechnung' : 'Rechnungen';
+    }
+
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 === 1 && mod100 !== 11) return 'счет';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'счета';
+    return 'счетов';
+  };
+
+  const periodButtons: Array<{ key: PeriodKey; label: string }> = [
+    { key: 'month', label: text.month },
+    { key: 'quarter', label: text.quarter },
+    { key: 'year', label: text.year },
+    { key: 'all', label: text.allTime },
+  ];
 
   const supabase = await createClient();
   const {
@@ -55,7 +129,9 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
     .order('invoice_issued_at', { ascending: false });
 
   if (activePeriod !== 'all') {
-    query = query.gte('invoice_issued_at', range.from.toISOString()).lte('invoice_issued_at', range.to.toISOString());
+    query = query
+      .gte('invoice_issued_at', range.from.toISOString())
+      .lte('invoice_issued_at', range.to.toISOString());
   }
 
   const { data, error } = await query;
@@ -71,15 +147,21 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
   }
 
   const serviceIds = [
-    ...new Set(invoices.filter((invoice) => invoice.service_id && invoice.custom_price === null).map((invoice) => invoice.service_id!)),
+    ...new Set(
+      invoices
+        .filter((invoice) => invoice.service_id && invoice.custom_price === null)
+        .map((invoice) => invoice.service_id!)
+    ),
   ];
   const servicePriceMap = new Map<string, number>();
   const serviceTitleMap = new Map<string, string>();
+
   if (serviceIds.length > 0) {
     const { data: services } = await supabase
       .from('services')
       .select('id, title, default_price')
       .in('id', serviceIds);
+
     for (const service of services ?? []) {
       if (service.default_price !== null) servicePriceMap.set(service.id, Number(service.default_price));
       serviceTitleMap.set(service.id, service.title);
@@ -100,7 +182,27 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
       const snapshot = isInvoiceSnapshot(invoice.invoice_snapshot_json) ? invoice.invoice_snapshot_json : null;
       const invoiceNumber = invoice.invoice_number.toLowerCase();
       const clientName = (snapshot?.client.full_name ?? clientMap.get(invoice.client_id) ?? '').toLowerCase();
-      return invoiceNumber.includes(normalizedQuery) || clientName.includes(normalizedQuery);
+      const serviceName = (
+        snapshot?.order.service_title ??
+        (invoice.service_id
+          ? serviceTitleMap.get(invoice.service_id) ?? invoice.custom_service_title ?? ''
+          : invoice.custom_service_title ?? '')
+      ).toLowerCase();
+      const price =
+        snapshot?.order.price ??
+        (invoice.custom_price !== null
+          ? Number(invoice.custom_price)
+          : invoice.service_id
+            ? servicePriceMap.get(invoice.service_id) ?? 0
+            : 0);
+      const amountText = String(price).replace('.', ',').toLowerCase();
+
+      return (
+        invoiceNumber.includes(normalizedQuery) ||
+        clientName.includes(normalizedQuery) ||
+        serviceName.includes(normalizedQuery) ||
+        amountText.includes(normalizedQuery)
+      );
     });
   }
 
@@ -113,6 +215,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         : invoice.service_id
           ? servicePriceMap.get(invoice.service_id) ?? 0
           : 0);
+
     return sum + (price ?? 0);
   }, 0);
 
@@ -122,18 +225,21 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Счета</h1>
+        <h1 className="text-2xl font-semibold">{text.title}</h1>
         <ExportButton from={fromIso} to={toIso} />
       </div>
 
-      <p className="mb-4 text-sm text-neutral-500">Все выставленные счета за период: {range.label}</p>
+      <p className="mb-4 text-sm text-neutral-500">
+        {text.periodDesc}: {range.label}
+      </p>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {PERIOD_BUTTONS.map((button) => {
+        {periodButtons.map((button) => {
           const active = button.key === activePeriod;
           const params = new URLSearchParams();
           params.set('period', button.key);
           if (search) params.set('q', search);
+
           return (
             <Link
               key={button.key}
@@ -154,49 +260,56 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           type="text"
           name="q"
           defaultValue={search}
-          placeholder="Поиск по номеру счета или имени клиента..."
+          placeholder={text.searchPlaceholder}
           className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </form>
 
-      <div className="mb-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
-        <div className="flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">#</span>
           <div>
-            <div className="text-xs uppercase tracking-wide text-neutral-500">Итого ({invoices.length})</div>
-            <div className="mt-1 text-2xl font-bold">{formatPrice(total)}</div>
+            <div className="text-xs uppercase tracking-wide text-neutral-600">{text.summaryTitle}</div>
+            <div className="text-sm text-amber-900">
+              <span className="font-semibold">{invoices.length}</span> {getInvoiceLabel(invoices.length)}
+            </div>
           </div>
+        </div>
+        <div className="text-right">
+          <div className="text-xs uppercase tracking-wide text-neutral-600">{text.total}</div>
+          <div className="text-2xl font-bold text-amber-700">{formatPrice(total)}</div>
         </div>
       </div>
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          Ошибка: {error.message}
+          {text.error}: {error.message}
         </div>
       )}
 
       {invoices.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500">
-          {search ? <>Ничего не найдено по запросу &quot;{search}&quot;</> : <>Нет выставленных счетов за этот период</>}
+          {search ? `${text.emptySearch} "${search}"` : text.emptyPeriod}
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
           <div className="hidden grid-cols-12 gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-2 text-xs font-medium text-neutral-500 sm:grid">
-            <div className="col-span-2">Номер</div>
-            <div className="col-span-2">Дата</div>
-            <div className="col-span-4">Клиент</div>
-            <div className="col-span-2">Услуга</div>
-            <div className="col-span-2 text-right">Сумма</div>
+            <div className="col-span-2">{text.number}</div>
+            <div className="col-span-2">{text.date}</div>
+            <div className="col-span-4">{text.client}</div>
+            <div className="col-span-2">{text.service}</div>
+            <div className="col-span-2 text-right">{text.amount}</div>
           </div>
 
           <ul>
             {invoices.map((invoice) => {
               const snapshot = isInvoiceSnapshot(invoice.invoice_snapshot_json) ? invoice.invoice_snapshot_json : null;
-              const clientName = snapshot?.client.full_name ?? clientMap.get(invoice.client_id) ?? '—';
+              const clientName = snapshot?.client.full_name ?? clientMap.get(invoice.client_id) ?? DASH;
               const serviceName =
                 snapshot?.order.service_title ??
                 (invoice.service_id
-                  ? serviceTitleMap.get(invoice.service_id) ?? invoice.custom_service_title ?? '—'
-                  : invoice.custom_service_title ?? '—');
+                  ? serviceTitleMap.get(invoice.service_id) ?? invoice.custom_service_title ?? DASH
+                  : invoice.custom_service_title ?? DASH);
               const price =
                 snapshot?.order.price ??
                 (invoice.custom_price !== null
@@ -214,7 +327,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                           <span className="font-mono text-sm font-semibold text-blue-700">{invoice.invoice_number}</span>
                           {invoice.correction_of_order_id && (
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                              Korrektur
+                              {text.correction}
                             </span>
                           )}
                         </div>
@@ -224,7 +337,9 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                       <div className="truncate text-sm text-neutral-500">{serviceName}</div>
                       <div className="mt-1 font-semibold">{formatPrice(price)}</div>
                       {invoice.invoice_sent_at && (
-                        <div className="mt-1 text-xs text-green-600">Отправлен {formatDate(invoice.invoice_sent_at)}</div>
+                        <div className="mt-1 text-xs text-green-600">
+                          {text.sentAt} {formatDate(invoice.invoice_sent_at)}
+                        </div>
                       )}
                     </div>
 
@@ -234,7 +349,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                           <span>{invoice.invoice_number}</span>
                           {invoice.correction_of_order_id && (
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                              Korrektur
+                              {text.correction}
                             </span>
                           )}
                         </div>
@@ -245,7 +360,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                         {invoice.invoice_sent_at && (
                           <span
                             className="ml-2 text-xs text-green-600"
-                            title={`Отправлен ${formatDate(invoice.invoice_sent_at)}`}
+                            title={`${text.sentAt} ${formatDate(invoice.invoice_sent_at)}`}
                           >
                             ✓
                           </span>
@@ -262,10 +377,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         </div>
       )}
 
-      <div className="mt-4 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500">
-        Архивные счета выводятся из invoice snapshot на момент выпуска. Корректировки отображаются отдельными документами и не
-        заменяют исходный счет.
-      </div>
+      <div className="mt-4 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500">{text.archiveNote}</div>
     </div>
   );
 }

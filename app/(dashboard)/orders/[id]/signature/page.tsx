@@ -1,12 +1,35 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import SignaturePad from '@/components/orders/SignaturePad';
+import { getDictionary } from '@/lib/i18n/server';
+import { createClient } from '@/lib/supabase/server';
 
 type Params = Promise<{ id: string }>;
 
 export default async function SignaturePage({ params }: { params: Params }) {
   const { id } = await params;
+  const { locale } = await getDictionary();
+
+  const text =
+    locale === 'de'
+      ? {
+          back: 'Zurueck zum Auftrag',
+          title: 'Kundenunterschrift',
+          introTitle: 'Auftragsbestaetigung / Leistungsbestaetigung',
+          introLine1:
+            'Mit meiner Unterschrift bestaetige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
+          introLine2:
+            'Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemaess der vereinbarten Zahlungsart.',
+        }
+      : {
+          back: 'Назад к заказу',
+          title: 'Подпись клиента',
+          introTitle: 'Подтверждение заказа / выполнения работ',
+          introLine1:
+            'Моей подписью я подтверждаю, что указанные выше работы выполнены качественно и к моему удовлетворению.',
+          introLine2:
+            'Я признаю сумму счета и обязуюсь оплатить ее согласно согласованному способу оплаты.',
+        };
 
   const supabase = await createClient();
   const { data: order } = await supabase
@@ -27,30 +50,20 @@ export default async function SignaturePage({ params }: { params: Params }) {
     <div className="max-w-2xl">
       <div className="mb-4">
         <Link href={`/orders/${id}`} className="text-sm text-neutral-500 hover:text-neutral-700">
-          ← Назад к заказу
+          ← {text.back}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-1">Подпись клиента</h1>
-      {client && (
-        <p className="text-sm text-neutral-500 mb-4">{client.full_name}</p>
-      )}
+      <h1 className="mb-1 text-2xl font-semibold">{text.title}</h1>
+      {client && <p className="mb-4 text-sm text-neutral-500">{client.full_name}</p>}
 
-      {/* Немецкий текст подтверждения — клиент читает ПЕРЕД подписью */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 space-y-2">
-        <div className="font-semibold text-blue-900 text-sm">
-          Auftragsbestätigung / Leistungsbestätigung
-        </div>
-        <p className="text-sm text-neutral-800 leading-relaxed">
-          Mit meiner Unterschrift bestätige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.
-        </p>
-        <p className="text-sm text-neutral-800 leading-relaxed">
-          Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemäß der vereinbarten Zahlungsart.
-        </p>
+      <div className="mb-4 space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <div className="text-sm font-semibold text-blue-900">{text.introTitle}</div>
+        <p className="text-sm leading-relaxed text-neutral-800">{text.introLine1}</p>
+        <p className="text-sm leading-relaxed text-neutral-800">{text.introLine2}</p>
       </div>
 
-      {/* Поле подписи */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <SignaturePad orderId={id} />
       </div>
     </div>

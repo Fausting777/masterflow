@@ -1,6 +1,6 @@
-// lib/utils/format.ts
+import type { ExpenseCategory, OrderStatus, PaymentMethod } from '@/types/database';
 
-import type { OrderStatus } from '@/types/database';
+export type UiLocale = 'ru' | 'de';
 
 export function formatPrice(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
@@ -11,32 +11,48 @@ export function formatPrice(value: number | null | undefined): string {
   }).format(value);
 }
 
-export function formatDate(value: string | null | undefined): string {
+export function formatDate(value: string | null | undefined, locale: UiLocale = 'ru'): string {
   if (!value) return '—';
-  return new Date(value).toLocaleDateString('ru-RU', {
+  return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'ru-RU', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  });
+  }).format(new Date(value));
 }
 
-export function formatDateTime(value: string | null | undefined): string {
+export function formatDateTime(
+  value: string | null | undefined,
+  locale: UiLocale = 'ru'
+): string {
   if (!value) return '—';
-  return new Date(value).toLocaleString('ru-RU', {
+  return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'ru-RU', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  }).format(new Date(value));
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   new: 'Новый',
   in_progress: 'В работе',
-  completed: 'Завершён',
-  canceled: 'Отменён',
+  completed: 'Завершен',
+  canceled: 'Отменен',
 };
+
+export function getStatusLabel(status: OrderStatus, locale: UiLocale): string {
+  if (locale === 'de') {
+    return {
+      new: 'Neu',
+      in_progress: 'In Arbeit',
+      completed: 'Abgeschlossen',
+      canceled: 'Abgebrochen',
+    }[status];
+  }
+
+  return STATUS_LABELS[status];
+}
 
 export const STATUS_COLORS: Record<OrderStatus, string> = {
   new: 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300',
@@ -52,16 +68,13 @@ export function parsePriceInput(raw: string): number | null {
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.round(n * 100) / 100;
 }
-import type { PaymentMethod } from '@/types/database';
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: 'Barzahlung',
-  transfer: 'Überweisung',
+  transfer: 'Ueberweisung',
   ec_card: 'EC-Karte',
   paypal: 'PayPal',
 };
-
-import type { ExpenseCategory } from '@/types/database';
 
 export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   material: 'Material',
@@ -69,23 +82,43 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   werkzeuge: 'Werkzeuge',
   telefon_internet: 'Telefon & Internet',
   versicherung: 'Versicherung',
-  buero: 'Büro',
+  buero: 'Buero',
   weiterbildung: 'Weiterbildung',
   sonstiges: 'Sonstiges',
 };
 
+export function getExpenseCategoryLabel(category: ExpenseCategory, locale: UiLocale): string {
+  if (locale === 'de') {
+    return EXPENSE_CATEGORY_LABELS[category];
+  }
+
+  return {
+    material: 'Материалы',
+    fahrtkosten: 'Транспорт',
+    werkzeuge: 'Инструменты',
+    telefon_internet: 'Телефон и интернет',
+    versicherung: 'Страховка',
+    buero: 'Офис',
+    weiterbildung: 'Обучение',
+    sonstiges: 'Прочее',
+  }[category];
+}
+
 export const EXPENSE_CATEGORY_EMOJIS: Record<ExpenseCategory, string> = {
-  material: '🧱',
-  fahrtkosten: '⛽',
+  material: '📦',
+  fahrtkosten: '🚗',
   werkzeuge: '🔧',
   telefon_internet: '📱',
-  versicherung: '🛡️',
+  versicherung: '🛡',
   buero: '📝',
   weiterbildung: '📚',
   sonstiges: '📦',
 };
 
-// Цвета для карточек/бейджей категорий (Tailwind-классы)
+export function getExpenseCategoryEmoji(category: ExpenseCategory): string {
+  return EXPENSE_CATEGORY_EMOJIS[category];
+}
+
 export const EXPENSE_CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   material: 'bg-amber-100 text-amber-800',
   fahrtkosten: 'bg-red-100 text-red-800',

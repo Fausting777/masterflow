@@ -1,14 +1,12 @@
 'use server';
 
-import { validateUploadedFile } from '@/lib/security/file-validation';
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import {
-  normalizeExpenseInput,
-  validateExpense,
-  type ExpenseValidationErrors,
-} from '@/lib/validators/expense';
+import { validateCsrfFormData } from '@/lib/csrf/server';
+import { getLocale } from '@/lib/i18n/server';
+import { validateUploadedFile } from '@/lib/security/file-validation';
+import { createClient } from '@/lib/supabase/server';
+import { normalizeExpenseInput, validateExpense, type ExpenseValidationErrors } from '@/lib/validators/expense';
 
 const MAX_RECEIPT_FILE_SIZE = 10 * 1024 * 1024;
 const RECEIPT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
@@ -39,6 +37,33 @@ function readFormData(formData: FormData): ExpenseFormState['values'] & object {
   };
 }
 
+async function getActionMessages() {
+  const locale = await getLocale();
+  return locale === 'de'
+    ? {
+        unauthorized: 'Nicht autorisiert',
+        foreignOrder: 'Diese Ausgabe kann nicht mit einem fremden Auftrag verknüpft werden',
+        createError: 'Fehler beim Erstellen',
+        updateError: 'Fehler',
+        uploadLog: 'Fehler beim Hochladen des Belegs:',
+        receiptLarge: 'Beleg ist zu groß (max. 10 MB)',
+        receiptType: 'Beleg muss JPEG, PNG oder WebP sein',
+        permanentDelete:
+          'Die endgültige Löschung von Ausgaben und Belegen ist deaktiviert. Steuerlich relevante Belege müssen aufbewahrt werden und können nur über den Papierkorb ausgeblendet werden.',
+      }
+    : {
+        unauthorized: 'Не авторизован',
+        foreignOrder: 'Нельзя привязать расход к чужому заказу',
+        createError: 'Ошибка создания',
+        updateError: 'Ошибка',
+        uploadLog: 'Ошибка загрузки чека:',
+        receiptLarge: 'Чек слишком большой (макс. 10 MB)',
+        receiptType: 'Чек должен быть JPEG, PNG или WebP',
+        permanentDelete:
+          'Окончательное удаление расходов и чеков отключено. Налогово значимые Belege должны храниться и могут быть только скрыты через корзину.',
+      };
+}
+
 async function ensureOwnedOrder(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -46,19 +71,11 @@ async function ensureOwnedOrder(
 ): Promise<string | null> {
   if (!orderId) return null;
 
-  const { data: order } = await supabase
-    .from('orders')
-    .select('id')
-    .eq('id', orderId)
-    .eq('user_id', userId)
-    .maybeSingle();
-
+  const { data: order } = await supabase.from('orders').select('id').eq('id', orderId).eq('user_id', userId).maybeSingle();
   return order ? order.id : null;
 }
 
-async function validateReceipt(
-  receiptFile: File | null
-): Promise<Awaited<ReturnType<typeof validateUploadedFile>> | null> {
+async function validateReceipt(receiptFile: File | null): Promise<Awaited<ReturnType<typeof validateUploadedFile>> | null> {
   if (!receiptFile || receiptFile.size === 0) return null;
 
   return validateUploadedFile(receiptFile, {
@@ -67,45 +84,44 @@ async function validateReceipt(
   });
 }
 
-function mapReceiptError(
-  validation: Awaited<ReturnType<typeof validateUploadedFile>> | null
-): string | null {
+async function mapReceiptError(validation: Awaited<ReturnType<typeof validateUploadedFile>> | null): Promise<string | null> {
+  const m = await getActionMessages();
   if (!validation || validation.ok) return null;
-  if (validation.error === 'too_large') {
-    return 'Чек слишком большой (макс. 10 MB)';
-  }
-  return 'Чек должен быть JPEG, PNG или WebP';
+  if (validation.error === 'too_large') return m.receiptLarge;
+  return m.receiptType;
 }
 
 export async function createExpenseAction(
   _prevState: ExpenseFormState,
   formData: FormData
 ): Promise<ExpenseFormState> {
-  const raw = readFormData(formData);
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: 'CSRF validation failed' };
+  }
 
+  const raw = readFormData(formData);
   const errors = validateExpense(raw);
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
   const supabase = await createClient();
+  const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { formError: 'Не авторизован', values: raw };
+  if (!user) return { formError: m.unauthorized, values: raw };
 
   const normalized = normalizeExpenseInput(raw);
   const orderId = await ensureOwnedOrder(supabase, user.id, normalized.order_id);
   if (normalized.order_id && !orderId) {
-    return { formError: 'Нельзя привязать расход к чужому заказу', values: raw };
+    return { formError: m.foreignOrder, values: raw };
   }
 
   const receiptFile = formData.get('receipt') as File | null;
   const receiptValidation = await validateReceipt(receiptFile);
-  const receiptError = mapReceiptError(receiptValidation);
-  if (receiptError) {
-    return { formError: receiptError, values: raw };
-  }
-
-  let receiptFilePath: string | null = null;
+  const receiptError = await mapReceiptError(receiptValidation);
+  if (receiptError) return { formError: receiptError, values: raw };
 
   const { data: expense, error } = await supabase
     .from('expenses')
@@ -117,27 +133,19 @@ export async function createExpenseAction(
     .select('id')
     .single();
 
-  if (error) {
-    return { formError: `Ошибка создания: ${error.message}`, values: raw };
-  }
+  if (error) return { formError: `${m.createError}: ${error.message}`, values: raw };
 
   if (receiptFile && receiptValidation?.ok) {
     const path = `${user.id}/${expense.id}/receipt.${receiptValidation.extension}`;
-
     const { error: uploadError } = await supabase.storage.from('receipts').upload(path, receiptFile, {
       contentType: receiptValidation.detectedMimeType,
       upsert: true,
     });
 
     if (uploadError) {
-      console.error('Ошибка загрузки чека:', uploadError);
+      console.error(m.uploadLog, uploadError);
     } else {
-      receiptFilePath = path;
-      await supabase
-        .from('expenses')
-        .update({ receipt_file_path: receiptFilePath })
-        .eq('id', expense.id)
-        .eq('user_id', user.id);
+      await supabase.from('expenses').update({ receipt_file_path: path }).eq('id', expense.id).eq('user_id', user.id);
     }
   }
 
@@ -150,29 +158,33 @@ export async function updateExpenseAction(
   _prevState: ExpenseFormState,
   formData: FormData
 ): Promise<ExpenseFormState> {
-  const raw = readFormData(formData);
+  try {
+    await validateCsrfFormData(formData);
+  } catch {
+    return { formError: 'CSRF validation failed' };
+  }
 
+  const raw = readFormData(formData);
   const errors = validateExpense(raw);
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
   const supabase = await createClient();
+  const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { formError: 'Не авторизован', values: raw };
+  if (!user) return { formError: m.unauthorized, values: raw };
 
   const normalized = normalizeExpenseInput(raw);
   const orderId = await ensureOwnedOrder(supabase, user.id, normalized.order_id);
   if (normalized.order_id && !orderId) {
-    return { formError: 'Нельзя привязать расход к чужому заказу', values: raw };
+    return { formError: m.foreignOrder, values: raw };
   }
 
   const receiptFile = formData.get('receipt') as File | null;
   const receiptValidation = await validateReceipt(receiptFile);
-  const receiptError = mapReceiptError(receiptValidation);
-  if (receiptError) {
-    return { formError: receiptError, values: raw };
-  }
+  const receiptError = await mapReceiptError(receiptValidation);
+  if (receiptError) return { formError: receiptError, values: raw };
 
   const { error } = await supabase
     .from('expenses')
@@ -183,22 +195,17 @@ export async function updateExpenseAction(
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return { formError: `Ошибка: ${error.message}`, values: raw };
+  if (error) return { formError: `${m.updateError}: ${error.message}`, values: raw };
 
   if (receiptFile && receiptValidation?.ok) {
     const path = `${user.id}/${id}/receipt.${receiptValidation.extension}`;
-
     const { error: uploadError } = await supabase.storage.from('receipts').upload(path, receiptFile, {
       contentType: receiptValidation.detectedMimeType,
       upsert: true,
     });
 
     if (!uploadError) {
-      await supabase
-        .from('expenses')
-        .update({ receipt_file_path: path })
-        .eq('id', id)
-        .eq('user_id', user.id);
+      await supabase.from('expenses').update({ receipt_file_path: path }).eq('id', id).eq('user_id', user.id);
     }
   }
 
@@ -209,10 +216,11 @@ export async function updateExpenseAction(
 
 export async function softDeleteExpenseAction(id: string): Promise<void> {
   const supabase = await createClient();
+  const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+  if (!user) throw new Error(m.unauthorized);
 
   const { error } = await supabase
     .from('expenses')
@@ -229,10 +237,11 @@ export async function softDeleteExpenseAction(id: string): Promise<void> {
 
 export async function restoreExpenseAction(id: string): Promise<void> {
   const supabase = await createClient();
+  const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+  if (!user) throw new Error(m.unauthorized);
 
   const { error } = await supabase
     .from('expenses')
@@ -249,13 +258,12 @@ export async function restoreExpenseAction(id: string): Promise<void> {
 
 export async function permanentDeleteExpenseAction(id: string): Promise<void> {
   const supabase = await createClient();
+  const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Не авторизован');
+  if (!user) throw new Error(m.unauthorized);
   void id;
 
-  throw new Error(
-    'Окончательное удаление расходов и чеков отключено. Налогово значимые Belege должны храниться и могут быть только скрыты через корзину.'
-  );
+  throw new Error(m.permanentDelete);
 }

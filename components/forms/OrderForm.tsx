@@ -3,7 +3,9 @@
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 import type { OrderFormState } from '@/app/(dashboard)/orders/actions';
+import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 import type { Client, Service } from '@/types/database';
 
 type Props = {
@@ -46,6 +48,7 @@ export default function OrderForm({
   submitLabel,
 }: Props) {
   const [state, formAction, isPending] = useActionState<OrderFormState, FormData>(action, {});
+  const { t } = useI18n();
 
   const values = state.values ?? {
     client_id: initial?.client_id ?? '',
@@ -88,16 +91,17 @@ export default function OrderForm({
 
   return (
     <form action={formAction} className="space-y-4">
+      <CsrfTokenInput />
       <div className="space-y-2">
         {isCorrection && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            Это корректировка к ранее выпущенному счету. Укажи причину корректировки и внеси только нужные изменения.
+            {t.orderForm.correctionBanner}
           </div>
         )}
 
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium">
-            Клиент <span className="text-red-500">*</span>
+            {t.orderForm.client} <span className="text-red-500">*</span>
           </label>
           {!isEditing && (
             <button
@@ -105,7 +109,7 @@ export default function OrderForm({
               onClick={() => setUseQuickClient(!useQuickClient)}
               className="text-xs text-blue-600 hover:underline"
             >
-              {useQuickClient ? 'Из базы' : 'Быстрое имя'}
+              {useQuickClient ? t.orderForm.fromDatabase : t.orderForm.quickName}
             </button>
           )}
         </div>
@@ -117,14 +121,14 @@ export default function OrderForm({
               name="client_quick_name"
               type="text"
               defaultValue={values.client_quick_name}
-              placeholder="Имя и фамилия клиента"
+              placeholder={t.orderForm.quickNamePlaceholder}
               className={inputCls}
             />
             <input
               name="client_quick_phone"
               type="tel"
               defaultValue={values.client_quick_phone}
-              placeholder="+49 ... (опционально)"
+              placeholder={t.orderForm.quickPhonePlaceholder}
               className={inputCls}
             />
             <input
@@ -138,7 +142,7 @@ export default function OrderForm({
                   setOrderAddress(nextValue);
                 }
               }}
-              placeholder="Улица и дом клиента"
+              placeholder={t.orderForm.quickAddressPlaceholder}
               className={inputCls}
             />
             <div className="grid grid-cols-3 gap-3">
@@ -160,7 +164,7 @@ export default function OrderForm({
                   type="text"
                   value={quickCity}
                   onChange={(e) => setQuickCity(e.target.value)}
-                  placeholder="Город"
+                  placeholder={t.orderForm.quickCityPlaceholder}
                   className={inputCls}
                 />
               </div>
@@ -169,10 +173,7 @@ export default function OrderForm({
               postalCode={quickPostalCode}
               onCityDetected={(city) => setQuickCity((prev) => prev.trim() || city)}
             />
-            <p className="text-xs text-neutral-500">
-              Новый клиент будет сразу создан в базе клиентов, а адрес заказа автоматически подставится из адреса клиента,
-              если ты не вводил его отдельно.
-            </p>
+            <p className="text-xs text-neutral-500">{t.orderForm.quickClientHelp}</p>
             {state.errors?.client_quick_name && (
               <p className="text-xs text-red-600">{state.errors.client_quick_name}</p>
             )}
@@ -197,7 +198,7 @@ export default function OrderForm({
             <input type="hidden" name="client_quick_postal_code" defaultValue="" />
             <input type="hidden" name="client_quick_city" defaultValue="" />
             <select name="client_id" defaultValue={values.client_id} className={inputCls}>
-              <option value="">— выберите клиента —</option>
+              <option value="">{t.orderForm.selectClient}</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.full_name}
@@ -214,14 +215,14 @@ export default function OrderForm({
       {isCorrection && (
         <div>
           <label htmlFor="correction_reason" className="mb-1 block text-sm font-medium">
-            Причина корректировки
+            {t.orderForm.correctionReason}
           </label>
           <textarea
             id="correction_reason"
             name="correction_reason"
             rows={3}
             defaultValue={values.correction_reason}
-            placeholder="Например: исправление суммы, адреса, Leistungsdatum или состава работ"
+            placeholder={t.orderForm.correctionReasonPlaceholder}
             className={`${inputCls} resize-y`}
           />
           {state.errors?.correction_reason && (
@@ -234,14 +235,17 @@ export default function OrderForm({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium">
-            Услуга <span className="text-red-500">*</span>
+            {t.orderForm.service} <span className="text-red-500">*</span>
           </label>
           <button
             type="button"
-            onClick={() => setUseCustom(!useCustom)}
+            onClick={() => {
+              const nextUseCustom = !useCustom;
+              setUseCustom(nextUseCustom);
+            }}
             className="text-xs text-blue-600 hover:underline"
           >
-            {useCustom ? 'Из каталога' : 'Свое название'}
+            {useCustom ? t.orderForm.fromCatalog : t.orderForm.customTitle}
           </button>
         </div>
 
@@ -252,7 +256,7 @@ export default function OrderForm({
               name="custom_service_title"
               type="text"
               defaultValue={values.custom_service_title}
-              placeholder="Например: Монтаж замка"
+              placeholder={t.orderForm.customServicePlaceholder}
               className={inputCls}
             />
           </>
@@ -260,7 +264,7 @@ export default function OrderForm({
           <>
             <input type="hidden" name="custom_service_title" defaultValue="" />
             <select name="service_id" defaultValue={values.service_id} className={inputCls}>
-              <option value="">— выберите услугу —</option>
+              <option value="">{t.orderForm.selectService}</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.title}
@@ -270,7 +274,11 @@ export default function OrderForm({
             </select>
             {services.length === 0 && (
               <p className="mt-1 text-xs text-amber-600">
-                Нет услуг в каталоге. <Link href="/services/new" className="underline">Добавить</Link> или выбери «Свое название».
+                {t.orderForm.noServices}{' '}
+                <Link href="/services/new" className="underline">
+                  {t.orderForm.add}
+                </Link>{' '}
+                {t.orderForm.orChooseCustom}
               </p>
             )}
           </>
@@ -280,7 +288,7 @@ export default function OrderForm({
 
       <div>
         <label htmlFor="custom_price" className="mb-1 block text-sm font-medium">
-          Цена, €
+          {t.orderForm.price}
         </label>
         <input
           id="custom_price"
@@ -288,7 +296,7 @@ export default function OrderForm({
           type="text"
           inputMode="decimal"
           defaultValue={values.custom_price}
-          placeholder="Если не указать — возьмем из услуги"
+          placeholder={t.orderForm.pricePlaceholder}
           className={inputCls}
         />
         {state.errors?.custom_price && <p className="mt-1 text-xs text-red-600">{state.errors.custom_price}</p>}
@@ -296,7 +304,7 @@ export default function OrderForm({
 
       <div>
         <label htmlFor="order_address" className="mb-1 block text-sm font-medium">
-          Адрес заказа
+          {t.orderForm.orderAddress}
         </label>
         <input
           id="order_address"
@@ -313,7 +321,7 @@ export default function OrderForm({
 
       <div>
         <label htmlFor="scheduled_at" className="mb-1 block text-sm font-medium">
-          Запланирован на
+          {t.orderForm.scheduledAt}
         </label>
         <input
           id="scheduled_at"
@@ -326,7 +334,7 @@ export default function OrderForm({
 
       <div>
         <label htmlFor="service_date" className="mb-1 block text-sm font-medium">
-          Дата выполнения работы
+          {t.orderForm.serviceDate}
         </label>
         <input
           id="service_date"
@@ -340,13 +348,13 @@ export default function OrderForm({
 
       <div>
         <label htmlFor="payment_method" className="mb-1 block text-sm font-medium">
-          Способ оплаты
+          {t.orderForm.paymentMethod}
         </label>
         <select id="payment_method" name="payment_method" defaultValue={values.payment_method} className={inputCls}>
-          <option value="">— не выбрано —</option>
-          <option value="cash">Barzahlung (наличные)</option>
-          <option value="transfer">Überweisung (банковский перевод)</option>
-          <option value="ec_card">EC-Karte (карта)</option>
+          <option value="">{t.orderForm.paymentMethodEmpty}</option>
+          <option value="cash">{t.orderForm.paymentCash}</option>
+          <option value="transfer">{t.orderForm.paymentTransfer}</option>
+          <option value="ec_card">{t.orderForm.paymentCard}</option>
           <option value="paypal">PayPal</option>
         </select>
         {state.errors?.payment_method && (
@@ -356,7 +364,7 @@ export default function OrderForm({
 
       <div>
         <label htmlFor="description" className="mb-1 block text-sm font-medium">
-          Описание работы
+          {t.orderForm.description}
         </label>
         <textarea
           id="description"
@@ -379,13 +387,13 @@ export default function OrderForm({
           disabled={isPending}
           className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
         >
-          {isPending ? 'Сохранение...' : submitLabel}
+          {isPending ? t.orderForm.saving : submitLabel}
         </button>
         <Link
           href={cancelHref}
           className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
         >
-          Отмена
+          {t.orderForm.cancel}
         </Link>
       </div>
     </form>

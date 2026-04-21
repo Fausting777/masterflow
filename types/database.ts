@@ -18,6 +18,7 @@ export interface Profile {
   vat_id: string | null;
   is_kleinunternehmer: boolean;
   iban: string | null;
+  bic: string | null;
   bank_name: string | null;
   business_email: string | null;
   created_at: string;

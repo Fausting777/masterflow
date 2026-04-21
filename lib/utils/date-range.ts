@@ -1,5 +1,3 @@
-// lib/utils/date-range.ts
-
 export type PeriodKey = 'month' | 'quarter' | 'year' | 'all' | 'custom';
 
 export type DateRange = {
@@ -8,14 +6,19 @@ export type DateRange = {
   label: string;
 };
 
-// ==================================================================
-// Основная функция — возвращает диапазон для типовых периодов
-// ==================================================================
+type UiLocale = 'ru' | 'de';
+
+function toLocaleTag(locale: UiLocale) {
+  return locale === 'de' ? 'de-DE' : 'ru-RU';
+}
+
 export function getRange(
   period: PeriodKey,
   now = new Date(),
-  options?: { from?: Date; to?: Date; specificMonth?: string /* "2026-04" */ }
+  options?: { from?: Date; to?: Date; specificMonth?: string; locale?: UiLocale }
 ): DateRange {
+  const locale = options?.locale ?? 'ru';
+  const localeTag = toLocaleTag(locale);
   const y = now.getFullYear();
   const m = now.getMonth();
 
@@ -23,11 +26,10 @@ export function getRange(
     return {
       from: options.from,
       to: options.to,
-      label: formatRangeLabel(options.from, options.to),
+      label: formatRangeLabel(options.from, options.to, locale),
     };
   }
 
-  // Конкретный месяц, выбранный из выпадающего списка
   if (period === 'month' && options?.specificMonth) {
     const [yStr, mStr] = options.specificMonth.split('-');
     const yy = parseInt(yStr);
@@ -38,7 +40,7 @@ export function getRange(
       return {
         from,
         to,
-        label: from.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
+        label: from.toLocaleDateString(localeTag, { month: 'long', year: 'numeric' }),
       };
     }
   }
@@ -49,7 +51,7 @@ export function getRange(
     return {
       from,
       to,
-      label: from.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
+      label: from.toLocaleDateString(localeTag, { month: 'long', year: 'numeric' }),
     };
   }
 
@@ -70,28 +72,26 @@ export function getRange(
   return {
     from: new Date(2000, 0, 1),
     to: new Date(y + 10, 0, 1),
-    label: 'Всё время',
+    label: locale === 'de' ? 'Gesamter Zeitraum' : 'Все время',
   };
 }
 
-// ==================================================================
-// Предыдущий период такой же длительности
-// ==================================================================
-export function getPreviousRange(range: DateRange): DateRange {
+export function getPreviousRange(range: DateRange, locale: UiLocale = 'ru'): DateRange {
   const diff = range.to.getTime() - range.from.getTime();
   const to = new Date(range.from.getTime() - 1);
   const from = new Date(to.getTime() - diff);
   return {
     from,
     to,
-    label: formatRangeLabel(from, to),
+    label: formatRangeLabel(from, to, locale),
   };
 }
 
-// ==================================================================
-// Последние N месяцев (для графика)
-// ==================================================================
-export function getLastMonths(count: number, now = new Date()): Array<{
+export function getLastMonths(
+  count: number,
+  now = new Date(),
+  locale: UiLocale = 'ru'
+): Array<{
   year: number;
   month: number;
   label: string;
@@ -99,6 +99,7 @@ export function getLastMonths(count: number, now = new Date()): Array<{
   from: Date;
   to: Date;
 }> {
+  const localeTag = toLocaleTag(locale);
   const result = [];
   for (let i = count - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -109,8 +110,8 @@ export function getLastMonths(count: number, now = new Date()): Array<{
     result.push({
       year: y,
       month: m,
-      label: d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', ''),
-      fullLabel: d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
+      label: d.toLocaleDateString(localeTag, { month: 'short' }).replace('.', ''),
+      fullLabel: d.toLocaleDateString(localeTag, { month: 'long', year: 'numeric' }),
       from,
       to,
     });
@@ -118,13 +119,15 @@ export function getLastMonths(count: number, now = new Date()): Array<{
   return result;
 }
 
-// ==================================================================
-// Список месяцев для выпадающего списка — от начала данных до текущего
-// ==================================================================
-export function getMonthOptions(startYear = 2024, now = new Date()): Array<{
-  value: string; // "2026-04"
-  label: string; // "Апрель 2026"
+export function getMonthOptions(
+  startYear = 2024,
+  now = new Date(),
+  locale: UiLocale = 'ru'
+): Array<{
+  value: string;
+  label: string;
 }> {
+  const localeTag = toLocaleTag(locale);
   const result: Array<{ value: string; label: string }> = [];
   const endYear = now.getFullYear();
   const endMonth = now.getMonth();
@@ -136,24 +139,19 @@ export function getMonthOptions(startYear = 2024, now = new Date()): Array<{
       const d = new Date(y, m, 1);
       result.push({
         value: `${y}-${String(m + 1).padStart(2, '0')}`,
-        label: d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
+        label: d.toLocaleDateString(localeTag, { month: 'long', year: 'numeric' }),
       });
     }
   }
   return result;
 }
 
-// ==================================================================
-// Формат дат для произвольного периода
-// ==================================================================
-function formatRangeLabel(from: Date, to: Date): string {
+function formatRangeLabel(from: Date, to: Date, locale: UiLocale = 'ru'): string {
   const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
-  return `${from.toLocaleDateString('ru-RU', opts)} — ${to.toLocaleDateString('ru-RU', opts)}`;
+  const localeTag = toLocaleTag(locale);
+  return `${from.toLocaleDateString(localeTag, opts)} - ${to.toLocaleDateString(localeTag, opts)}`;
 }
 
-// ==================================================================
-// Процент изменения
-// ==================================================================
 export function calculateChange(current: number, previous: number): {
   percent: number;
   direction: 'up' | 'down' | 'same';
@@ -170,7 +168,7 @@ export function calculateChange(current: number, previous: number): {
   if (percent > 0) return { percent, direction: 'up', display: `+${percent}%` };
   return { percent, direction: 'down', display: `${percent}%` };
 }
-// Преобразует Date в YYYY-MM-DD (для сравнения с expense_date)
+
 export function toDateOnly(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

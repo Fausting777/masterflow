@@ -83,6 +83,7 @@ export default function OrderForm({
   const [useQuickClient, setUseQuickClient] = useState(
     !isEditing && !values.client_id && (values.client_quick_name.length > 0 || clients.length === 0)
   );
+  const [selectedClientId, setSelectedClientId] = useState(values.client_id ?? '');
   const [quickAddress, setQuickAddress] = useState(values.client_quick_address ?? '');
   const [quickPostalCode, setQuickPostalCode] = useState(values.client_quick_postal_code ?? '');
   const [quickCity, setQuickCity] = useState(values.client_quick_city ?? '');
@@ -100,6 +101,19 @@ export default function OrderForm({
     const nextOrderAddress = [quickAddress.trim(), cityLine].filter(Boolean).join(', ');
     setOrderAddress(nextOrderAddress);
   }, [quickAddress, quickPostalCode, quickCity, orderAddressTouched, useQuickClient]);
+
+  useEffect(() => {
+    if (useQuickClient || orderAddressTouched || !selectedClientId) return;
+
+    const selectedClient = clients.find((client) => client.id === selectedClientId);
+    if (!selectedClient) return;
+
+    const cityLine = [selectedClient.postal_code?.trim(), selectedClient.city?.trim()]
+      .filter(Boolean)
+      .join(' ');
+    const nextOrderAddress = [selectedClient.address?.trim(), cityLine].filter(Boolean).join(', ');
+    setOrderAddress(nextOrderAddress);
+  }, [clients, orderAddressTouched, selectedClientId, useQuickClient]);
 
   const paymentMetaText =
     locale === 'de'
@@ -223,7 +237,12 @@ export default function OrderForm({
             <input type="hidden" name="client_quick_address" defaultValue="" />
             <input type="hidden" name="client_quick_postal_code" defaultValue="" />
             <input type="hidden" name="client_quick_city" defaultValue="" />
-            <select name="client_id" defaultValue={values.client_id} className={inputCls}>
+            <select
+              name="client_id"
+              value={selectedClientId}
+              onChange={(e) => setSelectedClientId(e.target.value)}
+              className={inputCls}
+            >
               <option value="">{t.orderForm.selectClient}</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>

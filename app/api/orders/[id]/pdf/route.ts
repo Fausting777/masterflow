@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: orderId } = await params;
+  const shouldDownload = new URL(request.url).searchParams.get('download') === '1';
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,7 +39,7 @@ export async function GET(
   return new Response(data, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Disposition': `${shouldDownload ? 'attachment' : 'inline'}; filename="${filename}"`,
       'Cache-Control': 'private, no-store, max-age=0',
     },
   });

@@ -39,27 +39,29 @@ export default function PdfSection({
     locale === 'de'
       ? {
           genericError: 'Fehler',
-          pdfUrlFailed: 'Signierte PDF-URL konnte nicht geladen werden',
+          pdfUrlFailed: 'PDF konnte nicht geladen werden',
           ready: 'PDF-Rechnung ist bereit',
-          openPdf: 'PDF öffnen',
+          openPdf: 'PDF oeffnen',
+          downloadPdf: 'PDF herunterladen',
           regeneratePdf: 'PDF neu erzeugen',
           sendByEmail: 'An Kunden per E-Mail senden',
           lastSent: 'Zuletzt gesendet',
           draftLocked:
-            'Nach Ausstellung der Rechnung ist das PDF fixiert. Eine Neuerzeugung über das Ursprungsdokument hinaus ist nicht mehr möglich.',
+            'Nach Ausstellung der Rechnung ist das PDF fixiert. Eine Neuerzeugung ueber das Ursprungsdokument hinaus ist nicht mehr moeglich.',
           draftHint:
-            'Vor Ausstellung der Rechnung kann das PDF neu erzeugt werden, wenn Daten geändert oder Fotos hinzugefügt wurden.',
+            'Vor Ausstellung der Rechnung kann das PDF neu erzeugt werden, wenn Daten geaendert oder Fotos hinzugefuegt wurden.',
           generating: 'PDF wird erzeugt...',
           generatePdf: 'PDF-Rechnung erzeugen',
           sentTo: 'an',
-          readyIcon: '✓',
-          regenerateIcon: '↻',
+          readyIcon: 'OK',
+          regenerateIcon: 'Neu',
         }
       : {
           genericError: 'Ошибка',
-          pdfUrlFailed: 'Не удалось получить ссылку на PDF',
+          pdfUrlFailed: 'Не удалось загрузить PDF',
           ready: 'PDF-квитанция готова',
           openPdf: 'Открыть PDF',
+          downloadPdf: 'Скачать PDF',
           regeneratePdf: 'Пересоздать PDF',
           sendByEmail: 'Отправить клиенту на email',
           lastSent: 'Последняя отправка',
@@ -70,7 +72,7 @@ export default function PdfSection({
           generating: 'Генерация PDF...',
           generatePdf: 'Создать PDF-квитанцию',
           sentTo: 'на',
-          readyIcon: '✓',
+          readyIcon: 'OK',
           regenerateIcon: '↻',
         };
 
@@ -86,11 +88,16 @@ export default function PdfSection({
     });
   }
 
-  async function openPdf() {
+  function openPdf() {
     setError(null);
     setIsOpeningPdf(true);
     window.location.assign(`/api/orders/${orderId}/pdf`);
     setIsOpeningPdf(false);
+  }
+
+  function downloadPdf() {
+    setError(null);
+    window.location.assign(`/api/orders/${orderId}/pdf?download=1`);
   }
 
   return (
@@ -110,9 +117,16 @@ export default function PdfSection({
               type="button"
               onClick={openPdf}
               disabled={isOpeningPdf}
-              className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+              className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
             >
               {text.openPdf}
+            </button>
+            <button
+              type="button"
+              onClick={downloadPdf}
+              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50"
+            >
+              {text.downloadPdf}
             </button>
             {!isIssued && (
               <button

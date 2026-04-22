@@ -65,6 +65,7 @@ export default function ProfileForm({ initial }: Props) {
             id="full_name"
             name="full_name"
             type="text"
+            required
             defaultValue={v.full_name}
             placeholder={t.profileForm.fullNamePlaceholder}
             className={inputCls}
@@ -125,12 +126,13 @@ export default function ProfileForm({ initial }: Props) {
 
         <div>
           <label htmlFor="address" className="mb-1 block text-sm font-medium">
-            {t.profileForm.address}
+            {t.profileForm.address} <span className="text-red-500">*</span>
           </label>
           <input
             id="address"
             name="address"
             type="text"
+            required
             defaultValue={v.address}
             placeholder="Musterstrasse 15"
             className={inputCls}
@@ -146,6 +148,7 @@ export default function ProfileForm({ initial }: Props) {
               id="postal_code"
               name="postal_code"
               type="text"
+              required
               defaultValue={v.postal_code}
               placeholder="20095"
               className={inputCls}
@@ -153,12 +156,13 @@ export default function ProfileForm({ initial }: Props) {
           </div>
           <div className="col-span-2">
             <label htmlFor="city" className="mb-1 block text-sm font-medium">
-              {t.profileForm.city}
+              {t.profileForm.city} <span className="text-red-500">*</span>
             </label>
             <input
               id="city"
               name="city"
               type="text"
+              required
               defaultValue={v.city}
               placeholder="Hamburg"
               className={inputCls}
@@ -188,7 +192,7 @@ export default function ProfileForm({ initial }: Props) {
 
         <div>
           <label htmlFor="tax_number" className="mb-1 block text-sm font-medium">
-            Steuernummer <span className="text-red-500">*</span>
+            Steuernummer / USt-IdNr. <span className="text-red-500">*</span>
           </label>
           <input
             id="tax_number"

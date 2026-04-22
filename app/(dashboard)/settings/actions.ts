@@ -8,25 +8,39 @@ import {
   type PasswordChangeValidationErrors,
 } from '@/lib/validators/auth';
 
+export type ProfileFormValues = {
+  full_name: string;
+  phone: string;
+  company_name: string;
+  address: string;
+  postal_code: string;
+  city: string;
+  tax_number: string;
+  vat_id: string;
+  is_kleinunternehmer: boolean;
+  iban: string;
+  bic: string;
+  bank_name: string;
+  business_email: string;
+};
+
 export type ProfileFormState = {
   formError?: string;
   success?: boolean;
-  values?: {
-    full_name: string;
-    phone: string;
-    company_name: string;
-    address: string;
-    postal_code: string;
-    city: string;
-    tax_number: string;
-    vat_id: string;
-    is_kleinunternehmer: boolean;
-    iban: string;
-    bic: string;
-    bank_name: string;
-    business_email: string;
-  };
+  values?: ProfileFormValues;
 };
+
+function getInvoiceProfileMissing(raw: ProfileFormValues) {
+  const missing: string[] = [];
+
+  if (!raw.full_name) missing.push('Name');
+  if (!raw.address) missing.push('Adresse');
+  if (!raw.postal_code) missing.push('PLZ');
+  if (!raw.city) missing.push('Ort');
+  if (!raw.tax_number && !raw.vat_id) missing.push('Steuernummer / USt-IdNr.');
+
+  return missing;
+}
 
 export async function updateProfileAction(
   _prevState: ProfileFormState,
@@ -38,7 +52,7 @@ export async function updateProfileAction(
     return { formError: 'CSRF validation failed' };
   }
 
-  const raw = {
+  const raw: ProfileFormValues = {
     full_name: String(formData.get('full_name') ?? '').trim(),
     phone: String(formData.get('phone') ?? '').trim(),
     company_name: String(formData.get('company_name') ?? '').trim(),
@@ -61,7 +75,17 @@ export async function updateProfileAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { formError: 'Не авторизован', values: raw };
+  if (!user) {
+    return { formError: 'Not authorized', values: raw };
+  }
+
+  const missing = getInvoiceProfileMissing(raw);
+  if (missing.length > 0) {
+    return {
+      formError: `Bitte vervollständigen Sie die Pflichtangaben für Rechnungen: ${missing.join(', ')}`,
+      values: raw,
+    };
+  }
 
   const { error } = await supabase
     .from('profiles')
@@ -123,7 +147,7 @@ export async function changePasswordAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user || !user.email) {
-    return { formError: 'Не авторизован' };
+    return { formError: 'Not authorized' };
   }
 
   const { error: updateError } = await supabase.auth.updateUser({
@@ -133,16 +157,12 @@ export async function changePasswordAction(
 
   if (updateError) {
     const msg = updateError.message.toLowerCase();
-    if (
-      msg.includes('invalid') ||
-      msg.includes('incorrect') ||
-      msg.includes('wrong')
-    ) {
+    if (msg.includes('invalid') || msg.includes('incorrect') || msg.includes('wrong')) {
       return {
-        errors: { currentPassword: 'Неверный текущий пароль' },
+        errors: { currentPassword: 'Current password is incorrect' },
       };
     }
-    return { formError: `Ошибка: ${updateError.message}` };
+    return { formError: `Error: ${updateError.message}` };
   }
 
   return { success: true };

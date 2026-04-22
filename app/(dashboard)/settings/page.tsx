@@ -12,16 +12,59 @@ export default async function SettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user!.id)
-    .single();
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user!.id).single();
+
+  const invoiceMissing = [
+    !profile?.full_name ? (locale === 'de' ? 'Name' : 'Имя') : null,
+    !profile?.address ? (locale === 'de' ? 'Adresse' : 'Адрес') : null,
+    !profile?.postal_code ? 'PLZ' : null,
+    !profile?.city ? (locale === 'de' ? 'Ort' : 'Город') : null,
+    !profile?.tax_number && !profile?.vat_id
+      ? locale === 'de'
+        ? 'Steuernummer / USt-IdNr.'
+        : 'Налоговый номер / USt-IdNr.'
+      : null,
+  ].filter(Boolean) as string[];
+
+  const invoiceReadinessText =
+    locale === 'de'
+      ? {
+          title: 'Rechnungs-Check',
+          ready: 'Dein Profil ist für Rechnungen vollständig.',
+          missing: 'Für steuerlich saubere Rechnungen fehlen noch:',
+        }
+      : {
+          title: 'Проверка квитанции',
+          ready: 'Профиль заполнен для выдачи квитанций.',
+          missing: 'Для корректной квитанции не хватает:',
+        };
 
   return (
     <div className="max-w-lg">
       <h1 className="mb-1 text-2xl font-semibold">{t.settings.title}</h1>
       <p className="mb-6 text-sm text-neutral-500">{t.settings.subtitle}</p>
+
+      <div
+        className={`mb-6 rounded-xl border p-5 ${
+          invoiceMissing.length === 0
+            ? 'border-green-200 bg-green-50'
+            : 'border-amber-200 bg-amber-50'
+        }`}
+      >
+        <h2 className="text-base font-semibold">{invoiceReadinessText.title}</h2>
+        {invoiceMissing.length === 0 ? (
+          <p className="mt-2 text-sm text-green-700">{invoiceReadinessText.ready}</p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-amber-800">{invoiceReadinessText.missing}</p>
+            <ul className="mt-2 list-disc pl-5 text-sm text-amber-900">
+              {invoiceMissing.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
 
       <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
         <div className="mb-3">
@@ -53,9 +96,7 @@ export default async function SettingsPage() {
 
       <h2 className="mb-3 mt-8 text-lg font-semibold">{t.settings.securityTitle}</h2>
       <div className="max-w-md rounded-xl border border-neutral-200 bg-white p-5">
-        <p className="mb-4 text-sm text-neutral-600">
-          {t.settings.securityText}
-        </p>
+        <p className="mb-4 text-sm text-neutral-600">{t.settings.securityText}</p>
         <PasswordChangeForm />
       </div>
 
@@ -65,7 +106,7 @@ export default async function SettingsPage() {
 
       <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-5">
         <h2 className="text-base font-semibold">{locale === 'de' ? 'Audit Export' : 'Экспорт аудита'}</h2>
-        <p className="mt-1 mb-4 text-sm text-neutral-500">
+        <p className="mb-4 mt-1 text-sm text-neutral-500">
           {locale === 'de'
             ? 'Lädt den DB-Audit-Trail als CSV für Prüfung und Archiv herunter.'
             : 'Скачивает DB-аудит в CSV для проверки и архива.'}

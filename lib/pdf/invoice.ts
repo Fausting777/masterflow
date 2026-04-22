@@ -28,8 +28,8 @@ export type InvoiceData = {
   order: {
     id: string;
     invoice_number: string;        // "2026-0001"
-    invoice_date: string;          // ISO — дата выставления счёта
-    service_date: string;          // ISO — Leistungsdatum
+    invoice_date: string;          // ISO вЂ” РґР°С‚Р° РІС‹СЃС‚Р°РІР»РµРЅРёСЏ СЃС‡С‘С‚Р°
+    service_date: string;          // ISO вЂ” Leistungsdatum
     service_title: string;
     price: number | null;
     correction_of_invoice_number?: string | null;
@@ -51,7 +51,7 @@ async function loadFont(filename: string): Promise<Uint8Array> {
 }
 
 function formatEUR(value: number | null): string {
-  if (value === null || value === undefined) return '—';
+  if (value === null || value === undefined) return 'вЂ”';
   return new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR',
@@ -60,7 +60,7 @@ function formatEUR(value: number | null): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return 'вЂ”';
   return new Date(iso).toLocaleDateString('de-DE');
 }
 
@@ -141,14 +141,14 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     }
   }
 
-  // ===================== ВЕРХ СТРАНИЦЫ: ОТПРАВИТЕЛЬ + КЛИЕНТ =====================
+  // ===================== Р’Р•Р РҐ РЎРўР РђРќРР¦Р«: РћРўРџР РђР’РРўР•Р›Р¬ + РљР›РР•РќРў =====================
 
-  // Мелким шрифтом "отправитель" над адресом клиента (как в DIN 5008)
+  // РњРµР»РєРёРј С€СЂРёС„С‚РѕРј "РѕС‚РїСЂР°РІРёС‚РµР»СЊ" РЅР°Рґ Р°РґСЂРµСЃРѕРј РєР»РёРµРЅС‚Р° (РєР°Рє РІ DIN 5008)
   const senderLine = [
     data.master.company_name ?? data.master.full_name ?? '',
     data.master.address ?? '',
     [data.master.postal_code, data.master.city].filter(Boolean).join(' '),
-  ].filter(Boolean).join(' · ');
+  ].filter(Boolean).join(' В· ');
 
   if (senderLine) {
     drawText(senderLine, margin, regular, 8, COLORS.muted);
@@ -162,7 +162,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     y -= 10;
   }
 
- // Адрес клиента — слева в "окошке конверта" (стандарт DIN 5008)
+ // РђРґСЂРµСЃ РєР»РёРµРЅС‚Р° вЂ” СЃР»РµРІР° РІ "РѕРєРѕС€РєРµ РєРѕРЅРІРµСЂС‚Р°" (СЃС‚Р°РЅРґР°СЂС‚ DIN 5008)
 const clientTop = y;
 drawText(data.client.full_name, margin, bold, 11);
 y -= 14;
@@ -176,7 +176,7 @@ if (data.client.phone) {
   y -= 11;
 }
 
-  // Реквизиты справа: дата, номер счёта
+  // Р РµРєРІРёР·РёС‚С‹ СЃРїСЂР°РІР°: РґР°С‚Р°, РЅРѕРјРµСЂ СЃС‡С‘С‚Р°
   const rightY = clientTop;
   const rightX = W - margin;
   const savedY = y;
@@ -197,10 +197,10 @@ if (data.client.phone) {
     drawRight(data.order.correction_of_invoice_number, rightX, bold, 10, COLORS.correctionText);
   }
 
-  // Возвращаемся к левой колонке
+  // Р’РѕР·РІСЂР°С‰Р°РµРјСЃСЏ Рє Р»РµРІРѕР№ РєРѕР»РѕРЅРєРµ
   y = Math.min(savedY, y) - 26;
 
-  // ===================== ЗАГОЛОВОК =====================
+  // ===================== Р—РђР“РћР›РћР’РћРљ =====================
   if (isCorrectionDocument) {
     page.drawRectangle({
       x: margin,
@@ -217,7 +217,7 @@ if (data.client.phone) {
   drawText(isCorrectionDocument ? 'Korrigierte Rechnung' : 'Rechnung', margin, bold, 22, COLORS.text);
   y -= 26;
 
-  // ===================== ТАБЛИЦА УСЛУГ =====================
+  // ===================== РўРђР‘Р›РР¦Рђ РЈРЎР›РЈР“ =====================
   const tableTop = y;
   page.drawRectangle({
     x: margin,
@@ -227,28 +227,28 @@ if (data.client.phone) {
     color: COLORS.tableHeader,
   });
 
-  // Колонки: Pos | Leistung | Betrag
+  // РљРѕР»РѕРЅРєРё: Pos | Leistung | Betrag
   const colPos = margin + 8;
   const colLeistung = margin + 40;
   const colTotals = margin + 350;
   const colBetragRight = W - margin - 8;
 
   drawText('Pos.', colPos, bold, 9, COLORS.text);
-  y -= 15; // внутри шапки
-  // Вернёмся на шапку для второго столбца
+  y -= 15; // РІРЅСѓС‚СЂРё С€Р°РїРєРё
+  // Р’РµСЂРЅС‘РјСЃСЏ РЅР° С€Р°РїРєСѓ РґР»СЏ РІС‚РѕСЂРѕРіРѕ СЃС‚РѕР»Р±С†Р°
   y = tableTop - 15;
   drawText('Leistung', colLeistung, bold, 9, COLORS.text);
   drawRight('Betrag', colBetragRight, bold, 9, COLORS.text);
 
   y = tableTop - 35;
 
-  // Строка 1
+  // РЎС‚СЂРѕРєР° 1
   drawText('1', colPos, regular, 10);
   drawText(data.order.service_title, colLeistung, regular, 10);
   drawRight(formatEUR(data.order.price), colBetragRight, regular, 10);
   y -= 14;
 
-  // Описание под услугой
+  // РћРїРёСЃР°РЅРёРµ РїРѕРґ СѓСЃР»СѓРіРѕР№
   if (data.order.description) {
     const lines = data.order.description.split('\n');
     for (const line of lines) {
@@ -257,7 +257,7 @@ if (data.client.phone) {
     y -= 5;
   }
 
-  // Разделитель
+  // Р Р°Р·РґРµР»РёС‚РµР»СЊ
   page.drawLine({
     start: { x: margin, y },
     end: { x: W - margin, y },
@@ -266,8 +266,8 @@ if (data.client.phone) {
   });
   y -= 18;
 
-  // ===================== ИТОГО =====================
-  // Netto = Brutto для Kleinunternehmer (без НДС)
+  // ===================== РРўРћР“Рћ =====================
+  // Netto = Brutto РґР»СЏ Kleinunternehmer (Р±РµР· РќР”РЎ)
   if (data.master.is_kleinunternehmer) {
     page.drawRectangle({
       x: margin + 250,
@@ -281,7 +281,7 @@ if (data.client.phone) {
     drawRight(formatEUR(data.order.price), colBetragRight, bold, 13, COLORS.accent);
     y -= 24;
 
-    // Обязательная пометка §19 UStG
+    // РћР±СЏР·Р°С‚РµР»СЊРЅР°СЏ РїРѕРјРµС‚РєР° В§19 UStG
     page.drawRectangle({
       x: margin,
       y: y - 32,
@@ -291,7 +291,7 @@ if (data.client.phone) {
     });
     y -= 12;
     drawText(
-      'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.',
+      'GemГ¤Гџ В§ 19 UStG wird keine Umsatzsteuer berechnet.',
       margin + 10,
       regular,
       9,
@@ -299,7 +299,7 @@ if (data.client.phone) {
     );
     y -= 10;
     drawText(
-      'Kleinunternehmer-Regelung nach § 19 Abs. 1 UStG.',
+      'Kleinunternehmer-Regelung nach В§ 19 Abs. 1 UStG.',
       margin + 10,
       regular,
       8,
@@ -307,7 +307,7 @@ if (data.client.phone) {
     );
     y -= 20;
   } else {
-    // На всякий случай: расчёт НДС 19%
+    // РќР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№: СЂР°СЃС‡С‘С‚ РќР”РЎ 19%
     const brutto = data.order.price ?? 0;
     const vatRate = 0.19;
     const netto = brutto / (1 + vatRate);
@@ -369,7 +369,7 @@ if (data.order.payment_method || data.order.paid_at) {
 if (false && data.order.payment_method) {
   const PAYMENT_LABELS: Record<string, string> = {
     cash: 'Barzahlung',
-    transfer: 'Überweisung',
+    transfer: 'Гњberweisung',
     ec_card: 'EC-Karte',
     paypal: 'PayPal',
   };
@@ -382,16 +382,16 @@ if (false && data.order.payment_method) {
   y -= 20;
 }
 
-  // ===================== ПОДПИСЬ =====================
+  // ===================== РџРћР”РџРРЎР¬ =====================
   if (data.signature) {
   ensureSpace(180);
 
-  // Текст подтверждения (как клиент видел перед подписью)
-  drawText('Auftragsbestätigung / Leistungsbestätigung', margin, bold, 9, COLORS.text);
+  // РўРµРєСЃС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ (РєР°Рє РєР»РёРµРЅС‚ РІРёРґРµР» РїРµСЂРµРґ РїРѕРґРїРёСЃСЊСЋ)
+  drawText('AuftragsbestГ¤tigung / LeistungsbestГ¤tigung', margin, bold, 9, COLORS.text);
   y -= 12;
 
   drawWrapped(
-    'Mit meiner Unterschrift bestätige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
+    'Mit meiner Unterschrift bestГ¤tige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
     margin,
     W - 2 * margin,
     regular,
@@ -401,7 +401,7 @@ if (false && data.order.payment_method) {
   );
 
   drawWrapped(
-    'Ich erkenne den Quittungsbetrag an und verpflichte mich zur Zahlung gemäß der vereinbarten Zahlungsart.',
+    'Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemaess der vereinbarten Zahlungsart.',
     margin,
     W - 2 * margin,
     regular,
@@ -412,7 +412,7 @@ if (false && data.order.payment_method) {
 
   y -= 4;
 
-  // Подпись
+  // РџРѕРґРїРёСЃСЊ
   drawText('Unterschrift des Kunden', margin, bold, 9, COLORS.muted);
   y -= 8;
 
@@ -438,7 +438,7 @@ if (false && data.order.payment_method) {
   }
 }
 
-  // ===================== ФОТО =====================
+  // ===================== Р¤РћРўРћ =====================
   async function drawPhotoGrid(title: string, photos: Uint8Array[]) {
     if (photos.length === 0) return;
     ensureSpace(140);
@@ -483,12 +483,12 @@ if (false && data.order.payment_method) {
   await drawPhotoGrid('Fotos vor der Arbeit', data.photosBefore);
   await drawPhotoGrid('Fotos nach der Arbeit', data.photosAfter);
 
-  // ===================== ФУТЕР НА ВСЕХ СТРАНИЦАХ =====================
+  // ===================== Р¤РЈРўР•Р  РќРђ Р’РЎР•РҐ РЎРўР РђРќРР¦РђРҐ =====================
   const pages = doc.getPages();
   pages.forEach((p, idx) => {
     const footerY = 40;
 
-    // Линия
+    // Р›РёРЅРёСЏ
     p.drawLine({
       start: { x: margin, y: footerY + 45 },
       end: { x: W - margin, y: footerY + 45 },
@@ -496,10 +496,10 @@ if (false && data.order.payment_method) {
       color: COLORS.line,
     });
 
-    // 3 колонки футера
+    // 3 РєРѕР»РѕРЅРєРё С„СѓС‚РµСЂР°
     const colW = (W - 2 * margin) / 3;
 
-    // Колонка 1: Контакты
+    // РљРѕР»РѕРЅРєР° 1: РљРѕРЅС‚Р°РєС‚С‹
     const left = [
       data.master.company_name,
       data.master.full_name,
@@ -516,11 +516,11 @@ if (false && data.order.payment_method) {
       ly -= 9;
     }
 
-    // Колонка 2: Налоговые
+    // РљРѕР»РѕРЅРєР° 2: РќР°Р»РѕРіРѕРІС‹Рµ
     const middle = [
       data.master.tax_number ? `Steuernummer: ${data.master.tax_number}` : null,
       data.master.vat_id ? `USt-IdNr.: ${data.master.vat_id}` : null,
-      data.master.is_kleinunternehmer ? 'Kleinunternehmer (§19 UStG)' : null,
+      data.master.is_kleinunternehmer ? 'Kleinunternehmer (В§19 UStG)' : null,
     ].filter(Boolean);
 
     p.drawText('Steuer', { x: margin + colW, y: footerY + 36, font: bold, size: 7, color: COLORS.text });
@@ -530,7 +530,7 @@ if (false && data.order.payment_method) {
       my -= 9;
     }
 
-    // Колонка 3: Банк
+    // РљРѕР»РѕРЅРєР° 3: Р‘Р°РЅРє
     const right = [
       data.master.bank_name ? `Bank: ${data.master.bank_name}` : null,
       data.master.iban ? `IBAN: ${data.master.iban}` : null,
@@ -544,7 +544,7 @@ if (false && data.order.payment_method) {
       ry -= 9;
     }
 
-    // Номер страницы
+    // РќРѕРјРµСЂ СЃС‚СЂР°РЅРёС†С‹
     const pageLabel = `Seite ${idx + 1} / ${pages.length}`;
     const pw = regular.widthOfTextAtSize(pageLabel, 7);
     p.drawText(pageLabel, {

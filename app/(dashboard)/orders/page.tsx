@@ -3,6 +3,7 @@ import InvoiceBadges from '@/components/orders/InvoiceBadges';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
 import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
+import { getMonthOptions, getRange } from '@/lib/utils/date-range';
 import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
 import type { OrderStatus, OrderWithClient } from '@/types/database';
 
@@ -10,6 +11,7 @@ type SearchParams = Promise<{
   status?: string;
   invoice?: string;
   q?: string;
+  m?: string;
 }>;
 
 const STATUS_FILTERS: Array<{ key: OrderStatus | 'all' }> = [
@@ -22,18 +24,27 @@ const STATUS_FILTERS: Array<{ key: OrderStatus | 'all' }> = [
 
 const INVOICE_FILTERS = [
   { key: 'all', icon: '' },
-  { key: 'with', icon: '€' },
+  { key: 'with', icon: 'DOC' },
   { key: 'without', icon: '!' },
-  { key: 'sent', icon: '✓' },
+  { key: 'sent', icon: 'MAIL' },
 ] as const;
 
-const DASH = '—';
+const DASH = '-';
+
+function effectiveDate(order: Pick<OrderWithClient, 'service_date' | 'completed_at' | 'created_at'>) {
+  return new Date(order.service_date ?? order.completed_at ?? order.created_at);
+}
 
 export default async function OrdersPage({ searchParams }: { searchParams: SearchParams }) {
-  const { status, invoice, q } = await searchParams;
+  const { status, invoice, q, m } = await searchParams;
   const activeFilter = (status ?? 'all') as OrderStatus | 'all';
   const invoiceFilter = (invoice ?? 'all') as 'all' | 'with' | 'without' | 'sent';
+  const currentMonth = m ?? '';
   const locale = await getLocale();
+  const monthRange = currentMonth
+    ? getRange('month', new Date(), { specificMonth: currentMonth, locale })
+    : null;
+  const monthOptions = getMonthOptions(2024, new Date(), locale);
 
   const text =
     locale === 'de'
@@ -49,18 +60,22 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           withInvoice: 'Mit Quittung',
           withoutInvoice: 'Ohne Quittung',
           sent: 'Versendet',
-          summaryWithoutTitle: 'Auftraege ohne Quittung',
-          summaryInvoicesTitle: 'Quittungen in der aktuellen Auswahl',
-          ordersCount: 'Auftrag',
-          ordersCount2: 'Auftraege',
-          ordersCount5: 'Auftraege',
-          invoicesCount: 'Quittung',
-          invoicesCount2: 'Quittungen',
+          month: 'Monat',
+          chooseMonth: 'Monat waehlen',
+          apply: 'Anwenden',
+          resetMonth: 'Monatsfilter entfernen',
+          currentSelection: 'Aktuelle Auswahl',
+          totalOrders: 'Gesamtauftraege',
+          invoicedOrders: 'Mit Quittung',
+          openOrders: 'Ohne Quittung',
+          totalAmount: 'Gesamtsumme',
+          amountHint: 'Summe aller Preise in der aktuellen Auswahl',
           onAmount: 'im Wert von',
           error: 'Fehler',
           emptyDefault: 'Noch keine Auftraege.',
           createFirst: 'Ersten Auftrag erstellen',
           emptyFilter: 'Keine Auftraege fuer diesen Filter',
+          monthSummaryPrefix: 'Zeitraum',
         }
       : {
           title: 'Заказы',
@@ -74,18 +89,22 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           withInvoice: 'С квитанцией',
           withoutInvoice: 'Без квитанции',
           sent: 'Отправленные',
-          summaryWithoutTitle: 'Заказы без квитанции',
-          summaryInvoicesTitle: 'Квитанции в текущей выборке',
-          ordersCount: 'заказ',
-          ordersCount2: 'заказа',
-          ordersCount5: 'заказов',
-          invoicesCount: 'квитанция',
-          invoicesCount2: 'квитанции',
+          month: 'Месяц',
+          chooseMonth: 'Выбрать месяц',
+          apply: 'Применить',
+          resetMonth: 'Сбросить месяц',
+          currentSelection: 'Текущая выборка',
+          totalOrders: 'Всего заказов',
+          invoicedOrders: 'С квитанцией',
+          openOrders: 'Без квитанции',
+          totalAmount: 'Общая сумма',
+          amountHint: 'Сумма всех цен в текущей выборке',
           onAmount: 'на сумму',
           error: 'Ошибка',
           emptyDefault: 'Пока нет заказов.',
           createFirst: 'Создать первый',
-          emptyFilter: 'Нет заказов по этому фильтру',
+          emptyFilter: 'Нет заказов для этого фильтра',
+          monthSummaryPrefix: 'Период',
         };
 
   const formatDate = (value: string | null | undefined) => {
@@ -125,7 +144,13 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   }
 
   const { data: orders, error } = await query;
-  const ordersList = (orders as OrderWithClient[] | null) ?? [];
+  const baseOrders = (orders as OrderWithClient[] | null) ?? [];
+  const ordersList = monthRange
+    ? baseOrders.filter((order) => {
+        const time = effectiveDate(order).getTime();
+        return time >= monthRange.from.getTime() && time <= monthRange.to.getTime();
+      })
+    : baseOrders;
 
   const servicesNeeded = [
     ...new Set(
@@ -161,60 +186,34 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     return null;
   };
 
-  let invoiceSummary: { total: number; count: number; title: string; icon: string; label: string } | null = null;
-
-  if (ordersList.length > 0) {
-    let total = 0;
-    let count = 0;
-
-    for (const order of ordersList) {
+  const totals = ordersList.reduce(
+    (acc, order) => {
       const amount = getOrderAmount(order);
       if (amount !== null) {
-        total += amount;
-        count++;
-      }
-    }
-
-    if (invoiceFilter === 'without') {
-      invoiceSummary = {
-        total: Math.round(total * 100) / 100,
-        count,
-        title: text.summaryWithoutTitle,
-        icon: '!',
-        label: getOrderLabel(count, locale, text),
-      };
-    } else {
-      const invoiceOrders = ordersList.filter((order) => Boolean(order.invoice_number));
-      let invoiceTotal = 0;
-      let invoiceCount = 0;
-
-      for (const order of invoiceOrders) {
-        const amount = getOrderAmount(order);
-        if (amount !== null) {
-          invoiceTotal += amount;
-          invoiceCount++;
-        }
+        acc.totalAmount += amount;
       }
 
-      if (invoiceCount > 0) {
-        invoiceSummary = {
-          total: Math.round(invoiceTotal * 100) / 100,
-          count: invoiceCount,
-          title: text.summaryInvoicesTitle,
-          icon: '€',
-          label: getInvoiceLabel(invoiceCount, locale, text),
-        };
+      if (order.invoice_number) {
+        acc.withInvoice += 1;
+      } else {
+        acc.withoutInvoice += 1;
       }
-    }
-  }
 
-  function buildHref(params: { status?: string; invoice?: string }) {
+      acc.totalOrders += 1;
+      return acc;
+    },
+    { totalOrders: 0, withInvoice: 0, withoutInvoice: 0, totalAmount: 0 }
+  );
+
+  function buildHref(params: { status?: string; invoice?: string; m?: string | null }) {
     const searchParamsNext = new URLSearchParams();
     const nextStatus = params.status ?? activeFilter;
     const nextInvoice = params.invoice ?? invoiceFilter;
+    const nextMonth = params.m === undefined ? currentMonth : params.m ?? '';
 
     if (nextStatus !== 'all') searchParamsNext.set('status', nextStatus);
     if (nextInvoice !== 'all') searchParamsNext.set('invoice', nextInvoice);
+    if (nextMonth) searchParamsNext.set('m', nextMonth);
     if (q) searchParamsNext.set('q', q);
 
     return `/orders${searchParamsNext.toString() ? `?${searchParamsNext}` : ''}`;
@@ -245,7 +244,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
             className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
             title={text.trash}
           >
-            🗑
+            TRASH
           </Link>
           <Link href="/orders/new" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
             + {text.new}
@@ -283,27 +282,76 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
                 active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
               }`}
             >
-              {filter.icon && <span className="mr-1">{filter.icon}</span>}
+              {filter.icon ? <span className="mr-1">{filter.icon}</span> : null}
               {invoiceLabels[filter.key]}
             </Link>
           );
         })}
       </div>
 
-      {invoiceSummary && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{invoiceSummary.icon}</span>
-            <div>
-              <div className="text-xs uppercase tracking-wide text-neutral-600">{invoiceSummary.title}</div>
-              <div className="text-sm text-amber-900">
-                <span className="font-semibold">{invoiceSummary.count}</span> {invoiceSummary.label} {text.onAmount}
-              </div>
-            </div>
+      <form method="get" className="mb-4 rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label htmlFor="month" className="mb-1 block text-sm font-medium text-neutral-700">
+              {text.month}
+            </label>
+            <select
+              id="month"
+              name="m"
+              defaultValue={currentMonth}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">{`- ${text.chooseMonth} -`}</option>
+              {monthOptions.map((month) => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="text-2xl font-bold text-amber-700">{formatPrice(invoiceSummary.total)}</div>
+
+          {activeFilter !== 'all' && <input type="hidden" name="status" value={activeFilter} />}
+          {invoiceFilter !== 'all' && <input type="hidden" name="invoice" value={invoiceFilter} />}
+          {q && <input type="hidden" name="q" value={q} />}
+
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            {text.apply}
+          </button>
+
+          {currentMonth && (
+            <Link
+              href={buildHref({ m: null })}
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              {text.resetMonth}
+            </Link>
+          )}
         </div>
-      )}
+      </form>
+
+      <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-neutral-600">{text.currentSelection}</div>
+            {monthRange && (
+              <div className="text-sm text-amber-900">
+                {text.monthSummaryPrefix}: <span className="font-medium">{monthRange.label}</span>
+              </div>
+            )}
+          </div>
+          <div className="text-2xl font-bold text-amber-700">{formatPrice(Math.round(totals.totalAmount * 100) / 100)}</div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <SummaryCard label={text.totalOrders} value={String(totals.totalOrders)} />
+          <SummaryCard label={text.invoicedOrders} value={String(totals.withInvoice)} />
+          <SummaryCard label={text.openOrders} value={String(totals.withoutInvoice)} />
+          <SummaryCard label={text.totalAmount} value={formatPrice(Math.round(totals.totalAmount * 100) / 100)} hint={text.amountHint} />
+        </div>
+      </div>
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -313,7 +361,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
 
       {ordersList.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          {activeFilter === 'all' && invoiceFilter === 'all' ? (
+          {activeFilter === 'all' && invoiceFilter === 'all' && !currentMonth ? (
             <>
               {text.emptyDefault}{' '}
               <Link href="/orders/new" className="text-blue-600 hover:underline">
@@ -339,12 +387,12 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
                         {statusLabels[order.status]}
                       </span>
                       <InvoiceBadges invoiceNumber={order.invoice_number} invoiceSentAt={order.invoice_sent_at} />
-                      <span className="text-xs text-neutral-500">{formatDate(order.created_at)}</span>
+                      <span className="text-xs text-neutral-500">{formatDate(effectiveDate(order).toISOString())}</span>
                     </div>
                     <h3 className="truncate font-medium">{order.client_name}</h3>
                     <p className="truncate text-sm text-neutral-500">
                       {order.custom_service_title ?? DASH}
-                      {order.order_address ? ` · ${order.order_address}` : ''}
+                      {order.order_address ? ` • ${order.order_address}` : ''}
                     </p>
                   </div>
                   <div className="whitespace-nowrap text-right">
@@ -360,30 +408,20 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   );
 }
 
-function getOrderLabel(
-  count: number,
-  locale: 'ru' | 'de',
-  text: { ordersCount: string; ordersCount2: string; ordersCount5: string }
-) {
-  if (locale === 'de') {
-    return count === 1 ? text.ordersCount : text.ordersCount2;
-  }
-
-  if (count % 10 === 1 && count % 100 !== 11) return text.ordersCount;
-  if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)) return text.ordersCount2;
-  return text.ordersCount5;
-}
-
-function getInvoiceLabel(
-  count: number,
-  locale: 'ru' | 'de',
-  text: { invoicesCount: string; invoicesCount2: string }
-) {
-  if (locale === 'de') {
-    return count === 1 ? text.invoicesCount : text.invoicesCount2;
-  }
-
-  if (count % 10 === 1 && count % 100 !== 11) return text.invoicesCount;
-  if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14)) return text.invoicesCount2;
-  return 'квитанций';
+function SummaryCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/70 bg-white/70 p-3">
+      <div className="text-xs uppercase tracking-wide text-neutral-500">{label}</div>
+      <div className="mt-1 text-xl font-semibold text-neutral-900">{value}</div>
+      {hint ? <div className="mt-1 text-xs text-neutral-500">{hint}</div> : null}
+    </div>
+  );
 }

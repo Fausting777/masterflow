@@ -18,39 +18,49 @@ export function validateClient(data: ClientInput): ClientValidationErrors {
   const errors: ClientValidationErrors = {};
 
   const name = data.full_name.trim();
-  if (name.length === 0) {
-    errors.full_name = 'Имя обязательно';
-  } else if (name.length > 200) {
-    errors.full_name = 'Имя слишком длинное (макс. 200 символов)';
-  }
-
-  if (data.phone.length > 50) {
-    errors.phone = 'Телефон слишком длинный';
-  }
-
+  const phone = data.phone.trim();
   const email = data.email.trim();
+  const address = data.address.trim();
+  const postalCode = data.postal_code.trim();
+  const city = data.city.trim();
+  const note = data.note.trim();
+
+  if (name.length === 0) {
+    errors.full_name = 'Name is required';
+  } else if (name.length > 200) {
+    errors.full_name = 'Name is too long';
+  }
+
+  if (phone.length > 50) {
+    errors.phone = 'Phone number is too long';
+  }
+
   if (email.length > 0 && !EMAIL_RE.test(email)) {
-    errors.email = 'Некорректный email';
-  }
-  if (email.length > 200) {
-    errors.email = 'Email слишком длинный';
-  }
-
-  if (data.address.length > 500) {
-    errors.address = 'Адрес слишком длинный';
+    errors.email = 'Invalid email address';
+  } else if (email.length > 200) {
+    errors.email = 'Email is too long';
   }
 
-  // Немецкий PLZ — ровно 5 цифр, но поле опциональное
-  if (data.postal_code.trim().length > 0 && !/^\d{5}$/.test(data.postal_code.trim())) {
-    errors.postal_code = 'PLZ должен быть 5 цифр';
+  if (address.length === 0) {
+    errors.address = 'Address is required for invoices';
+  } else if (address.length > 500) {
+    errors.address = 'Address is too long';
   }
 
-  if (data.city.length > 200) {
-    errors.city = 'Название города слишком длинное';
+  if (postalCode.length === 0) {
+    errors.postal_code = 'Postal code is required for invoices';
+  } else if (!/^\d{5}$/.test(postalCode)) {
+    errors.postal_code = 'Postal code must be exactly 5 digits';
   }
 
-  if (data.note.length > 2000) {
-    errors.note = 'Заметка слишком длинная';
+  if (city.length === 0) {
+    errors.city = 'City is required for invoices';
+  } else if (city.length > 200) {
+    errors.city = 'City is too long';
+  }
+
+  if (note.length > 2000) {
+    errors.note = 'Note is too long';
   }
 
   return errors;

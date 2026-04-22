@@ -28,8 +28,8 @@ export type InvoiceData = {
   order: {
     id: string;
     invoice_number: string;        // "2026-0001"
-    invoice_date: string;          // ISO вЂ” РґР°С‚Р° РІС‹СЃС‚Р°РІР»РµРЅРёСЏ СЃС‡С‘С‚Р°
-    service_date: string;          // ISO вЂ” Leistungsdatum
+    invoice_date: string;          // ISO РІР‚вЂќ Р Т‘Р В°РЎвЂљР В° Р Р†РЎвЂ№РЎРѓРЎвЂљР В°Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ РЎРѓРЎвЂЎРЎвЂРЎвЂљР В°
+    service_date: string;          // ISO РІР‚вЂќ Leistungsdatum
     service_title: string;
     price: number | null;
     correction_of_invoice_number?: string | null;
@@ -51,7 +51,7 @@ async function loadFont(filename: string): Promise<Uint8Array> {
 }
 
 function formatEUR(value: number | null): string {
-  if (value === null || value === undefined) return 'вЂ”';
+  if (value === null || value === undefined) return 'РІР‚вЂќ';
   return new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR',
@@ -60,7 +60,7 @@ function formatEUR(value: number | null): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return 'вЂ”';
+  if (!iso) return 'РІР‚вЂќ';
   return new Date(iso).toLocaleDateString('de-DE');
 }
 
@@ -141,14 +141,14 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     }
   }
 
-  // ===================== Р’Р•Р РҐ РЎРўР РђРќРР¦Р«: РћРўРџР РђР’РРўР•Р›Р¬ + РљР›РР•РќРў =====================
+  // ===================== Р вЂ™Р вЂўР В Р Тђ Р РЋР СћР В Р С’Р СњР ВР В¦Р В«: Р С›Р СћР СџР В Р С’Р вЂ™Р ВР СћР вЂўР вЂєР В¬ + Р С™Р вЂєР ВР вЂўР СњР Сћ =====================
 
-  // РњРµР»РєРёРј С€СЂРёС„С‚РѕРј "РѕС‚РїСЂР°РІРёС‚РµР»СЊ" РЅР°Рґ Р°РґСЂРµСЃРѕРј РєР»РёРµРЅС‚Р° (РєР°Рє РІ DIN 5008)
+  // Р СљР ВµР В»Р С”Р С‘Р С РЎв‚¬РЎР‚Р С‘РЎвЂћРЎвЂљР С•Р С "Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘РЎвЂљР ВµР В»РЎРЉ" Р Р…Р В°Р Т‘ Р В°Р Т‘РЎР‚Р ВµРЎРѓР С•Р С Р С”Р В»Р С‘Р ВµР Р…РЎвЂљР В° (Р С”Р В°Р С” Р Р† DIN 5008)
   const senderLine = [
     data.master.company_name ?? data.master.full_name ?? '',
     data.master.address ?? '',
     [data.master.postal_code, data.master.city].filter(Boolean).join(' '),
-  ].filter(Boolean).join(' В· ');
+  ].filter(Boolean).join(' Р’В· ');
 
   if (senderLine) {
     drawText(senderLine, margin, regular, 8, COLORS.muted);
@@ -162,7 +162,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     y -= 10;
   }
 
- // РђРґСЂРµСЃ РєР»РёРµРЅС‚Р° вЂ” СЃР»РµРІР° РІ "РѕРєРѕС€РєРµ РєРѕРЅРІРµСЂС‚Р°" (СЃС‚Р°РЅРґР°СЂС‚ DIN 5008)
+ // Р С’Р Т‘РЎР‚Р ВµРЎРѓ Р С”Р В»Р С‘Р ВµР Р…РЎвЂљР В° РІР‚вЂќ РЎРѓР В»Р ВµР Р†Р В° Р Р† "Р С•Р С”Р С•РЎв‚¬Р С”Р Вµ Р С”Р С•Р Р…Р Р†Р ВµРЎР‚РЎвЂљР В°" (РЎРѓРЎвЂљР В°Р Р…Р Т‘Р В°РЎР‚РЎвЂљ DIN 5008)
 const clientTop = y;
 drawText(data.client.full_name, margin, bold, 11);
 y -= 14;
@@ -176,7 +176,7 @@ if (data.client.phone) {
   y -= 11;
 }
 
-  // Р РµРєРІРёР·РёС‚С‹ СЃРїСЂР°РІР°: РґР°С‚Р°, РЅРѕРјРµСЂ СЃС‡С‘С‚Р°
+  // Р В Р ВµР С”Р Р†Р С‘Р В·Р С‘РЎвЂљРЎвЂ№ РЎРѓР С—РЎР‚Р В°Р Р†Р В°: Р Т‘Р В°РЎвЂљР В°, Р Р…Р С•Р СР ВµРЎР‚ РЎРѓРЎвЂЎРЎвЂРЎвЂљР В°
   const rightY = clientTop;
   const rightX = W - margin;
   const savedY = y;
@@ -197,10 +197,10 @@ if (data.client.phone) {
     drawRight(data.order.correction_of_invoice_number, rightX, bold, 10, COLORS.correctionText);
   }
 
-  // Р’РѕР·РІСЂР°С‰Р°РµРјСЃСЏ Рє Р»РµРІРѕР№ РєРѕР»РѕРЅРєРµ
+  // Р вЂ™Р С•Р В·Р Р†РЎР‚Р В°РЎвЂ°Р В°Р ВµР СРЎРѓРЎРЏ Р С” Р В»Р ВµР Р†Р С•Р в„– Р С”Р С•Р В»Р С•Р Р…Р С”Р Вµ
   y = Math.min(savedY, y) - 26;
 
-  // ===================== Р—РђР“РћР›РћР’РћРљ =====================
+  // ===================== Р вЂ”Р С’Р вЂњР С›Р вЂєР С›Р вЂ™Р С›Р С™ =====================
   if (isCorrectionDocument) {
     page.drawRectangle({
       x: margin,
@@ -217,7 +217,7 @@ if (data.client.phone) {
   drawText(isCorrectionDocument ? 'Korrigierte Rechnung' : 'Rechnung', margin, bold, 22, COLORS.text);
   y -= 26;
 
-  // ===================== РўРђР‘Р›РР¦Рђ РЈРЎР›РЈР“ =====================
+  // ===================== Р СћР С’Р вЂР вЂєР ВР В¦Р С’ Р Р€Р РЋР вЂєР Р€Р вЂњ =====================
   const tableTop = y;
   page.drawRectangle({
     x: margin,
@@ -227,28 +227,28 @@ if (data.client.phone) {
     color: COLORS.tableHeader,
   });
 
-  // РљРѕР»РѕРЅРєРё: Pos | Leistung | Betrag
+  // Р С™Р С•Р В»Р С•Р Р…Р С”Р С‘: Pos | Leistung | Betrag
   const colPos = margin + 8;
   const colLeistung = margin + 40;
   const colTotals = margin + 350;
   const colBetragRight = W - margin - 8;
 
   drawText('Pos.', colPos, bold, 9, COLORS.text);
-  y -= 15; // РІРЅСѓС‚СЂРё С€Р°РїРєРё
-  // Р’РµСЂРЅС‘РјСЃСЏ РЅР° С€Р°РїРєСѓ РґР»СЏ РІС‚РѕСЂРѕРіРѕ СЃС‚РѕР»Р±С†Р°
+  y -= 15; // Р Р†Р Р…РЎС“РЎвЂљРЎР‚Р С‘ РЎв‚¬Р В°Р С—Р С”Р С‘
+  // Р вЂ™Р ВµРЎР‚Р Р…РЎвЂР СРЎРѓРЎРЏ Р Р…Р В° РЎв‚¬Р В°Р С—Р С”РЎС“ Р Т‘Р В»РЎРЏ Р Р†РЎвЂљР С•РЎР‚Р С•Р С–Р С• РЎРѓРЎвЂљР С•Р В»Р В±РЎвЂ Р В°
   y = tableTop - 15;
   drawText('Leistung', colLeistung, bold, 9, COLORS.text);
   drawRight('Betrag', colBetragRight, bold, 9, COLORS.text);
 
   y = tableTop - 35;
 
-  // РЎС‚СЂРѕРєР° 1
+  // Р РЋРЎвЂљРЎР‚Р С•Р С”Р В° 1
   drawText('1', colPos, regular, 10);
   drawText(data.order.service_title, colLeistung, regular, 10);
   drawRight(formatEUR(data.order.price), colBetragRight, regular, 10);
   y -= 14;
 
-  // РћРїРёСЃР°РЅРёРµ РїРѕРґ СѓСЃР»СѓРіРѕР№
+  // Р С›Р С—Р С‘РЎРѓР В°Р Р…Р С‘Р Вµ Р С—Р С•Р Т‘ РЎС“РЎРѓР В»РЎС“Р С–Р С•Р в„–
   if (data.order.description) {
     const lines = data.order.description.split('\n');
     for (const line of lines) {
@@ -257,7 +257,7 @@ if (data.client.phone) {
     y -= 5;
   }
 
-  // Р Р°Р·РґРµР»РёС‚РµР»СЊ
+  // Р В Р В°Р В·Р Т‘Р ВµР В»Р С‘РЎвЂљР ВµР В»РЎРЉ
   page.drawLine({
     start: { x: margin, y },
     end: { x: W - margin, y },
@@ -266,8 +266,8 @@ if (data.client.phone) {
   });
   y -= 18;
 
-  // ===================== РРўРћР“Рћ =====================
-  // Netto = Brutto РґР»СЏ Kleinunternehmer (Р±РµР· РќР”РЎ)
+  // ===================== Р ВР СћР С›Р вЂњР С› =====================
+  // Netto = Brutto Р Т‘Р В»РЎРЏ Kleinunternehmer (Р В±Р ВµР В· Р СњР вЂќР РЋ)
   if (data.master.is_kleinunternehmer) {
     page.drawRectangle({
       x: margin + 250,
@@ -281,7 +281,7 @@ if (data.client.phone) {
     drawRight(formatEUR(data.order.price), colBetragRight, bold, 13, COLORS.accent);
     y -= 24;
 
-    // РћР±СЏР·Р°С‚РµР»СЊРЅР°СЏ РїРѕРјРµС‚РєР° В§19 UStG
+    // Р С›Р В±РЎРЏР В·Р В°РЎвЂљР ВµР В»РЎРЉР Р…Р В°РЎРЏ Р С—Р С•Р СР ВµРЎвЂљР С”Р В° Р’В§19 UStG
     page.drawRectangle({
       x: margin,
       y: y - 32,
@@ -291,7 +291,7 @@ if (data.client.phone) {
     });
     y -= 12;
     drawText(
-      'GemГ¤Гџ В§ 19 UStG wird keine Umsatzsteuer berechnet.',
+      'Gemaess § 19 UStG wird keine Umsatzsteuer berechnet.',
       margin + 10,
       regular,
       9,
@@ -299,7 +299,7 @@ if (data.client.phone) {
     );
     y -= 10;
     drawText(
-      'Kleinunternehmer-Regelung nach В§ 19 Abs. 1 UStG.',
+      'Kleinunternehmer-Regelung nach § 19 Abs. 1 UStG.',
       margin + 10,
       regular,
       8,
@@ -307,7 +307,7 @@ if (data.client.phone) {
     );
     y -= 20;
   } else {
-    // РќР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№: СЂР°СЃС‡С‘С‚ РќР”РЎ 19%
+    // Р СњР В° Р Р†РЎРѓРЎРЏР С”Р С‘Р в„– РЎРѓР В»РЎС“РЎвЂЎР В°Р в„–: РЎР‚Р В°РЎРѓРЎвЂЎРЎвЂРЎвЂљ Р СњР вЂќР РЋ 19%
     const brutto = data.order.price ?? 0;
     const vatRate = 0.19;
     const netto = brutto / (1 + vatRate);
@@ -366,32 +366,17 @@ if (data.order.payment_method || data.order.paid_at) {
   y -= 6;
 }
 
-if (false && data.order.payment_method) {
-  const PAYMENT_LABELS: Record<string, string> = {
-    cash: 'Barzahlung',
-    transfer: 'Гњberweisung',
-    ec_card: 'EC-Karte',
-    paypal: 'PayPal',
-  };
-  const label = PAYMENT_LABELS[data.order.payment_method!] ?? data.order.payment_method;
 
-  ensureSpace(40);
-  drawText('Zahlungsart', margin, bold, 10);
-  y -= 14;
-  drawText(label, margin, regular, 10, COLORS.text);
-  y -= 20;
-}
-
-  // ===================== РџРћР”РџРРЎР¬ =====================
+  // ===================== Р СџР С›Р вЂќР СџР ВР РЋР В¬ =====================
   if (data.signature) {
   ensureSpace(180);
 
-  // РўРµРєСЃС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ (РєР°Рє РєР»РёРµРЅС‚ РІРёРґРµР» РїРµСЂРµРґ РїРѕРґРїРёСЃСЊСЋ)
-  drawText('AuftragsbestГ¤tigung / LeistungsbestГ¤tigung', margin, bold, 9, COLORS.text);
+  // Р СћР ВµР С”РЎРѓРЎвЂљ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ (Р С”Р В°Р С” Р С”Р В»Р С‘Р ВµР Р…РЎвЂљ Р Р†Р С‘Р Т‘Р ВµР В» Р С—Р ВµРЎР‚Р ВµР Т‘ Р С—Р С•Р Т‘Р С—Р С‘РЎРѓРЎРЉРЎР‹)
+  drawText('AuftragsbestР“В¤tigung / LeistungsbestР“В¤tigung', margin, bold, 9, COLORS.text);
   y -= 12;
 
   drawWrapped(
-    'Mit meiner Unterschrift bestГ¤tige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
+    'Mit meiner Unterschrift bestР“В¤tige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
     margin,
     W - 2 * margin,
     regular,
@@ -412,7 +397,7 @@ if (false && data.order.payment_method) {
 
   y -= 4;
 
-  // РџРѕРґРїРёСЃСЊ
+  // Р СџР С•Р Т‘Р С—Р С‘РЎРѓРЎРЉ
   drawText('Unterschrift des Kunden', margin, bold, 9, COLORS.muted);
   y -= 8;
 
@@ -438,7 +423,7 @@ if (false && data.order.payment_method) {
   }
 }
 
-  // ===================== Р¤РћРўРћ =====================
+  // ===================== Р В¤Р С›Р СћР С› =====================
   async function drawPhotoGrid(title: string, photos: Uint8Array[]) {
     if (photos.length === 0) return;
     ensureSpace(140);
@@ -483,12 +468,12 @@ if (false && data.order.payment_method) {
   await drawPhotoGrid('Fotos vor der Arbeit', data.photosBefore);
   await drawPhotoGrid('Fotos nach der Arbeit', data.photosAfter);
 
-  // ===================== Р¤РЈРўР•Р  РќРђ Р’РЎР•РҐ РЎРўР РђРќРР¦РђРҐ =====================
+  // ===================== Р В¤Р Р€Р СћР вЂўР В  Р СњР С’ Р вЂ™Р РЋР вЂўР Тђ Р РЋР СћР В Р С’Р СњР ВР В¦Р С’Р Тђ =====================
   const pages = doc.getPages();
   pages.forEach((p, idx) => {
     const footerY = 40;
 
-    // Р›РёРЅРёСЏ
+    // Р вЂєР С‘Р Р…Р С‘РЎРЏ
     p.drawLine({
       start: { x: margin, y: footerY + 45 },
       end: { x: W - margin, y: footerY + 45 },
@@ -496,10 +481,10 @@ if (false && data.order.payment_method) {
       color: COLORS.line,
     });
 
-    // 3 РєРѕР»РѕРЅРєРё С„СѓС‚РµСЂР°
+    // 3 Р С”Р С•Р В»Р С•Р Р…Р С”Р С‘ РЎвЂћРЎС“РЎвЂљР ВµРЎР‚Р В°
     const colW = (W - 2 * margin) / 3;
 
-    // РљРѕР»РѕРЅРєР° 1: РљРѕРЅС‚Р°РєС‚С‹
+    // Р С™Р С•Р В»Р С•Р Р…Р С”Р В° 1: Р С™Р С•Р Р…РЎвЂљР В°Р С”РЎвЂљРЎвЂ№
     const left = [
       data.master.company_name,
       data.master.full_name,
@@ -516,11 +501,11 @@ if (false && data.order.payment_method) {
       ly -= 9;
     }
 
-    // РљРѕР»РѕРЅРєР° 2: РќР°Р»РѕРіРѕРІС‹Рµ
+    // Р С™Р С•Р В»Р С•Р Р…Р С”Р В° 2: Р СњР В°Р В»Р С•Р С–Р С•Р Р†РЎвЂ№Р Вµ
     const middle = [
       data.master.tax_number ? `Steuernummer: ${data.master.tax_number}` : null,
       data.master.vat_id ? `USt-IdNr.: ${data.master.vat_id}` : null,
-      data.master.is_kleinunternehmer ? 'Kleinunternehmer (В§19 UStG)' : null,
+      data.master.is_kleinunternehmer ? 'Kleinunternehmer (Р’В§19 UStG)' : null,
     ].filter(Boolean);
 
     p.drawText('Steuer', { x: margin + colW, y: footerY + 36, font: bold, size: 7, color: COLORS.text });
@@ -530,7 +515,7 @@ if (false && data.order.payment_method) {
       my -= 9;
     }
 
-    // РљРѕР»РѕРЅРєР° 3: Р‘Р°РЅРє
+    // Р С™Р С•Р В»Р С•Р Р…Р С”Р В° 3: Р вЂР В°Р Р…Р С”
     const right = [
       data.master.bank_name ? `Bank: ${data.master.bank_name}` : null,
       data.master.iban ? `IBAN: ${data.master.iban}` : null,
@@ -544,7 +529,7 @@ if (false && data.order.payment_method) {
       ry -= 9;
     }
 
-    // РќРѕРјРµСЂ СЃС‚СЂР°РЅРёС†С‹
+    // Р СњР С•Р СР ВµРЎР‚ РЎРѓРЎвЂљРЎР‚Р В°Р Р…Р С‘РЎвЂ РЎвЂ№
     const pageLabel = `Seite ${idx + 1} / ${pages.length}`;
     const pw = regular.widthOfTextAtSize(pageLabel, 7);
     p.drawText(pageLabel, {

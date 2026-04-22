@@ -104,12 +104,13 @@ export default function ClientForm({
 
       <div>
         <label htmlFor="address" className="mb-1 block text-sm font-medium">
-          {t.clientForm.address}
+          {t.clientForm.address} <span className="text-red-500">*</span>
         </label>
         <input
           id="address"
           name="address"
           type="text"
+          required
           defaultValue={values.address}
           placeholder="Musterstrasse 15"
           className={inputCls}
@@ -120,7 +121,7 @@ export default function ClientForm({
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label htmlFor="postal_code" className="mb-1 block text-sm font-medium">
-            PLZ
+            PLZ <span className="text-red-500">*</span>
           </label>
           <input
             id="postal_code"
@@ -128,6 +129,7 @@ export default function ClientForm({
             type="text"
             inputMode="numeric"
             maxLength={5}
+            required
             value={postalCode ?? ''}
             onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, ''))}
             placeholder="20095"
@@ -138,12 +140,13 @@ export default function ClientForm({
 
         <div className="col-span-2">
           <label htmlFor="city" className="mb-1 block text-sm font-medium">
-            {t.clientForm.city}
+            {t.clientForm.city} <span className="text-red-500">*</span>
           </label>
           <input
             id="city"
             name="city"
             type="text"
+            required
             value={city ?? ''}
             onChange={(e) => setCity(e.target.value)}
             placeholder="Hamburg"

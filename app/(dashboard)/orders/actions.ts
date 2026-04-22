@@ -135,6 +135,30 @@ function readFormData(formData: FormData): OrderFormState['values'] & object {
   };
 }
 
+async function syncCustomServiceToCatalog(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  normalized: ReturnType<typeof normalizeOrderInput>
+) {
+  if (normalized.service_id || !normalized.custom_service_title) return;
+
+  const { data: existingServices, error: existingServicesError } = await supabase
+    .from('services')
+    .select('id')
+    .eq('user_id', userId)
+    .ilike('title', normalized.custom_service_title)
+    .limit(1);
+
+  if (existingServicesError || (existingServices?.length ?? 0) > 0) return;
+
+  await supabase.from('services').insert({
+    user_id: userId,
+    title: normalized.custom_service_title,
+    default_price: normalized.custom_price,
+    description: normalized.description,
+  });
+}
+
 export async function createOrderAction(
   _prevState: OrderFormState,
   formData: FormData
@@ -160,6 +184,7 @@ export async function createOrderAction(
   if (!user) return { formError: m.unauthorized, values: raw };
 
   const normalized = normalizeOrderInput(raw);
+  await syncCustomServiceToCatalog(supabase, user.id, normalized);
 
   if (normalized.client_id) {
     const { data, error } = await supabase
@@ -189,6 +214,7 @@ export async function createOrderAction(
     }
 
     revalidatePath('/orders');
+    revalidatePath('/services');
     redirect(`/orders/${data.id}`);
   }
 
@@ -247,6 +273,7 @@ export async function createOrderAction(
 
   revalidatePath('/orders');
   revalidatePath('/clients');
+  revalidatePath('/services');
   redirect(`/orders/${order.id}`);
 }
 

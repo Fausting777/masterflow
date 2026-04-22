@@ -8,7 +8,6 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'MasterFlow',
   description: 'MasterFlow',
-  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

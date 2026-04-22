@@ -28,9 +28,9 @@ import type {
 import { updateOrderAction } from '../actions';
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ edit?: string }>;
+type SearchParams = Promise<{ edit?: string; media?: string; history?: string; audit?: string }>;
 
-const DASH = '—';
+const DASH = '-';
 
 export default async function OrderPage({
   params,
@@ -40,8 +40,11 @@ export default async function OrderPage({
   searchParams: SearchParams;
 }) {
   const { id } = await params;
-  const { edit } = await searchParams;
+  const { edit, media, history, audit } = await searchParams;
   const requestedEdit = edit === '1';
+  const showMedia = media === '1';
+  const showHistory = history === '1';
+  const showAudit = audit === '1';
 
   const supabase = await createClient();
   const [{ t }, locale] = await Promise.all([getDictionary(), getLocale()]);
@@ -69,24 +72,30 @@ export default async function OrderPage({
     o.service_id
       ? supabase.from('services').select('*').eq('id', o.service_id).maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('order_id', o.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase
-      .from('audit_trail')
-      .select('*')
-      .eq('table_name', 'orders')
-      .eq('record_id', o.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase
-      .from('order_photos')
-      .select('*')
-      .eq('order_id', o.id)
-      .order('created_at', { ascending: true }),
+    showHistory
+      ? supabase
+          .from('activity_logs')
+          .select('*')
+          .eq('order_id', o.id)
+          .order('created_at', { ascending: false })
+          .limit(20)
+      : Promise.resolve({ data: [] }),
+    showAudit
+      ? supabase
+          .from('audit_trail')
+          .select('*')
+          .eq('table_name', 'orders')
+          .eq('record_id', o.id)
+          .order('created_at', { ascending: false })
+          .limit(20)
+      : Promise.resolve({ data: [] }),
+    showMedia
+      ? supabase
+          .from('order_photos')
+          .select('*')
+          .eq('order_id', o.id)
+          .order('created_at', { ascending: true })
+      : Promise.resolve({ data: [] }),
     isEditing ? supabase.from('clients').select('*').order('full_name') : Promise.resolve({ data: [] }),
     isEditing ? supabase.from('services').select('*').order('title') : Promise.resolve({ data: [] }),
     supabase.from('profiles').select('full_name, company_name').eq('id', o.user_id).maybeSingle(),
@@ -119,7 +128,10 @@ export default async function OrderPage({
   >;
 
   const photoPaths = photos.map((p) => p.file_path);
-  const photoSignedUrls = await getSignedUrls(supabase, 'order-photos', photoPaths);
+  const photoSignedUrls =
+    showMedia && photoPaths.length > 0
+      ? await getSignedUrls(supabase, 'order-photos', photoPaths)
+      : [];
   const photoUrlMap = new Map(photoSignedUrls.map((s) => [s.path, s.url]));
 
   const beforePhotos = photos
@@ -129,9 +141,10 @@ export default async function OrderPage({
     .filter((p) => p.photo_type === 'after')
     .map((p) => ({ id: p.id, url: photoUrlMap.get(p.file_path) ?? null }));
 
-  const signatureUrl = o.signature_file_path
-    ? await getSignedUrl(supabase, 'order-signatures', o.signature_file_path)
-    : null;
+  const signatureUrl =
+    showMedia && o.signature_file_path
+      ? await getSignedUrl(supabase, 'order-signatures', o.signature_file_path)
+      : null;
 
   const serviceTitle = service?.title ?? o.custom_service_title ?? DASH;
   const priceToShow = o.custom_price ?? service?.default_price ?? null;
@@ -153,9 +166,11 @@ export default async function OrderPage({
     ec_card: 'EC-Karte',
     paypal: 'PayPal',
   };
+
   const paymentProviderLabels: Record<PaymentProvider, string> = {
     sumup: 'SumUp',
   };
+
   const paymentMetaText =
     locale === 'de'
       ? {
@@ -163,9 +178,10 @@ export default async function OrderPage({
           paymentProvider: 'Zahlungsanbieter',
         }
       : {
-          paidAt: 'Оплачено',
-          paymentProvider: 'Платежный провайдер',
+          paidAt: '\u041e\u043f\u043b\u0430\u0447\u0435\u043d\u043e',
+          paymentProvider: '\u041f\u043b\u0430\u0442\u0435\u0436\u043d\u044b\u0439 \u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440',
         };
+
   const invoiceText =
     locale === 'de'
       ? {
@@ -187,6 +203,26 @@ export default async function OrderPage({
           pdfInvoice: t.orderPage.pdfInvoice,
         };
 
+  const sectionText =
+    locale === 'de'
+      ? {
+          loadMedia: 'Fotos und Unterschrift laden',
+          loadHistory: 'Historie laden',
+          loadAudit: 'DB-Audit laden',
+          mediaHint: 'Medien werden bei Bedarf geladen, damit die Seite auf dem Telefon schneller startet.',
+          historyHint: 'Historie wird nur bei Bedarf geladen.',
+          auditHint: 'DB-Audit wird nur bei Bedarf geladen.',
+        }
+      : {
+          loadMedia: '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u043e\u0442\u043e \u0438 \u043f\u043e\u0434\u043f\u0438\u0441\u044c',
+          loadHistory: '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0438\u0441\u0442\u043e\u0440\u0438\u044e',
+          loadAudit: '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c DB-audit',
+          mediaHint:
+            '\u041c\u0435\u0434\u0438\u0430 \u043f\u043e\u0434\u0433\u0440\u0443\u0436\u0430\u044e\u0442\u0441\u044f \u043f\u043e \u0437\u0430\u043f\u0440\u043e\u0441\u0443, \u0447\u0442\u043e\u0431\u044b \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430 \u0431\u044b\u0441\u0442\u0440\u0435\u0435 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u043b\u0430\u0441\u044c \u043d\u0430 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0435.',
+          historyHint: '\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u043e \u0437\u0430\u043f\u0440\u043e\u0441\u0443.',
+          auditHint: '\u0410\u0443\u0434\u0438\u0442 \u0411\u0414 \u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u043e \u0437\u0430\u043f\u0440\u043e\u0441\u0443.',
+        };
+
   const formatDateTimeLocal = (value: string | null | undefined) =>
     value
       ? new Date(value).toLocaleString(locale === 'de' ? 'de-DE' : 'ru-RU', {
@@ -198,6 +234,17 @@ export default async function OrderPage({
         })
       : DASH;
 
+  const createSectionHref = (section: 'media' | 'history' | 'audit') => {
+    const params = new URLSearchParams();
+
+    if (edit) params.set('edit', edit);
+    if (showMedia || section === 'media') params.set('media', '1');
+    if (showHistory || section === 'history') params.set('history', '1');
+    if (showAudit || section === 'audit') params.set('audit', '1');
+
+    return `/orders/${o.id}?${params.toString()}`;
+  };
+
   const deletedAtLabel = o.deleted_at
     ? new Date(o.deleted_at).toLocaleString(locale === 'de' ? 'de-DE' : 'ru-RU')
     : null;
@@ -206,7 +253,7 @@ export default async function OrderPage({
     <div className="max-w-2xl">
       <div className="mb-4">
         <Link href="/orders" className="text-sm text-neutral-500 hover:text-neutral-700">
-          ← {t.orderPage.backToList}
+          {'<-'} {t.orderPage.backToList}
         </Link>
       </div>
 
@@ -227,7 +274,7 @@ export default async function OrderPage({
       ) : (
         <>
           {requestedEdit && isInvoiceLocked && (
-              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               {invoiceText.editLocked}
             </div>
           )}
@@ -329,7 +376,10 @@ export default async function OrderPage({
             />
             {o.completed_at && <Row label={t.orderPage.completedAt} value={formatDateTimeLocal(o.completed_at)} />}
             {o.invoice_number && (
-              <Row label={invoiceText.invoiceNumber} value={<span className="font-mono font-semibold">{o.invoice_number}</span>} />
+              <Row
+                label={invoiceText.invoiceNumber}
+                value={<span className="font-mono font-semibold">{o.invoice_number}</span>}
+              />
             )}
             {o.invoice_sent_at && (
               <Row
@@ -356,47 +406,61 @@ export default async function OrderPage({
             )}
           </div>
 
-          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.beforePhotos}</h2>
-            <div className="mb-3">
-              <PhotoGallery photos={beforePhotos} />
-            </div>
-            {!isInvoiceLocked && <PhotoUploader orderId={o.id} photoType="before" label={t.orderPage.addBeforePhoto} />}
-          </div>
-
-          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.afterPhotos}</h2>
-            <div className="mb-3">
-              <PhotoGallery photos={afterPhotos} />
-            </div>
-            {!isInvoiceLocked && <PhotoUploader orderId={o.id} photoType="after" label={t.orderPage.addAfterPhoto} />}
-          </div>
-
-          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.signature}</h2>
-            {signatureUrl ? (
-              <div>
-                <div className="mb-3 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={signatureUrl} alt={t.orderPage.signatureAlt} className="w-full" />
+          {showMedia ? (
+            <>
+              <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+                <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.beforePhotos}</h2>
+                <div className="mb-3">
+                  <PhotoGallery photos={beforePhotos} />
                 </div>
                 {!isInvoiceLocked && (
-                  <Link href={`/orders/${o.id}/signature`} className="text-sm text-blue-600 hover:underline">
-                    {t.orderPage.resign}
-                  </Link>
+                  <PhotoUploader orderId={o.id} photoType="before" label={t.orderPage.addBeforePhoto} />
                 )}
               </div>
-            ) : (
-              !isInvoiceLocked && (
-                <Link
-                  href={`/orders/${o.id}/signature`}
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 dark:border-neutral-700 dark:text-neutral-300"
-                >
-                  {t.orderPage.requestSignature}
-                </Link>
-              )
-            )}
-          </div>
+
+              <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+                <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.afterPhotos}</h2>
+                <div className="mb-3">
+                  <PhotoGallery photos={afterPhotos} />
+                </div>
+                {!isInvoiceLocked && (
+                  <PhotoUploader orderId={o.id} photoType="after" label={t.orderPage.addAfterPhoto} />
+                )}
+              </div>
+
+              <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+                <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.signature}</h2>
+                {signatureUrl ? (
+                  <div>
+                    <div className="mb-3 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={signatureUrl} alt={t.orderPage.signatureAlt} className="w-full" />
+                    </div>
+                    {!isInvoiceLocked && (
+                      <Link href={`/orders/${o.id}/signature`} className="text-sm text-blue-600 hover:underline">
+                        {t.orderPage.resign}
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  !isInvoiceLocked && (
+                    <Link
+                      href={`/orders/${o.id}/signature`}
+                      className="inline-flex w-full items-center justify-center rounded-lg border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 dark:border-neutral-700 dark:text-neutral-300"
+                    >
+                      {t.orderPage.requestSignature}
+                    </Link>
+                  )
+                )}
+              </div>
+            </>
+          ) : (
+            <LoadSectionCard
+              href={createSectionHref('media')}
+              title={sectionText.loadMedia}
+              hint={sectionText.mediaHint}
+            />
+          )}
 
           <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5">
             <h2 className="mb-3 text-sm font-medium text-neutral-500">{invoiceText.pdfInvoice}</h2>
@@ -405,9 +469,7 @@ export default async function OrderPage({
               hasPdf={!!o.pdf_file_path}
               invoiceNumber={o.invoice_number}
               clientEmail={client?.email ?? null}
-              clientName={
-                client?.full_name ?? (locale === 'de' ? 'Kunde' : '\u041a\u043b\u0438\u0435\u043d\u0442')
-              }
+              clientName={client?.full_name ?? (locale === 'de' ? 'Kunde' : '\u041a\u043b\u0438\u0435\u043d\u0442')}
               masterName={masterProfile?.full_name ?? masterProfile?.company_name ?? t.orderPage.masterFallback}
               invoiceSentAt={o.invoice_sent_at}
               invoiceSentTo={o.invoice_sent_to}
@@ -421,7 +483,7 @@ export default async function OrderPage({
 
           {(o.pdf_file_path || o.pdf_sha256) && (
             <FileIntegrityPanel
-              title={locale === 'de' ? 'PDF-Integrität' : 'Целостность PDF'}
+              title={locale === 'de' ? 'PDF-Integritaet' : '\u0426\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c PDF'}
               hash={o.pdf_sha256}
               path={o.pdf_file_path}
               locale={locale}
@@ -446,27 +508,43 @@ export default async function OrderPage({
             </div>
           )}
 
-          {logs.length > 0 && (
-            <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-              <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.history}</h2>
-              <ul className="space-y-2">
-                {logs.map((l) => (
-                  <li key={l.id} className="flex items-start gap-3 text-sm">
-                    <span className="mt-0.5 whitespace-nowrap text-xs text-neutral-400">
-                      {formatDateTimeLocal(l.created_at)}
-                    </span>
-                    <span>{l.action_text ?? l.action_type}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {showHistory ? (
+            logs.length > 0 ? (
+              <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+                <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.history}</h2>
+                <ul className="space-y-2">
+                  {logs.map((l) => (
+                    <li key={l.id} className="flex items-start gap-3 text-sm">
+                      <span className="mt-0.5 whitespace-nowrap text-xs text-neutral-400">
+                        {formatDateTimeLocal(l.created_at)}
+                      </span>
+                      <span>{l.action_text ?? l.action_type}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null
+          ) : (
+            <LoadSectionCard
+              href={createSectionHref('history')}
+              title={sectionText.loadHistory}
+              hint={sectionText.historyHint}
+            />
           )}
 
-          <AuditTrailList
-            entries={auditEntries}
-            locale={locale}
-            title={locale === 'de' ? 'DB-Audit Trail' : 'DB-аудит'}
-          />
+          {showAudit ? (
+            <AuditTrailList
+              entries={auditEntries}
+              locale={locale}
+              title={locale === 'de' ? 'DB-Audit Trail' : 'DB-audit'}
+            />
+          ) : (
+            <LoadSectionCard
+              href={createSectionHref('audit')}
+              title={sectionText.loadAudit}
+              hint={sectionText.auditHint}
+            />
+          )}
 
           {o.deleted_at ? (
             <div className="rounded-xl border border-red-200 bg-red-50 p-5">
@@ -496,6 +574,28 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
     <div className="flex justify-between gap-4">
       <dt className="text-sm text-neutral-500">{label}</dt>
       <dd className="text-right text-sm">{value}</dd>
+    </div>
+  );
+}
+
+function LoadSectionCard({
+  href,
+  title,
+  hint,
+}: {
+  href: string;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <div className="mb-4 rounded-xl border border-dashed border-neutral-300 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">
+      <p className="mb-3 text-sm text-neutral-500">{hint}</p>
+      <Link
+        href={href}
+        className="inline-flex items-center justify-center rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+      >
+        {title}
+      </Link>
     </div>
   );
 }

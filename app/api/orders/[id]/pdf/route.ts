@@ -1,5 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 
+function formatFilenameTimestamp(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    '-',
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join('');
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -32,9 +45,10 @@ export async function GET(
   }
 
   const prefix = order.correction_of_order_id ? 'Rechnungskorrektur' : 'Rechnung';
+  const timestamp = formatFilenameTimestamp(new Date());
   const filename = order.invoice_number
-    ? `${prefix}-${order.invoice_number}.pdf`
-    : `${prefix}-${orderId.slice(0, 8)}.pdf`;
+    ? `${prefix}-${order.invoice_number}-${timestamp}.pdf`
+    : `${prefix}-${orderId.slice(0, 8)}-${timestamp}.pdf`;
 
   return new Response(data, {
     headers: {

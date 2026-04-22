@@ -12,6 +12,19 @@ type SendInput = {
   body: string;
 };
 
+function formatFilenameTimestamp(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    '-',
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join('');
+}
+
 async function getMessages() {
   const locale = await getLocale();
   return locale === 'de'
@@ -89,9 +102,10 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
   }
 
   const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer());
+  const timestamp = formatFilenameTimestamp(new Date());
   const filename = order.invoice_number
-    ? `Rechnung-${order.invoice_number}.pdf`
-    : `Rechnung-${order.id.slice(0, 8)}.pdf`;
+    ? `Rechnung-${order.invoice_number}-${timestamp}.pdf`
+    : `Rechnung-${order.id.slice(0, 8)}-${timestamp}.pdf`;
   const fromName = profile?.company_name ?? profile?.full_name ?? 'MasterFlow';
   const from = `${fromName} <onboarding@resend.dev>`;
 

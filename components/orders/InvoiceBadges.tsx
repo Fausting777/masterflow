@@ -4,11 +4,36 @@ type Props = {
   invoiceNumber: Order['invoice_number'];
   invoiceSentAt: Order['invoice_sent_at'];
   compact?: boolean;
+  locale?: 'ru' | 'de';
 };
 
-export default function InvoiceBadges({ invoiceNumber, invoiceSentAt, compact = false }: Props) {
+export default function InvoiceBadges({
+  invoiceNumber,
+  invoiceSentAt,
+  compact = false,
+  locale = 'de',
+}: Props) {
   const hasInvoice = Boolean(invoiceNumber);
   const isSent = Boolean(invoiceSentAt);
+
+  const text =
+    locale === 'de'
+      ? {
+          missingTitle: 'Quittung wurde noch nicht erstellt',
+          missingLabel: 'Ohne Quittung',
+          invoiceTitle: `Quittung ${invoiceNumber ?? ''}`.trim(),
+          sentTitle: `Versendet ${new Date(invoiceSentAt ?? '').toLocaleDateString('de-DE')}`.trim(),
+          invoiceShort: 'PDF',
+          sentShort: 'Gesendet',
+        }
+      : {
+          missingTitle: 'Квитанция еще не создана',
+          missingLabel: 'Без квитанции',
+          invoiceTitle: `Квитанция ${invoiceNumber ?? ''}`.trim(),
+          sentTitle: `Отправлено ${new Date(invoiceSentAt ?? '').toLocaleDateString('ru-RU')}`.trim(),
+          invoiceShort: 'PDF',
+          sentShort: 'Отправлено',
+        };
 
   if (!hasInvoice) {
     return (
@@ -16,9 +41,9 @@ export default function InvoiceBadges({ invoiceNumber, invoiceSentAt, compact = 
         className={`inline-flex items-center gap-1 rounded-full bg-neutral-100 font-medium text-neutral-600 ${
           compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'
         }`}
-        title="Квитанция ещё не выпущена"
+        title={text.missingTitle}
       >
-        {compact ? '○' : '○ без квитанции'}
+        {compact ? '!' : `! ${text.missingLabel}`}
       </span>
     );
   }
@@ -29,9 +54,9 @@ export default function InvoiceBadges({ invoiceNumber, invoiceSentAt, compact = 
         className={`inline-flex items-center gap-1 rounded-full bg-green-100 font-medium text-green-800 ${
           compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'
         }`}
-        title={`Квитанция ${invoiceNumber}`}
+        title={text.invoiceTitle}
       >
-        📄 {compact ? '' : invoiceNumber}
+        {text.invoiceShort} {compact ? '' : invoiceNumber}
       </span>
 
       {isSent && (
@@ -39,9 +64,9 @@ export default function InvoiceBadges({ invoiceNumber, invoiceSentAt, compact = 
           className={`inline-flex items-center gap-1 rounded-full bg-blue-100 font-medium text-blue-800 ${
             compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'
           }`}
-          title={`Отправлена ${new Date(invoiceSentAt!).toLocaleDateString('de-DE')}`}
+          title={text.sentTitle}
         >
-          ✉
+          {compact ? 'Mail' : text.sentShort}
         </span>
       )}
     </span>

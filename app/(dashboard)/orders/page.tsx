@@ -24,9 +24,9 @@ const STATUS_FILTERS: Array<{ key: OrderStatus | 'all' }> = [
 
 const INVOICE_FILTERS = [
   { key: 'all', icon: '' },
-  { key: 'with', icon: 'DOC' },
+  { key: 'with', icon: 'PDF' },
   { key: 'without', icon: '!' },
-  { key: 'sent', icon: 'MAIL' },
+  { key: 'sent', icon: 'Mail' },
 ] as const;
 
 const DASH = '-';
@@ -70,7 +70,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           openOrders: 'Ohne Quittung',
           totalAmount: 'Gesamtsumme',
           amountHint: 'Summe aller Preise in der aktuellen Auswahl',
-          onAmount: 'im Wert von',
           error: 'Fehler',
           emptyDefault: 'Noch keine Auftraege.',
           createFirst: 'Ersten Auftrag erstellen',
@@ -99,7 +98,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           openOrders: 'Без квитанции',
           totalAmount: 'Общая сумма',
           amountHint: 'Сумма всех цен в текущей выборке',
-          onAmount: 'на сумму',
           error: 'Ошибка',
           emptyDefault: 'Пока нет заказов.',
           createFirst: 'Создать первый',
@@ -171,7 +169,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
 
   const getOrderAmount = (order: OrderWithClient) => {
     const snapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
-    if (snapshot?.order.price !== undefined && snapshot?.order.price !== null) {
+    if (snapshot?.order.price !== undefined && snapshot.order.price !== null) {
       return Number(snapshot.order.price);
     }
 
@@ -234,6 +232,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     sent: text.sent,
   };
 
+  const roundedTotal = Math.round(totals.totalAmount * 100) / 100;
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -244,9 +244,12 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
             className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
             title={text.trash}
           >
-            TRASH
+            {text.trash}
           </Link>
-          <Link href="/orders/new" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          <Link
+            href="/orders/new"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
             + {text.new}
           </Link>
         </div>
@@ -342,14 +345,14 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
               </div>
             )}
           </div>
-          <div className="text-2xl font-bold text-amber-700">{formatPrice(Math.round(totals.totalAmount * 100) / 100)}</div>
+          <div className="text-2xl font-bold text-amber-700">{formatPrice(roundedTotal)}</div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <SummaryCard label={text.totalOrders} value={String(totals.totalOrders)} />
           <SummaryCard label={text.invoicedOrders} value={String(totals.withInvoice)} />
           <SummaryCard label={text.openOrders} value={String(totals.withoutInvoice)} />
-          <SummaryCard label={text.totalAmount} value={formatPrice(Math.round(totals.totalAmount * 100) / 100)} hint={text.amountHint} />
+          <SummaryCard label={text.totalAmount} value={formatPrice(roundedTotal)} hint={text.amountHint} />
         </div>
       </div>
 
@@ -386,8 +389,14 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[order.status]}`}>
                         {statusLabels[order.status]}
                       </span>
-                      <InvoiceBadges invoiceNumber={order.invoice_number} invoiceSentAt={order.invoice_sent_at} />
-                      <span className="text-xs text-neutral-500">{formatDate(effectiveDate(order).toISOString())}</span>
+                      <InvoiceBadges
+                        invoiceNumber={order.invoice_number}
+                        invoiceSentAt={order.invoice_sent_at}
+                        locale={locale}
+                      />
+                      <span className="text-xs text-neutral-500">
+                        {formatDate(effectiveDate(order).toISOString())}
+                      </span>
                     </div>
                     <h3 className="truncate font-medium">{order.client_name}</h3>
                     <p className="truncate text-sm text-neutral-500">

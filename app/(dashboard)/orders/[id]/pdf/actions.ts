@@ -418,16 +418,9 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
 
   if (!order?.pdf_file_path) return { url: null, error: m.pdfMissing };
 
-  const prefix = order.correction_of_order_id ? 'Rechnungskorrektur' : 'Rechnung';
-  const filename = order.invoice_number
-    ? `${prefix}-${order.invoice_number}.pdf`
-    : `${prefix}-${orderId.slice(0, 8)}.pdf`;
-
   const { data, error } = await supabase.storage
     .from('order-pdfs')
-    .createSignedUrl(order.pdf_file_path, 300, {
-      download: filename,
-    });
+    .createSignedUrl(order.pdf_file_path, 300);
 
   if (error || !data) return { url: null, error: error?.message ?? m.genericError };
   return { url: data.signedUrl };

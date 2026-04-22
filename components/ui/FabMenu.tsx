@@ -54,7 +54,7 @@ export default function FabMenu() {
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 8rem)' }}
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 10rem)' }}
       >
         {actions.map((action, i) => {
           const Icon = action.icon;
@@ -85,7 +85,7 @@ export default function FabMenu() {
         type="button"
         onClick={() => setOpen(!open)}
         className="sm:hidden fixed right-4 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl flex items-center justify-center transition-transform active:scale-95"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' }}
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}
         aria-label={open ? t.fab.closeMenu : t.fab.create}
       >
         <div className={`transition-transform duration-300 ${open ? 'rotate-45' : ''}`}>

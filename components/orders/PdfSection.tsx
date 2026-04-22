@@ -17,6 +17,13 @@ type Props = {
   invoiceSentTo: string | null;
 };
 
+function buildPdfFilename(orderId: string, invoiceNumber: string | null) {
+  const prefix = 'Rechnung';
+  return invoiceNumber
+    ? `${prefix}-${invoiceNumber}.pdf`
+    : `${prefix}-${orderId.slice(0, 8)}.pdf`;
+}
+
 export default function PdfSection({
   orderId,
   hasPdf,
@@ -33,6 +40,7 @@ export default function PdfSection({
   const [pdfExists, setPdfExists] = useState(hasPdf);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isOpeningPdf, setIsOpeningPdf] = useState(false);
+  const [isSavingPdf, setIsSavingPdf] = useState(false);
 
   const isIssued = Boolean(invoiceNumber);
   const text =
@@ -40,9 +48,10 @@ export default function PdfSection({
       ? {
           genericError: 'Fehler',
           pdfUrlFailed: 'PDF konnte nicht geladen werden',
+          pdfSaveFailed: 'PDF konnte nicht gespeichert oder geteilt werden',
           ready: 'PDF-Rechnung ist bereit',
           openPdf: 'PDF oeffnen',
-          downloadPdf: 'PDF herunterladen',
+          savePdf: 'PDF teilen / speichern',
           regeneratePdf: 'PDF neu erzeugen',
           sendByEmail: 'An Kunden per E-Mail senden',
           lastSent: 'Zuletzt gesendet',
@@ -52,6 +61,8 @@ export default function PdfSection({
             'Vor Ausstellung der Rechnung kann das PDF neu erzeugt werden, wenn Daten geaendert oder Fotos hinzugefuegt wurden.',
           generating: 'PDF wird erzeugt...',
           generatePdf: 'PDF-Rechnung erzeugen',
+          opening: 'PDF wird geoeffnet...',
+          saving: 'PDF wird vorbereitet...',
           sentTo: 'an',
           readyIcon: 'OK',
           regenerateIcon: 'Neu',
@@ -59,21 +70,24 @@ export default function PdfSection({
       : {
           genericError: 'Ошибка',
           pdfUrlFailed: 'Не удалось загрузить PDF',
+          pdfSaveFailed: 'Не удалось сохранить или отправить PDF',
           ready: 'PDF-квитанция готова',
           openPdf: 'Открыть PDF',
-          downloadPdf: 'Скачать PDF',
+          savePdf: 'Поделиться / сохранить PDF',
           regeneratePdf: 'Пересоздать PDF',
           sendByEmail: 'Отправить клиенту на email',
           lastSent: 'Последняя отправка',
           draftLocked:
-            'После выпуска квитанции PDF фиксируется. Пересоздать его поверх исходного документа больше нельзя.',
+            'После выпуска квитанции PDF фиксируется. Повторно пересоздать его поверх исходного документа больше нельзя.',
           draftHint:
             'До выпуска квитанции PDF можно пересоздать, если ты изменил данные или добавил фото.',
           generating: 'Генерация PDF...',
           generatePdf: 'Создать PDF-квитанцию',
+          opening: 'PDF открывается...',
+          saving: 'PDF подготавливается...',
           sentTo: 'на',
           readyIcon: 'OK',
-          regenerateIcon: '↻',
+          regenerateIcon: 'Обн',
         };
 
   function handleGenerate() {
@@ -92,12 +106,54 @@ export default function PdfSection({
     setError(null);
     setIsOpeningPdf(true);
     window.location.assign(`/api/orders/${orderId}/pdf`);
-    setIsOpeningPdf(false);
+    window.setTimeout(() => setIsOpeningPdf(false), 1200);
   }
 
-  function downloadPdf() {
+  async function savePdf() {
     setError(null);
-    window.location.assign(`/api/orders/${orderId}/pdf?download=1`);
+    setIsSavingPdf(true);
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}/pdf?download=1`, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error(text.pdfUrlFailed);
+      }
+
+      const blob = await response.blob();
+      const filename = buildPdfFilename(orderId, invoiceNumber);
+      const file = new File([blob], filename, { type: 'application/pdf' });
+
+      const nav = navigator as Navigator & {
+        canShare?: (data?: ShareData) => boolean;
+      };
+
+      if (typeof nav.share === 'function' && typeof nav.canShare === 'function' && nav.canShare({ files: [file] })) {
+        await nav.share({
+          files: [file],
+          title: filename,
+        });
+        return;
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : text.pdfSaveFailed);
+    } finally {
+      setIsSavingPdf(false);
+    }
   }
 
   return (
@@ -119,14 +175,15 @@ export default function PdfSection({
               disabled={isOpeningPdf}
               className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
             >
-              {text.openPdf}
+              {isOpeningPdf ? text.opening : text.openPdf}
             </button>
             <button
               type="button"
-              onClick={downloadPdf}
-              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50"
+              onClick={savePdf}
+              disabled={isSavingPdf}
+              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
             >
-              {text.downloadPdf}
+              {isSavingPdf ? text.saving : text.savePdf}
             </button>
             {!isIssued && (
               <button

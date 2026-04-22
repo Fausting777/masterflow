@@ -35,6 +35,7 @@ export default function PdfSection({
   const [error, setError] = useState<string | null>(null);
   const [pdfExists, setPdfExists] = useState(hasPdf);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isOpeningPdf, setIsOpeningPdf] = useState(false);
 
   const isIssued = Boolean(invoiceNumber);
   const text =
@@ -90,12 +91,20 @@ export default function PdfSection({
 
   async function openPdf() {
     setError(null);
+    setIsOpeningPdf(true);
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
     const res = await getPdfSignedUrlAction(orderId);
     if (res.url) {
-      window.open(res.url, '_blank');
+      if (popup) {
+        popup.location.href = res.url;
+      } else {
+        window.location.href = res.url;
+      }
     } else {
+      if (popup) popup.close();
       setError(res.error ?? text.pdfUrlFailed);
     }
+    setIsOpeningPdf(false);
   }
 
   return (
@@ -114,6 +123,7 @@ export default function PdfSection({
             <button
               type="button"
               onClick={openPdf}
+              disabled={isOpeningPdf}
               className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
             >
               {text.openPdf}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
 import { useI18n } from '@/components/i18n/LocaleProvider';
@@ -93,6 +93,14 @@ export default function OrderForm({
   const [paymentProvider, setPaymentProvider] = useState(values.payment_provider);
   const [paidAt, setPaidAt] = useState(values.paid_at);
 
+  useEffect(() => {
+    if (!useQuickClient || orderAddressTouched) return;
+
+    const cityLine = [quickPostalCode.trim(), quickCity.trim()].filter(Boolean).join(' ');
+    const nextOrderAddress = [quickAddress.trim(), cityLine].filter(Boolean).join(', ');
+    setOrderAddress(nextOrderAddress);
+  }, [quickAddress, quickPostalCode, quickCity, orderAddressTouched, useQuickClient]);
+
   const paymentMetaText =
     locale === 'de'
       ? {
@@ -158,11 +166,7 @@ export default function OrderForm({
               type="text"
               value={quickAddress}
               onChange={(e) => {
-                const nextValue = e.target.value;
-                setQuickAddress(nextValue);
-                if (!orderAddressTouched && orderAddress.trim().length === 0) {
-                  setOrderAddress(nextValue);
-                }
+                setQuickAddress(e.target.value);
               }}
               placeholder={t.orderForm.quickAddressPlaceholder}
               className={inputCls}

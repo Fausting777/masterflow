@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import {
-  generatePdfAction,
-  getPdfSignedUrlAction,
-} from '@/app/(dashboard)/orders/[id]/pdf/actions';
+import { generatePdfAction } from '@/app/(dashboard)/orders/[id]/pdf/actions';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 import { formatDateTime } from '@/lib/utils/format';
 import SendInvoiceDialog from './SendInvoiceDialog';
@@ -92,12 +89,7 @@ export default function PdfSection({
   async function openPdf() {
     setError(null);
     setIsOpeningPdf(true);
-    const res = await getPdfSignedUrlAction(orderId);
-    if (res.url) {
-      window.location.assign(res.url);
-    } else {
-      setError(res.error ?? text.pdfUrlFailed);
-    }
+    window.location.assign(`/api/orders/${orderId}/pdf`);
     setIsOpeningPdf(false);
   }
 

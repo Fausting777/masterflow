@@ -26,56 +26,62 @@ export default function SendInvoiceDialog({
     locale === 'de'
       ? {
           title: 'Rechnung per E-Mail senden',
-          close: 'Schliessen',
+          close: 'Schließen',
           success: 'E-Mail wurde gesendet',
-          recipient: 'Empfaenger (E-Mail)',
+          recipient: 'Empfänger (E-Mail)',
           missingClientEmail:
-            'Beim Kunden ist keine E-Mail hinterlegt. Fuege sie in der Kundenkarte hinzu oder trage sie hier manuell ein.',
+            'Beim Kunden ist keine E-Mail hinterlegt. Füge sie in der Kundenkarte hinzu oder trage sie hier manuell ein.',
           subjectLabel: 'Betreff',
           bodyLabel: 'Nachricht',
           attachmentHint:
-            'Die PDF-Rechnung wird automatisch angehaengt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
+            'Die PDF-Rechnung wird automatisch angehängt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
           cancel: 'Abbrechen',
           send: 'Senden',
           sending: 'Wird gesendet...',
           genericError: 'Fehler beim Senden',
+          sentTo: 'Gesendet an:',
+          closeIcon: '×',
+          successIcon: '✓',
           defaultSubject: invoiceNumber
             ? `Rechnung ${invoiceNumber}`
-            : 'Rechnung fuer erbrachte Leistung',
+            : 'Rechnung für erbrachte Leistung',
           defaultBody: `Sehr geehrte/r ${clientName},
 
-anbei finden Sie die Rechnung fuer die erbrachte Leistung.
+anbei finden Sie die Rechnung für die erbrachte Leistung.
 
 Bei Fragen melden Sie sich bitte gerne bei mir.
 
-Mit freundlichen Gruessen
+Mit freundlichen Grüßen
 ${masterName}`,
         }
       : {
-          title: 'Ð Ñ›Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Ñ‘Ð¡â€šÐ¡ÐŠ Ð Ñ”Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð¡Ð‹ Ð Ð…Ð Â° email',
-          close: 'Ð â€”Ð Â°Ð Ñ”Ð¡Ð‚Ð¡â€¹Ð¡â€šÐ¡ÐŠ',
-          success: 'Ð ÑŸÐ Ñ‘Ð¡ÐƒÐ¡ÐŠÐ Ñ˜Ð Ñ• Ð Ñ•Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Â»Ð ÂµÐ Ð…Ð Ñ•',
-          recipient: 'Ð Ñ™Ð Ñ•Ð Ñ˜Ð¡Ñ“ (email)',
+          title: 'Отправить квитанцию на email',
+          close: 'Закрыть',
+          success: 'Письмо отправлено',
+          recipient: 'Кому (email)',
           missingClientEmail:
-            'Ð Ðˆ Ð Ñ”Ð Â»Ð Ñ‘Ð ÂµÐ Ð…Ð¡â€šÐ Â° Ð Ð…Ð ÂµÐ¡â€š email. Ð â€Ð Ñ•Ð Â±Ð Â°Ð Ð†Ð¡ÐŠ Ð ÂµÐ Ñ–Ð Ñ• Ð Ð† Ð Ñ”Ð Â°Ð¡Ð‚Ð¡â€šÐ Ñ•Ð¡â€¡Ð Ñ”Ð Âµ Ð Ñ”Ð Â»Ð Ñ‘Ð ÂµÐ Ð…Ð¡â€šÐ Â° Ð Ñ‘Ð Â»Ð Ñ‘ Ð Ñ—Ð Ñ•Ð Ò‘Ð¡ÐƒÐ¡â€šÐ Â°Ð Ð†Ð¡ÐŠ Ð¡ÐƒÐ Â°Ð Ñ˜.',
-          subjectLabel: 'Ð ÑžÐ ÂµÐ Ñ˜Ð Â°',
-          bodyLabel: 'Ð ÑžÐ ÂµÐ Ñ”Ð¡ÐƒÐ¡â€š Ð Ñ—Ð Ñ‘Ð¡ÐƒÐ¡ÐŠÐ Ñ˜Ð Â°',
+            'У клиента нет email. Добавь его в карточке клиента или укажи здесь вручную.',
+          subjectLabel: 'Тема',
+          bodyLabel: 'Текст письма',
           attachmentHint:
-            'PDF-Ð Ñ”Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð¡Ð Ð Â±Ð¡Ñ“Ð Ò‘Ð ÂµÐ¡â€š Ð Ð†Ð Â»Ð Ñ•Ð Â¶Ð ÂµÐ Ð…Ð Â° Ð Â°Ð Ð†Ð¡â€šÐ Ñ•Ð Ñ˜Ð Â°Ð¡â€šÐ Ñ‘Ð¡â€¡Ð ÂµÐ¡ÐƒÐ Ñ”Ð Ñ‘.\nÐ Ñ›Ð¡â€šÐ Ð†Ð ÂµÐ¡â€šÐ¡â€¹ Ð Ñ•Ð¡â€š Ð Ñ”Ð Â»Ð Ñ‘Ð ÂµÐ Ð…Ð¡â€šÐ Â° Ð Ñ—Ð¡Ð‚Ð Ñ‘Ð Ò‘Ð¡Ñ“Ð¡â€š Ð Ð…Ð Â° Ð¡â€šÐ Ð†Ð Ñ•Ð â„– email.',
-          cancel: 'Ð Ñ›Ð¡â€šÐ Ñ˜Ð ÂµÐ Ð…Ð Â°',
-          send: 'Ð Ñ›Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Ñ‘Ð¡â€šÐ¡ÐŠ',
-          sending: 'Ð Ñ›Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Ñ”Ð Â°...',
-          genericError: 'Ð Ñ›Ð¡â‚¬Ð Ñ‘Ð Â±Ð Ñ”Ð Â° Ð Ñ•Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Ñ”Ð Ñ‘',
+            'PDF-квитанция будет вложена автоматически.\nОтветы клиента придут на твой email.',
+          cancel: 'Отмена',
+          send: 'Отправить',
+          sending: 'Отправка...',
+          genericError: 'Ошибка отправки',
+          sentTo: 'Отправлено на:',
+          closeIcon: '×',
+          successIcon: '✓',
           defaultSubject: invoiceNumber
-            ? `Ð Ñ™Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð¡Ð ${invoiceNumber}`
-            : 'Ð Ñ™Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð¡Ð Ð Â·Ð Â° Ð Ð†Ð¡â€¹Ð Ñ—Ð Ñ•Ð Â»Ð Ð…Ð ÂµÐ Ð…Ð Ð…Ð¡Ñ“Ð¡Ð‹ Ð¡Ð‚Ð Â°Ð Â±Ð Ñ•Ð¡â€šÐ¡Ñ“',
-          defaultBody: `Ð â€”Ð Ò‘Ð¡Ð‚Ð Â°Ð Ð†Ð¡ÐƒÐ¡â€šÐ Ð†Ð¡Ñ“Ð â„–Ð¡â€šÐ Âµ, ${clientName}.
+            ? `Квитанция ${invoiceNumber}`
+            : 'Квитанция за выполненные работы',
+          defaultBody: `Здравствуйте, ${clientName}.
 
-Ð â€™Ð Ñ• Ð Ð†Ð Â»Ð Ñ•Ð Â¶Ð ÂµÐ Ð…Ð Ñ‘Ð Ñ‘ Ð Ñ”Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð¡Ð Ð Â·Ð Â° Ð Ð†Ð¡â€¹Ð Ñ—Ð Ñ•Ð Â»Ð Ð…Ð ÂµÐ Ð…Ð Ð…Ð¡Ñ“Ð¡Ð‹ Ð¡Ð‚Ð Â°Ð Â±Ð Ñ•Ð¡â€šÐ¡Ñ“.
+Во вложении квитанция за выполненные работы.
 
-Ð â€¢Ð¡ÐƒÐ Â»Ð Ñ‘ Ð Ñ—Ð Ñ•Ð¡ÐÐ Ð†Ð¡ÐÐ¡â€šÐ¡ÐƒÐ¡Ð Ð Ð†Ð Ñ•Ð Ñ—Ð¡Ð‚Ð Ñ•Ð¡ÐƒÐ¡â€¹, Ð Ñ—Ð Ñ•Ð Â¶Ð Â°Ð Â»Ð¡Ñ“Ð â„–Ð¡ÐƒÐ¡â€šÐ Â°, Ð¡ÐƒÐ Ð†Ð¡ÐÐ Â¶Ð Ñ‘Ð¡â€šÐ ÂµÐ¡ÐƒÐ¡ÐŠ Ð¡ÐƒÐ Ñ• Ð Ñ˜Ð Ð…Ð Ñ•Ð â„–.
+Если появятся вопросы, пожалуйста, свяжитесь со мной.
 
-Ð ÐŽ Ð¡Ñ“Ð Ð†Ð Â°Ð Â¶Ð ÂµÐ Ð…Ð Ñ‘Ð ÂµÐ Ñ˜
+С уважением
 ${masterName}`,
         };
 
@@ -127,17 +133,17 @@ ${masterName}`,
             className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-neutral-100"
             aria-label={text.close}
           >
-            Ð“â€”
+            {text.closeIcon}
           </button>
         </div>
 
         <div className="space-y-4 p-5">
           {success ? (
             <div className="py-6 text-center">
-              <div className="mb-3 text-4xl">Ð²Ñšâ€œ</div>
+              <div className="mb-3 text-4xl">{text.successIcon}</div>
               <div className="font-medium">{text.success}</div>
               <div className="mt-1 text-sm text-neutral-500">
-                {locale === 'de' ? 'Gesendet an:' : 'Ð Ñ›Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Â»Ð ÂµÐ Ð…Ð Ñ•:'} {to}
+                {text.sentTo} {to}
               </div>
             </div>
           ) : (

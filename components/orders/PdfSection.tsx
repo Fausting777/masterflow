@@ -92,16 +92,10 @@ export default function PdfSection({
   async function openPdf() {
     setError(null);
     setIsOpeningPdf(true);
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
     const res = await getPdfSignedUrlAction(orderId);
     if (res.url) {
-      if (popup) {
-        popup.location.href = res.url;
-      } else {
-        window.location.href = res.url;
-      }
+      window.location.assign(res.url);
     } else {
-      if (popup) popup.close();
       setError(res.error ?? text.pdfUrlFailed);
     }
     setIsOpeningPdf(false);

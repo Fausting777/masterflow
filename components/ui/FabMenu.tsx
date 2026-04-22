@@ -42,19 +42,19 @@ export default function FabMenu() {
   return (
     <>
       <div
-        className={`sm:hidden fixed inset-0 bg-black/30 z-30 transition-opacity ${
+        className={`sm:hidden fixed inset-0 bg-black/30 z-40 transition-opacity ${
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setOpen(false)}
       />
 
       <div
-        className={`sm:hidden fixed right-4 z-40 flex flex-col items-end gap-2 transition-all ${
+        className={`sm:hidden fixed right-4 z-50 flex flex-col items-end gap-2 transition-all ${
           open
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)' }}
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 8rem)' }}
       >
         {actions.map((action, i) => {
           const Icon = action.icon;
@@ -84,8 +84,8 @@ export default function FabMenu() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="sm:hidden fixed right-4 z-40 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-transform active:scale-95"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
+        className="sm:hidden fixed right-4 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl flex items-center justify-center transition-transform active:scale-95"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' }}
         aria-label={open ? t.fab.closeMenu : t.fab.create}
       >
         <div className={`transition-transform duration-300 ${open ? 'rotate-45' : ''}`}>

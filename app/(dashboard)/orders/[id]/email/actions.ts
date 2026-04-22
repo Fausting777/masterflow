@@ -25,7 +25,7 @@ async function getMessages() {
         pdfMissing: 'PDF wurde noch nicht erstellt',
         pdfDownloadFailed: 'PDF konnte nicht geladen werden',
         sendUnknown: 'Unbekannter Fehler beim Versand',
-        sentTo: 'Quittung gesendet an',
+        sentTo: 'Rechnung gesendet an',
       }
     : {
         missingOrder: 'Заказ не указан',
@@ -90,8 +90,8 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
 
   const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer());
   const filename = order.invoice_number
-    ? `Quittung-${order.invoice_number}.pdf`
-    : `Quittung-${order.id.slice(0, 8)}.pdf`;
+    ? `Rechnung-${order.invoice_number}.pdf`
+    : `Rechnung-${order.id.slice(0, 8)}.pdf`;
   const fromName = profile?.company_name ?? profile?.full_name ?? 'MasterFlow';
   const from = `${fromName} <onboarding@resend.dev>`;
 

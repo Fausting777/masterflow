@@ -31,6 +31,8 @@ export type OrderFormState = {
     scheduled_at: string;
     service_date: string;
     payment_method: string;
+    payment_provider: string;
+    paid_at: string;
   };
 };
 
@@ -128,6 +130,8 @@ function readFormData(formData: FormData): OrderFormState['values'] & object {
     scheduled_at: String(formData.get('scheduled_at') ?? ''),
     service_date: String(formData.get('service_date') ?? ''),
     payment_method: String(formData.get('payment_method') ?? ''),
+    payment_provider: String(formData.get('payment_provider') ?? ''),
+    paid_at: String(formData.get('paid_at') ?? ''),
   };
 }
 
@@ -174,6 +178,8 @@ export async function createOrderAction(
         scheduled_at: normalized.scheduled_at,
         service_date: normalized.service_date,
         payment_method: normalized.payment_method,
+        payment_provider: normalized.payment_provider,
+        paid_at: normalized.paid_at,
       })
       .select('id')
       .single();
@@ -226,6 +232,8 @@ export async function createOrderAction(
       scheduled_at: normalized.scheduled_at,
       service_date: normalized.service_date,
       payment_method: normalized.payment_method,
+      payment_provider: normalized.payment_provider,
+      paid_at: normalized.paid_at,
     })
     .select('id')
     .single();
@@ -417,6 +425,8 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
       scheduled_at: sourceOrder.scheduled_at,
       service_date: sourceOrder.service_date,
       payment_method: sourceOrder.payment_method,
+      payment_provider: null,
+      paid_at: null,
     })
     .select('id')
     .single();

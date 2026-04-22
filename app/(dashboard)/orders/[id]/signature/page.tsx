@@ -19,7 +19,7 @@ export default async function SignaturePage({ params }: { params: Params }) {
           introLine1:
             'Mit meiner Unterschrift bestaetige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
           introLine2:
-            'Ich erkenne den Quittungsbetrag an und verpflichte mich zur Zahlung gemaess der vereinbarten Zahlungsart.',
+            'Ich erkenne den Rechnungsbetrag an und bestaetige die vereinbarte Zahlungsart.',
         }
       : {
           back: 'Назад к заказу',

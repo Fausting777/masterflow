@@ -36,6 +36,8 @@ export type InvoiceData = {
     description: string | null;
     order_address: string | null;
     payment_method: 'cash' | 'transfer' | 'ec_card' | 'paypal' | null;
+    payment_provider?: 'sumup' | null;
+    paid_at?: string | null;
   };
   signature: Uint8Array | null;
   photosBefore: Uint8Array[];
@@ -87,7 +89,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
   };
   const isCorrectionDocument =
     data.order.service_title.startsWith('Korrektur:') ||
-    data.order.description?.includes('Korrektur zu Quittung') === true;
+    data.order.description?.includes('Korrektur zu Rechnung') === true;
 
   let page = doc.addPage([595, 842]); // A4
   const W = 595;
@@ -181,17 +183,17 @@ if (data.client.phone) {
   const metaLabelX = rightX - 110;
 
   y = rightY;
-  drawRight('Quittungsnummer:', metaLabelX, regular, 9, COLORS.muted);
+  drawRight('Rechnungsnummer:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(data.order.invoice_number, rightX, bold, 10);
   y -= 14;
-  drawRight('Quittungsdatum:', metaLabelX, regular, 9, COLORS.muted);
+  drawRight('Rechnungsdatum:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(formatDate(data.order.invoice_date), rightX, regular, 10);
   y -= 14;
   drawRight('Leistungsdatum:', metaLabelX, regular, 9, COLORS.muted);
   drawRight(formatDate(data.order.service_date), rightX, regular, 10);
   if (data.order.correction_of_invoice_number) {
     y -= 14;
-    drawRight('Bezug auf Quittung:', metaLabelX, regular, 9, COLORS.muted);
+    drawRight('Bezug auf Rechnung:', metaLabelX, regular, 9, COLORS.muted);
     drawRight(data.order.correction_of_invoice_number, rightX, bold, 10, COLORS.correctionText);
   }
 
@@ -208,11 +210,11 @@ if (data.client.phone) {
       color: COLORS.correctionBg,
     });
     y -= 18;
-    drawText('Quittungskorrektur', margin + 12, bold, 13, COLORS.correctionText);
+    drawText('Rechnungskorrektur', margin + 12, bold, 13, COLORS.correctionText);
     y -= 20;
   }
 
-  drawText(isCorrectionDocument ? 'Korrigierte Quittung' : 'Quittung', margin, bold, 22, COLORS.text);
+  drawText(isCorrectionDocument ? 'Korrigierte Rechnung' : 'Rechnung', margin, bold, 22, COLORS.text);
   y -= 26;
 
   // ===================== ТАБЛИЦА УСЛУГ =====================
@@ -329,15 +331,49 @@ if (data.client.phone) {
     y -= 25;
   }
 
-  // ===================== ZAHLUNGSART =====================
-if (data.order.payment_method) {
+  // ===================== ZAHLUNG =====================
+if (data.order.payment_method || data.order.paid_at) {
+  const paymentLabels: Record<string, string> = {
+    cash: 'Barzahlung',
+    transfer: 'Ueberweisung',
+    ec_card: 'EC-Karte',
+    paypal: 'PayPal',
+  };
+  const label = data.order.payment_method
+    ? paymentLabels[data.order.payment_method] ?? data.order.payment_method
+    : 'Unbekannt';
+  const providerLabel = data.order.payment_provider === 'sumup' ? 'SumUp' : null;
+
+  ensureSpace(72);
+  drawText('Zahlung', margin, bold, 10);
+  y -= 14;
+  if (data.order.paid_at) {
+    drawText('Status: bezahlt', margin, regular, 10, COLORS.text);
+    y -= 14;
+  }
+  if (data.order.payment_method) {
+    drawText(`Zahlungsart: ${label}`, margin, regular, 10, COLORS.text);
+    y -= 14;
+  }
+  if (providerLabel) {
+    drawText(`Zahlungsanbieter: ${providerLabel}`, margin, regular, 10, COLORS.text);
+    y -= 14;
+  }
+  if (data.order.paid_at) {
+    drawText(`Bezahlt am: ${formatDate(data.order.paid_at)}`, margin, regular, 10, COLORS.text);
+    y -= 14;
+  }
+  y -= 6;
+}
+
+if (false && data.order.payment_method) {
   const PAYMENT_LABELS: Record<string, string> = {
     cash: 'Barzahlung',
     transfer: 'Überweisung',
     ec_card: 'EC-Karte',
     paypal: 'PayPal',
   };
-  const label = PAYMENT_LABELS[data.order.payment_method] ?? data.order.payment_method;
+  const label = PAYMENT_LABELS[data.order.payment_method!] ?? data.order.payment_method;
 
   ensureSpace(40);
   drawText('Zahlungsart', margin, bold, 10);

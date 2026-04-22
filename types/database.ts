@@ -4,6 +4,7 @@
 export type OrderStatus = 'new' | 'in_progress' | 'completed' | 'canceled';
 export type PhotoType = 'before' | 'after';
 export type PaymentMethod = 'cash' | 'transfer' | 'ec_card' | 'paypal';
+export type PaymentProvider = 'sumup';
 
 export interface Profile {
   id: string;
@@ -73,6 +74,8 @@ export interface Order {
   invoice_snapshot_json: unknown | null;
   service_date: string | null;
   payment_method: PaymentMethod | null;
+  payment_provider: PaymentProvider | null;
+  paid_at: string | null;
   invoice_sent_at: string | null;
   invoice_sent_to: string | null;
   deleted_at: string | null;

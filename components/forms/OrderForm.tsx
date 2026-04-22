@@ -24,6 +24,8 @@ type Props = {
     scheduled_at?: string | null;
     service_date?: string | null;
     payment_method?: string | null;
+    payment_provider?: string | null;
+    paid_at?: string | null;
   };
   cancelHref: string;
   submitLabel: string;
@@ -48,7 +50,7 @@ export default function OrderForm({
   submitLabel,
 }: Props) {
   const [state, formAction, isPending] = useActionState<OrderFormState, FormData>(action, {});
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const values = state.values ?? {
     client_id: initial?.client_id ?? '',
@@ -69,6 +71,8 @@ export default function OrderForm({
     scheduled_at: toDateTimeLocal(initial?.scheduled_at),
     service_date: toDateTimeLocal(initial?.service_date),
     payment_method: initial?.payment_method ?? '',
+    payment_provider: initial?.payment_provider ?? '',
+    paid_at: toDateTimeLocal(initial?.paid_at),
   };
 
   const [useCustom, setUseCustom] = useState(
@@ -85,6 +89,24 @@ export default function OrderForm({
   const [orderAddress, setOrderAddress] = useState(values.order_address ?? '');
   const [orderAddressTouched, setOrderAddressTouched] = useState(Boolean(values.order_address));
   const isCorrection = Boolean(initial?.correction_of_order_id);
+  const [paymentMethod, setPaymentMethod] = useState(values.payment_method);
+  const [paymentProvider, setPaymentProvider] = useState(values.payment_provider);
+  const [paidAt, setPaidAt] = useState(values.paid_at);
+
+  const paymentMetaText =
+    locale === 'de'
+      ? {
+          paymentProvider: 'Zahlungsanbieter',
+          paymentProviderEmpty: '— nicht ausgewaehlt —',
+          paidAt: 'Bezahlt am',
+          paidAtHint: 'Leer lassen, wenn die Zahlung noch nicht erfolgt ist.',
+        }
+      : {
+          paymentProvider: 'Платежный провайдер',
+          paymentProviderEmpty: '— не выбрано —',
+          paidAt: 'Оплачено',
+          paidAtHint: 'Оставьте пустым, если клиент еще не оплатил.',
+        };
 
   const inputCls =
     'w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -350,7 +372,24 @@ export default function OrderForm({
         <label htmlFor="payment_method" className="mb-1 block text-sm font-medium">
           {t.orderForm.paymentMethod}
         </label>
-        <select id="payment_method" name="payment_method" defaultValue={values.payment_method} className={inputCls}>
+        <select
+          id="payment_method"
+          name="payment_method"
+          value={paymentMethod}
+          onChange={(e) => {
+            const nextMethod = e.target.value;
+            setPaymentMethod(nextMethod);
+            if (nextMethod !== 'ec_card') {
+              setPaymentProvider('');
+            } else if (!paymentProvider) {
+              setPaymentProvider('sumup');
+            }
+            if (!paidAt && ['cash', 'ec_card', 'paypal'].includes(nextMethod)) {
+              setPaidAt(toDateTimeLocal(new Date().toISOString()));
+            }
+          }}
+          className={inputCls}
+        >
           <option value="">{t.orderForm.paymentMethodEmpty}</option>
           <option value="cash">{t.orderForm.paymentCash}</option>
           <option value="transfer">{t.orderForm.paymentTransfer}</option>
@@ -360,6 +399,45 @@ export default function OrderForm({
         {state.errors?.payment_method && (
           <p className="mt-1 text-xs text-red-600">{state.errors.payment_method}</p>
         )}
+      </div>
+
+      {paymentMethod === 'ec_card' ? (
+        <div>
+          <label htmlFor="payment_provider" className="mb-1 block text-sm font-medium">
+            {paymentMetaText.paymentProvider}
+          </label>
+          <select
+            id="payment_provider"
+            name="payment_provider"
+            value={paymentProvider}
+            onChange={(e) => setPaymentProvider(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">{paymentMetaText.paymentProviderEmpty}</option>
+            <option value="sumup">SumUp</option>
+          </select>
+          {state.errors?.payment_provider && (
+            <p className="mt-1 text-xs text-red-600">{state.errors.payment_provider}</p>
+          )}
+        </div>
+      ) : (
+        <input type="hidden" name="payment_provider" value="" />
+      )}
+
+      <div>
+        <label htmlFor="paid_at" className="mb-1 block text-sm font-medium">
+          {paymentMetaText.paidAt}
+        </label>
+        <input
+          id="paid_at"
+          name="paid_at"
+          type="datetime-local"
+          value={paidAt}
+          onChange={(e) => setPaidAt(e.target.value)}
+          className={inputCls}
+        />
+        <p className="mt-1 text-xs text-neutral-500">{paymentMetaText.paidAtHint}</p>
+        {state.errors?.paid_at && <p className="mt-1 text-xs text-red-600">{state.errors.paid_at}</p>}
       </div>
 
       <div>

@@ -22,6 +22,7 @@ import type {
   OrderPhoto,
   OrderStatus,
   PaymentMethod,
+  PaymentProvider,
   Service,
 } from '@/types/database';
 import { updateOrderAction } from '../actions';
@@ -152,6 +153,39 @@ export default async function OrderPage({
     ec_card: 'EC-Karte',
     paypal: 'PayPal',
   };
+  const paymentProviderLabels: Record<PaymentProvider, string> = {
+    sumup: 'SumUp',
+  };
+  const paymentMetaText =
+    locale === 'de'
+      ? {
+          paidAt: 'Bezahlt am',
+          paymentProvider: 'Zahlungsanbieter',
+        }
+      : {
+          paidAt: 'Оплачено',
+          paymentProvider: 'Платежный провайдер',
+        };
+  const invoiceText =
+    locale === 'de'
+      ? {
+          editLocked:
+            'Die Bearbeitung dieses Auftrags ist deaktiviert: Die Rechnung wurde bereits erstellt und die Originaldaten sind fixiert.',
+          invoiceLocked:
+            'Dieser Auftrag befindet sich im Archivmodus der Rechnung. Ursprungsdaten, Unterschrift und Fotos koennen nicht mehr normal bearbeitet werden.',
+          correctionOfInvoice: 'Dies ist eine Korrektur zur Rechnung',
+          invoiceNumber: 'Rechnungsnummer',
+          invoiceSent: 'Rechnung versendet',
+          pdfInvoice: 'PDF-Rechnung',
+        }
+      : {
+          editLocked: t.orderPage.editLocked,
+          invoiceLocked: t.orderPage.invoiceLocked,
+          correctionOfInvoice: t.orderPage.correctionOfInvoice,
+          invoiceNumber: t.orderPage.invoiceNumber,
+          invoiceSent: t.orderPage.invoiceSent,
+          pdfInvoice: t.orderPage.pdfInvoice,
+        };
 
   const formatDateTimeLocal = (value: string | null | undefined) =>
     value
@@ -193,20 +227,20 @@ export default async function OrderPage({
       ) : (
         <>
           {requestedEdit && isInvoiceLocked && (
-            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              {t.orderPage.editLocked}
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              {invoiceText.editLocked}
             </div>
           )}
 
           {isInvoiceLocked && (
             <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-              {t.orderPage.invoiceLocked}
+              {invoiceText.invoiceLocked}
             </div>
           )}
 
           {o.correction_of_order_id && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              {t.orderPage.correctionOfInvoice}{' '}
+              {invoiceText.correctionOfInvoice}{' '}
               {correctionSource?.invoice_number ? (
                 <Link href={`/orders/${correctionSource.id}`} className="font-medium underline">
                   {correctionSource.invoice_number}
@@ -277,6 +311,10 @@ export default async function OrderPage({
             )}
             <Row label={t.orderPage.price} value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
             {o.payment_method && <Row label={t.orderPage.paymentMethod} value={paymentLabels[o.payment_method]} />}
+            {o.payment_provider && (
+              <Row label={paymentMetaText.paymentProvider} value={paymentProviderLabels[o.payment_provider]} />
+            )}
+            {o.paid_at && <Row label={paymentMetaText.paidAt} value={formatDateTimeLocal(o.paid_at)} />}
             <Row label={t.orderPage.workAddress} value={o.order_address ?? client?.address ?? DASH} />
             <Row label={t.orderPage.scheduledAt} value={formatDateTimeLocal(o.scheduled_at)} />
             <Row
@@ -291,11 +329,11 @@ export default async function OrderPage({
             />
             {o.completed_at && <Row label={t.orderPage.completedAt} value={formatDateTimeLocal(o.completed_at)} />}
             {o.invoice_number && (
-              <Row label={t.orderPage.invoiceNumber} value={<span className="font-mono font-semibold">{o.invoice_number}</span>} />
+              <Row label={invoiceText.invoiceNumber} value={<span className="font-mono font-semibold">{o.invoice_number}</span>} />
             )}
             {o.invoice_sent_at && (
               <Row
-                label={t.orderPage.invoiceSent}
+                label={invoiceText.invoiceSent}
                 value={
                   <span className="text-xs">
                     {formatDateTimeLocal(o.invoice_sent_at)}
@@ -361,7 +399,7 @@ export default async function OrderPage({
           </div>
 
           <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.pdfInvoice}</h2>
+            <h2 className="mb-3 text-sm font-medium text-neutral-500">{invoiceText.pdfInvoice}</h2>
             <PdfSection
               orderId={o.id}
               hasPdf={!!o.pdf_file_path}

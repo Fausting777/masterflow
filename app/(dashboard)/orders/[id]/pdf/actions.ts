@@ -25,6 +25,8 @@ type InvoiceOrderRow = {
   completed_at: string | null;
   created_at: string;
   payment_method: 'cash' | 'transfer' | 'ec_card' | 'paypal' | null;
+  payment_provider: 'sumup' | null;
+  paid_at: string | null;
   signature_file_path: string | null;
   invoice_number: string | null;
   invoice_issued_at: string | null;
@@ -50,18 +52,18 @@ async function getMessages() {
         missingClientAddress: 'Strasse und Hausnummer des Kunden',
         missingClientPostal: 'PLZ des Kunden',
         missingClientCity: 'Stadt des Kunden',
-        fillClient: 'Fuer die Quittung bitte beim Kunden ausfuellen',
+        fillClient: 'Fuer die Rechnung bitte beim Kunden ausfuellen',
         missingPrice: 'Preis des Auftrags ist nicht angegeben',
-        missingSourceInvoice: 'Ausgangsquittung fuer die Korrektur konnte nicht gefunden werden',
+        missingSourceInvoice: 'Ausgangsrechnung fuer die Korrektur konnte nicht gefunden werden',
         unauthorized: 'Nicht autorisiert',
         orderNotFound: 'Auftrag nicht gefunden',
         invoiceLocked:
-          'Die Quittung wurde bereits erstellt und fixiert. Eine Neugenerierung ueber das Ausgangsdokument ist gesperrt. Fuer Aenderungen ist eine separate Quittungskorrektur erforderlich.',
-        numberFailed: 'Quittungsnummer konnte nicht erzeugt werden',
-        snapshotFailed: 'Quittungssnapshot konnte nicht erstellt werden',
+          'Die Rechnung wurde bereits erstellt und fixiert. Eine Neugenerierung ueber das Ausgangsdokument ist gesperrt. Fuer Aenderungen ist eine separate Rechnungskorrektur erforderlich.',
+        numberFailed: 'Rechnungsnummer konnte nicht erzeugt werden',
+        snapshotFailed: 'Rechnungssnapshot konnte nicht erstellt werden',
         generationError: 'Fehler bei der PDF-Erzeugung',
-        correctionIssued: 'Quittungskorrektur',
-        invoiceIssued: 'Quittung',
+        correctionIssued: 'Rechnungskorrektur',
+        invoiceIssued: 'Rechnung',
         wasIssued: 'wurde erstellt und fixiert',
         pdfMissing: 'PDF wurde nicht erstellt',
         genericError: 'Fehler',
@@ -152,7 +154,7 @@ async function buildLiveInvoiceSnapshot(
   if (!profile?.address) missing.push(m.missingAddress);
   if (!profile?.postal_code) missing.push('PLZ');
   if (!profile?.city) missing.push(m.missingCity);
-  if (!profile?.tax_number) missing.push('Steuernummer');
+  if (!profile?.tax_number && !profile?.vat_id) missing.push('Steuernummer / USt-IdNr.');
   if (missing.length > 0) {
     return { snapshot: null, error: `${m.fillSettings}: ${missing.join(', ')}` };
   }
@@ -252,6 +254,8 @@ async function buildLiveInvoiceSnapshot(
         description,
         order_address: order.order_address,
         payment_method: order.payment_method,
+        payment_provider: order.payment_provider,
+        paid_at: order.paid_at,
       },
     }),
   };
@@ -283,7 +287,7 @@ export async function generatePdfAction(orderId: string): Promise<{
   const { data: orderData } = await supabase
     .from('orders')
     .select(
-      'id, user_id, client_id, service_id, custom_service_title, custom_price, description, order_address, service_date, completed_at, created_at, payment_method, signature_file_path, invoice_number, invoice_issued_at, invoice_locked_at, invoice_version, invoice_snapshot_json, pdf_file_path, pdf_sha256, correction_of_order_id, correction_reason'
+      'id, user_id, client_id, service_id, custom_service_title, custom_price, description, order_address, service_date, completed_at, created_at, payment_method, payment_provider, paid_at, signature_file_path, invoice_number, invoice_issued_at, invoice_locked_at, invoice_version, invoice_snapshot_json, pdf_file_path, pdf_sha256, correction_of_order_id, correction_reason'
     )
     .eq('id', orderId)
     .eq('user_id', user.id)
@@ -315,6 +319,16 @@ export async function generatePdfAction(orderId: string): Promise<{
   }
 
   if (!invoiceIssuedAt) invoiceIssuedAt = new Date().toISOString();
+
+  order.paid_at =
+    order.paid_at ??
+    (order.payment_method && ['cash', 'ec_card', 'paypal'].includes(order.payment_method)
+      ? invoiceIssuedAt
+      : null);
+
+  order.payment_provider =
+    order.payment_provider ??
+    (order.payment_method === 'ec_card' ? 'sumup' : null);
 
   const snapshotResult = await getOrBuildSnapshot(supabase, user.id, order, invoiceNumber, invoiceIssuedAt);
   if (!snapshotResult.snapshot) {
@@ -362,6 +376,8 @@ export async function generatePdfAction(orderId: string): Promise<{
       invoice_snapshot_json: snapshot,
       pdf_file_path: filePath,
       pdf_sha256: pdfSha256,
+      paid_at: order.paid_at,
+      payment_provider: order.payment_provider,
     })
     .eq('id', orderId)
     .eq('user_id', user.id);
@@ -402,7 +418,7 @@ export async function getPdfSignedUrlAction(orderId: string): Promise<{
 
   if (!order?.pdf_file_path) return { url: null, error: m.pdfMissing };
 
-  const prefix = order.correction_of_order_id ? 'Quittungskorrektur' : 'Quittung';
+  const prefix = order.correction_of_order_id ? 'Rechnungskorrektur' : 'Rechnung';
   const filename = order.invoice_number
     ? `${prefix}-${order.invoice_number}.pdf`
     : `${prefix}-${orderId.slice(0, 8)}.pdf`;

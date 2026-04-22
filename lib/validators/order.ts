@@ -16,6 +16,8 @@ export type OrderInput = {
   scheduled_at: string;
   service_date: string;
   payment_method: string;
+  payment_provider: string;
+  paid_at: string;
 };
 
 export type OrderValidationErrors = Partial<Record<keyof OrderInput, string>>;
@@ -69,6 +71,18 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
     errors.payment_method = 'Ungueltige Zahlungsart';
   }
 
+  if (data.payment_provider && !['sumup'].includes(data.payment_provider)) {
+    errors.payment_provider = 'Ungueltiger Zahlungsanbieter';
+  }
+
+  if (data.payment_provider && data.payment_method !== 'ec_card') {
+    errors.payment_provider = 'Zahlungsanbieter ist nur fuer Kartenzahlung erlaubt';
+  }
+
+  if (data.paid_at && Number.isNaN(Date.parse(data.paid_at))) {
+    errors.paid_at = 'Ungueltiges Zahlungsdatum';
+  }
+
   if (data.client_quick_phone.length > 50) {
     errors.client_quick_phone = 'Telefonnummer ist zu lang';
   }
@@ -116,5 +130,7 @@ export function normalizeOrderInput(data: OrderInput) {
     scheduled_at: data.scheduled_at ? new Date(data.scheduled_at).toISOString() : null,
     service_date: data.service_date ? new Date(data.service_date).toISOString() : null,
     payment_method: data.payment_method.trim() || null,
+    payment_provider: data.payment_provider.trim() || null,
+    paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
   };
 }

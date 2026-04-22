@@ -42,32 +42,32 @@ export default function PdfSection({
       ? {
           genericError: 'Fehler',
           pdfUrlFailed: 'Signierte PDF-URL konnte nicht geladen werden',
-          ready: 'PDF-Quittung ist bereit',
-          openPdf: 'PDF öffnen',
+          ready: 'PDF-Rechnung ist bereit',
+          openPdf: 'PDF Oeffnen',
           regeneratePdf: 'PDF neu erzeugen',
           sendByEmail: 'An Kunden per E-Mail senden',
           lastSent: 'Zuletzt gesendet',
           draftLocked:
-            'Nach Ausstellung der Quittung ist das PDF fixiert. Eine Neuerzeugung über das Ursprungsdokument hinaus ist nicht mehr möglich.',
+            'Nach Ausstellung der Rechnung ist das PDF fixiert. Eine Neuerzeugung ueber das Ursprungsdokument hinaus ist nicht mehr moeglich.',
           draftHint:
-            'Vor Ausstellung der Quittung kann das PDF neu erzeugt werden, wenn Daten geändert oder Fotos hinzugefügt wurden.',
+            'Vor Ausstellung der Rechnung kann das PDF neu erzeugt werden, wenn Daten geaendert oder Fotos hinzugefuegt wurden.',
           generating: 'PDF wird erzeugt...',
-          generatePdf: 'PDF-Quittung erzeugen',
+          generatePdf: 'PDF-Rechnung erzeugen',
         }
       : {
-          genericError: 'Ошибка',
-          pdfUrlFailed: 'Не удалось получить ссылку',
-          ready: 'PDF-квитанция готова',
-          openPdf: 'Открыть PDF',
-          regeneratePdf: 'Пересоздать PDF',
-          sendByEmail: 'Отправить клиенту на email',
-          lastSent: 'Последняя отправка',
+          genericError: 'Ð Ñ›Ð¡â‚¬Ð Ñ‘Ð Â±Ð Ñ”Ð Â°',
+          pdfUrlFailed: 'Ð ÑœÐ Âµ Ð¡Ñ“Ð Ò‘Ð Â°Ð Â»Ð Ñ•Ð¡ÐƒÐ¡ÐŠ Ð Ñ—Ð Ñ•Ð Â»Ð¡Ñ“Ð¡â€¡Ð Ñ‘Ð¡â€šÐ¡ÐŠ Ð¡ÐƒÐ¡ÐƒÐ¡â€¹Ð Â»Ð Ñ”Ð¡Ñ“',
+          ready: 'PDF-Ð Ñ”Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð¡Ð Ð Ñ–Ð Ñ•Ð¡â€šÐ Ñ•Ð Ð†Ð Â°',
+          openPdf: 'Ð Ñ›Ð¡â€šÐ Ñ”Ð¡Ð‚Ð¡â€¹Ð¡â€šÐ¡ÐŠ PDF',
+          regeneratePdf: 'Ð ÑŸÐ ÂµÐ¡Ð‚Ð ÂµÐ¡ÐƒÐ Ñ•Ð Â·Ð Ò‘Ð Â°Ð¡â€šÐ¡ÐŠ PDF',
+          sendByEmail: 'Ð Ñ›Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Ñ‘Ð¡â€šÐ¡ÐŠ Ð Ñ”Ð Â»Ð Ñ‘Ð ÂµÐ Ð…Ð¡â€šÐ¡Ñ“ Ð Ð…Ð Â° email',
+          lastSent: 'Ð ÑŸÐ Ñ•Ð¡ÐƒÐ Â»Ð ÂµÐ Ò‘Ð Ð…Ð¡ÐÐ¡Ð Ð Ñ•Ð¡â€šÐ Ñ—Ð¡Ð‚Ð Â°Ð Ð†Ð Ñ”Ð Â°',
           draftLocked:
-            'После выпуска квитанции PDF фиксируется. Пересоздавать его поверх исходного документа больше нельзя.',
+            'Ð ÑŸÐ Ñ•Ð¡ÐƒÐ Â»Ð Âµ Ð Ð†Ð¡â€¹Ð Ñ—Ð¡Ñ“Ð¡ÐƒÐ Ñ”Ð Â° Ð Ñ”Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð Ñ‘ PDF Ð¡â€žÐ Ñ‘Ð Ñ”Ð¡ÐƒÐ Ñ‘Ð¡Ð‚Ð¡Ñ“Ð ÂµÐ¡â€šÐ¡ÐƒÐ¡Ð. Ð ÑŸÐ ÂµÐ¡Ð‚Ð ÂµÐ¡ÐƒÐ Ñ•Ð Â·Ð Ò‘Ð Â°Ð Ð†Ð Â°Ð¡â€šÐ¡ÐŠ Ð ÂµÐ Ñ–Ð Ñ• Ð Ñ—Ð Ñ•Ð Ð†Ð ÂµÐ¡Ð‚Ð¡â€¦ Ð Ñ‘Ð¡ÐƒÐ¡â€¦Ð Ñ•Ð Ò‘Ð Ð…Ð Ñ•Ð Ñ–Ð Ñ• Ð Ò‘Ð Ñ•Ð Ñ”Ð¡Ñ“Ð Ñ˜Ð ÂµÐ Ð…Ð¡â€šÐ Â° Ð Â±Ð Ñ•Ð Â»Ð¡ÐŠÐ¡â‚¬Ð Âµ Ð Ð…Ð ÂµÐ Â»Ð¡ÐŠÐ Â·Ð¡Ð.',
           draftHint:
-            'До выпуска квитанции PDF можно пересоздать, если ты изменил данные или добавил фото.',
-          generating: 'Генерация PDF...',
-          generatePdf: 'Создать PDF-квитанцию',
+            'Ð â€Ð Ñ• Ð Ð†Ð¡â€¹Ð Ñ—Ð¡Ñ“Ð¡ÐƒÐ Ñ”Ð Â° Ð Ñ”Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð Ñ‘ PDF Ð Ñ˜Ð Ñ•Ð Â¶Ð Ð…Ð Ñ• Ð Ñ—Ð ÂµÐ¡Ð‚Ð ÂµÐ¡ÐƒÐ Ñ•Ð Â·Ð Ò‘Ð Â°Ð¡â€šÐ¡ÐŠ, Ð ÂµÐ¡ÐƒÐ Â»Ð Ñ‘ Ð¡â€šÐ¡â€¹ Ð Ñ‘Ð Â·Ð Ñ˜Ð ÂµÐ Ð…Ð Ñ‘Ð Â» Ð Ò‘Ð Â°Ð Ð…Ð Ð…Ð¡â€¹Ð Âµ Ð Ñ‘Ð Â»Ð Ñ‘ Ð Ò‘Ð Ñ•Ð Â±Ð Â°Ð Ð†Ð Ñ‘Ð Â» Ð¡â€žÐ Ñ•Ð¡â€šÐ Ñ•.',
+          generating: 'Ð â€œÐ ÂµÐ Ð…Ð ÂµÐ¡Ð‚Ð Â°Ð¡â€ Ð Ñ‘Ð¡Ð PDF...',
+          generatePdf: 'Ð ÐŽÐ Ñ•Ð Â·Ð Ò‘Ð Â°Ð¡â€šÐ¡ÐŠ PDF-Ð Ñ”Ð Ð†Ð Ñ‘Ð¡â€šÐ Â°Ð Ð…Ð¡â€ Ð Ñ‘Ð¡Ð‹',
         };
 
   function handleGenerate() {
@@ -97,7 +97,7 @@ export default function PdfSection({
       {pdfExists ? (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-green-700">
-            <span>✓</span>
+            <span>Ð²Ñšâ€œ</span>
             <span>
               {text.ready}
               {invoiceNumber && ` - ${invoiceNumber}`}
@@ -120,7 +120,7 @@ export default function PdfSection({
                 title={text.regeneratePdf}
                 className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
               >
-                {isPending ? '...' : '↻'}
+                {isPending ? '...' : 'Ð²â€ Â»'}
               </button>
             )}
           </div>
@@ -139,7 +139,7 @@ export default function PdfSection({
               {invoiceSentTo && (
                 <>
                   {' '}
-                  {locale === 'de' ? 'an' : 'на'} <span className="font-medium">{invoiceSentTo}</span>
+                  {locale === 'de' ? 'an' : 'Ð Ð…Ð Â°'} <span className="font-medium">{invoiceSentTo}</span>
                 </>
               )}
             </div>

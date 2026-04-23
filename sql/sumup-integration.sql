@@ -58,12 +58,10 @@ begin
 end $$;
 
 create unique index if not exists sumup_transactions_user_transaction_id_unique
-  on public.sumup_transactions(user_id, sumup_transaction_id)
-  where sumup_transaction_id is not null;
+  on public.sumup_transactions(user_id, sumup_transaction_id);
 
 create unique index if not exists sumup_transactions_user_transaction_code_unique
-  on public.sumup_transactions(user_id, transaction_code)
-  where transaction_code is not null;
+  on public.sumup_transactions(user_id, transaction_code);
 
 create index if not exists sumup_transactions_user_order_idx
   on public.sumup_transactions(user_id, order_id);

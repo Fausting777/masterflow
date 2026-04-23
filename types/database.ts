@@ -165,6 +165,7 @@ export interface Expense {
   id: string;
   user_id: string;
   order_id: string | null;
+  sumup_transaction_id: string | null;
   category: ExpenseCategory;
   amount: number;
   description: string | null;

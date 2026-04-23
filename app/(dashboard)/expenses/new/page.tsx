@@ -42,6 +42,13 @@ export default async function NewExpensePage() {
     created_at: o.created_at,
   }));
 
+  const { data: sumupTransactions } = await supabase
+    .from('sumup_transactions')
+    .select('id, transaction_code, receipt_no, amount, currency, paid_at, status')
+    .eq('user_id', user!.id)
+    .order('paid_at', { ascending: false })
+    .limit(50);
+
   return (
     <div className="max-w-2xl">
       <div className="mb-4">
@@ -50,12 +57,13 @@ export default async function NewExpensePage() {
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-4">+ {t.fab.newExpense}</h1>
+      <h1 className="mb-4 text-2xl font-semibold">+ {t.fab.newExpense}</h1>
 
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <ExpenseForm
           action={createExpenseAction}
           orders={orderOptions}
+          sumupOptions={sumupTransactions ?? []}
           cancelHref="/expenses"
           submitLabel={t.fab.create}
         />

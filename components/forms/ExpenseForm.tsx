@@ -18,6 +18,16 @@ type OrderOption = {
   created_at: string;
 };
 
+type SumupOption = {
+  id: string;
+  transaction_code: string | null;
+  receipt_no: string | null;
+  amount: number;
+  currency: string;
+  paid_at: string | null;
+  status: string | null;
+};
+
 type Props = {
   action: (prevState: ExpenseFormState, formData: FormData) => Promise<ExpenseFormState>;
   initial?: {
@@ -28,10 +38,12 @@ type Props = {
     expense_date?: string | null;
     tax_deductible?: boolean;
     order_id?: string | null;
+    sumup_transaction_id?: string | null;
     receipt_file_path?: string | null;
   };
   receiptPreviewUrl?: string | null;
   orders: OrderOption[];
+  sumupOptions: SumupOption[];
   cancelHref: string;
   submitLabel: string;
 };
@@ -57,6 +69,7 @@ export default function ExpenseForm({
   initial,
   receiptPreviewUrl,
   orders,
+  sumupOptions,
   cancelHref,
   submitLabel,
 }: Props) {
@@ -74,6 +87,7 @@ export default function ExpenseForm({
     expense_date: initial?.expense_date ?? todayIso(),
     tax_deductible: initial?.tax_deductible === false ? '' : 'on',
     order_id: initial?.order_id ?? '',
+    sumup_transaction_id: initial?.sumup_transaction_id ?? '',
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +111,18 @@ export default function ExpenseForm({
 
   const inputCls =
     'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900';
+  const sumupText =
+    locale === 'de'
+      ? {
+          label: 'SumUp-Transaktion',
+          empty: '- nicht verknuepfen -',
+          help: 'Optional: mit einer importierten SumUp-Transaktion verbinden.',
+        }
+      : {
+          label: 'Транзакция SumUp',
+          empty: '- не привязывать -',
+          help: 'Необязательно: привязать к импортированной транзакции SumUp.',
+        };
 
   return (
     <form action={formAction} className="space-y-4 pb-28 sm:pb-0">
@@ -198,6 +224,31 @@ export default function ExpenseForm({
           ))}
         </select>
         <p className="mt-1 text-xs text-neutral-500">{t.expenseForm.orderHelp}</p>
+      </div>
+
+      <div>
+        <label htmlFor="sumup_transaction_id" className="mb-1 block text-sm font-medium">
+          {sumupText.label}
+        </label>
+        <select
+          id="sumup_transaction_id"
+          name="sumup_transaction_id"
+          defaultValue={v.sumup_transaction_id}
+          className={inputCls}
+        >
+          <option value="">{sumupText.empty}</option>
+          {sumupOptions.map((transaction) => (
+            <option key={transaction.id} value={transaction.id}>
+              {(transaction.receipt_no ?? transaction.transaction_code ?? transaction.id.slice(0, 8))} ·{' '}
+              {transaction.paid_at
+                ? new Date(transaction.paid_at).toLocaleDateString(locale === 'de' ? 'de-DE' : 'ru-RU')
+                : '—'}{' '}
+              ·{' '}
+              {Number(transaction.amount).toFixed(2)} {transaction.currency}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-neutral-500">{sumupText.help}</p>
       </div>
 
       <div className="flex items-center gap-2">

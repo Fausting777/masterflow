@@ -14,6 +14,7 @@ $$;
 
 alter table public.expenses
   add column if not exists order_id uuid references public.orders(id) on delete set null,
+  add column if not exists sumup_transaction_id uuid references public.sumup_transactions(id) on delete set null,
   add column if not exists expense_date date not null default current_date,
   add column if not exists tax_deductible boolean not null default true,
   add column if not exists receipt_sha256 text,

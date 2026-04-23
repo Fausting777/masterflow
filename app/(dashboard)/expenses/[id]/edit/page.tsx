@@ -17,7 +17,13 @@ export default async function EditExpensePage({ params }: { params: Params }) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: expense } = await supabase.from('expenses').select('*').eq('id', id).eq('user_id', user!.id).maybeSingle();
+  const { data: expense } = await supabase
+    .from('expenses')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user!.id)
+    .maybeSingle();
+
   if (!expense) notFound();
   const e = expense as Expense;
 
@@ -51,6 +57,13 @@ export default async function EditExpensePage({ params }: { params: Params }) {
     created_at: o.created_at,
   }));
 
+  const { data: sumupTransactions } = await supabase
+    .from('sumup_transactions')
+    .select('id, transaction_code, receipt_no, amount, currency, paid_at, status')
+    .eq('user_id', user!.id)
+    .order('paid_at', { ascending: false })
+    .limit(50);
+
   let receiptPreviewUrl: string | null = null;
   if (e.receipt_file_path) {
     const { data: signedUrl } = await supabase.storage.from('receipts').createSignedUrl(e.receipt_file_path, 300);
@@ -67,14 +80,15 @@ export default async function EditExpensePage({ params }: { params: Params }) {
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-4">{t.expensesPage.editTitle}</h1>
+      <h1 className="mb-4 text-2xl font-semibold">{t.expensesPage.editTitle}</h1>
 
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <ExpenseForm
           action={boundUpdate}
           initial={e}
           receiptPreviewUrl={receiptPreviewUrl}
           orders={orderOptions}
+          sumupOptions={sumupTransactions ?? []}
           cancelHref="/expenses"
           submitLabel={t.orderPage.save}
         />

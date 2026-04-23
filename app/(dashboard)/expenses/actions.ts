@@ -23,6 +23,7 @@ export type ExpenseFormState = {
     expense_date: string;
     tax_deductible: string;
     order_id: string;
+    sumup_transaction_id: string;
   };
 };
 
@@ -35,6 +36,7 @@ function readFormData(formData: FormData): ExpenseFormState['values'] & object {
     expense_date: String(formData.get('expense_date') ?? ''),
     tax_deductible: String(formData.get('tax_deductible') ?? ''),
     order_id: String(formData.get('order_id') ?? ''),
+    sumup_transaction_id: String(formData.get('sumup_transaction_id') ?? ''),
   };
 }
 
@@ -43,25 +45,25 @@ async function getActionMessages() {
   return locale === 'de'
     ? {
         unauthorized: 'Nicht autorisiert',
-        foreignOrder: 'Diese Ausgabe kann nicht mit einem fremden Auftrag verknüpft werden',
+        foreignOrder: 'Diese Ausgabe kann nicht mit einem fremden Auftrag verknuepft werden',
+        foreignSumup: 'Diese SumUp-Transaktion ist nicht verfuegbar',
+        sumupAlreadyLinked: 'Diese SumUp-Transaktion ist bereits mit einer anderen Ausgabe verknuepft',
         createError: 'Fehler beim Erstellen',
         updateError: 'Fehler',
         uploadLog: 'Fehler beim Hochladen des Belegs:',
-        receiptLarge: 'Beleg ist zu groß (max. 10 MB)',
+        receiptLarge: 'Beleg ist zu gross (max. 10 MB)',
         receiptType: 'Beleg muss JPEG, PNG, WebP, HEIC oder HEIF sein',
-        permanentDelete:
-          'Die endgültige Löschung von Ausgaben und Belegen ist deaktiviert. Steuerlich relevante Belege müssen aufbewahrt werden und können nur über den Papierkorb ausgeblendet werden.',
       }
     : {
         unauthorized: 'Не авторизован',
         foreignOrder: 'Нельзя привязать расход к чужому заказу',
+        foreignSumup: 'Эта SumUp-транзакция недоступна',
+        sumupAlreadyLinked: 'Эта SumUp-транзакция уже привязана к другому расходу',
         createError: 'Ошибка создания',
         updateError: 'Ошибка',
         uploadLog: 'Ошибка загрузки чека:',
         receiptLarge: 'Чек слишком большой (макс. 10 MB)',
-        receiptType: 'Чек должен быть JPEG, PNG или WebP',
-        permanentDelete:
-          'Окончательное удаление расходов и чеков отключено. Налогово значимые Belege должны храниться и могут быть только скрыты через корзину.',
+        receiptType: 'Чек должен быть JPEG, PNG, WebP, HEIC или HEIF',
       };
 }
 
@@ -72,8 +74,45 @@ async function ensureOwnedOrder(
 ): Promise<string | null> {
   if (!orderId) return null;
 
-  const { data: order } = await supabase.from('orders').select('id').eq('id', orderId).eq('user_id', userId).maybeSingle();
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('id', orderId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
   return order ? order.id : null;
+}
+
+async function ensureAvailableSumupTransaction(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  sumupTransactionId: string | null,
+  currentExpenseId?: string
+): Promise<{ id: string | null; error?: 'missing' | 'linked' }> {
+  if (!sumupTransactionId) return { id: null };
+
+  const { data: transaction } = await supabase
+    .from('sumup_transactions')
+    .select('id')
+    .eq('id', sumupTransactionId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!transaction) return { id: null, error: 'missing' };
+
+  const { data: existingExpense } = await supabase
+    .from('expenses')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('sumup_transaction_id', sumupTransactionId)
+    .maybeSingle();
+
+  if (existingExpense && existingExpense.id !== currentExpenseId) {
+    return { id: null, error: 'linked' };
+  }
+
+  return { id: transaction.id };
 }
 
 async function validateReceipt(receiptFile: File | null): Promise<Awaited<ReturnType<typeof validateUploadedFile>> | null> {
@@ -100,9 +139,10 @@ function mapExpenseInsertError(message: string): string {
     lower.includes('tax_deductible') ||
     lower.includes('updated_at') ||
     lower.includes('deleted_at') ||
-    lower.includes('receipt_sha256')
+    lower.includes('receipt_sha256') ||
+    lower.includes('sumup_transaction_id')
   ) {
-    return `${message}. Run sql/expenses-compat.sql in Supabase SQL Editor.`;
+    return `${message}. Run sql/expenses-compat.sql and sql/expenses-sumup-link.sql in Supabase SQL Editor.`;
   }
 
   return message;
@@ -127,12 +167,25 @@ export async function createExpenseAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) return { formError: m.unauthorized, values: raw };
 
   const normalized = normalizeExpenseInput(raw);
   const orderId = await ensureOwnedOrder(supabase, user.id, normalized.order_id);
   if (normalized.order_id && !orderId) {
     return { formError: m.foreignOrder, values: raw };
+  }
+
+  const sumupLink = await ensureAvailableSumupTransaction(
+    supabase,
+    user.id,
+    raw.sumup_transaction_id.trim() || null
+  );
+  if (sumupLink.error === 'missing') {
+    return { formError: m.foreignSumup, values: raw };
+  }
+  if (sumupLink.error === 'linked') {
+    return { formError: m.sumupAlreadyLinked, values: raw };
   }
 
   const receiptFile = formData.get('receipt') as File | null;
@@ -146,11 +199,14 @@ export async function createExpenseAction(
       user_id: user.id,
       ...normalized,
       order_id: orderId,
+      sumup_transaction_id: sumupLink.id,
     })
     .select('id')
     .single();
 
-  if (error) return { formError: `${m.createError}: ${mapExpenseInsertError(error.message)}`, values: raw };
+  if (error) {
+    return { formError: `${m.createError}: ${mapExpenseInsertError(error.message)}`, values: raw };
+  }
 
   if (receiptFile && receiptValidation?.ok) {
     const path = `${user.id}/${expense.id}/receipt.${receiptValidation.extension}`;
@@ -195,12 +251,26 @@ export async function updateExpenseAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) return { formError: m.unauthorized, values: raw };
 
   const normalized = normalizeExpenseInput(raw);
   const orderId = await ensureOwnedOrder(supabase, user.id, normalized.order_id);
   if (normalized.order_id && !orderId) {
     return { formError: m.foreignOrder, values: raw };
+  }
+
+  const sumupLink = await ensureAvailableSumupTransaction(
+    supabase,
+    user.id,
+    raw.sumup_transaction_id.trim() || null,
+    id
+  );
+  if (sumupLink.error === 'missing') {
+    return { formError: m.foreignSumup, values: raw };
+  }
+  if (sumupLink.error === 'linked') {
+    return { formError: m.sumupAlreadyLinked, values: raw };
   }
 
   const receiptFile = formData.get('receipt') as File | null;
@@ -213,11 +283,14 @@ export async function updateExpenseAction(
     .update({
       ...normalized,
       order_id: orderId,
+      sumup_transaction_id: sumupLink.id,
     })
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return { formError: `${m.updateError}: ${mapExpenseInsertError(error.message)}`, values: raw };
+  if (error) {
+    return { formError: `${m.updateError}: ${mapExpenseInsertError(error.message)}`, values: raw };
+  }
 
   if (receiptFile && receiptValidation?.ok) {
     const path = `${user.id}/${id}/receipt.${receiptValidation.extension}`;
@@ -247,6 +320,7 @@ export async function softDeleteExpenseAction(id: string): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) throw new Error(m.unauthorized);
 
   const { error } = await supabase
@@ -268,6 +342,7 @@ export async function restoreExpenseAction(id: string): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) throw new Error(m.unauthorized);
 
   const { error } = await supabase
@@ -289,6 +364,7 @@ export async function permanentDeleteExpenseAction(id: string): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) throw new Error(m.unauthorized);
 
   const { data: expense } = await supabase
@@ -304,7 +380,11 @@ export async function permanentDeleteExpenseAction(id: string): Promise<void> {
     await supabase.storage.from('receipts').remove([expense.receipt_file_path]);
   }
 
-  const { error } = await supabase.from('expenses').delete().eq('id', id).eq('user_id', user.id);
+  const { error } = await supabase
+    .from('expenses')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) throw new Error(error.message);
 

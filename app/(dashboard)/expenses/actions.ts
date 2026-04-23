@@ -290,7 +290,26 @@ export async function permanentDeleteExpenseAction(id: string): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error(m.unauthorized);
-  void id;
 
-  throw new Error(m.permanentDelete);
+  const { data: expense } = await supabase
+    .from('expenses')
+    .select('id, receipt_file_path')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!expense) throw new Error(m.updateError);
+
+  if (expense.receipt_file_path) {
+    await supabase.storage.from('receipts').remove([expense.receipt_file_path]);
+  }
+
+  const { error } = await supabase.from('expenses').delete().eq('id', id).eq('user_id', user.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/expenses');
+  revalidatePath('/expenses/trash');
+  revalidatePath(`/expenses/${id}`);
+  redirect('/expenses/trash');
 }

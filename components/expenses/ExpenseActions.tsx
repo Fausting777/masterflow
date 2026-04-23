@@ -12,7 +12,12 @@ type Props = {
 export default function ExpenseActions({ expenseId, isDeleted }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const deleteForeverLabel = locale === 'de' ? 'Endgueltig loeschen' : 'Удалить навсегда';
+  const confirmDeleteForever =
+    locale === 'de'
+      ? 'Soll diese Ausgabe endgueltig geloescht werden?'
+      : 'Удалить этот расход навсегда?';
 
   function handleSoftDelete() {
     if (!confirm(t.expenseActions.confirmTrash)) return;
@@ -38,6 +43,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
   }
 
   function handlePermanentDelete() {
+    if (!confirm(confirmDeleteForever)) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -56,10 +62,6 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
           <div className="text-xs text-amber-800">{t.expenseActions.deletedText}</div>
         </div>
 
-        <div className="mb-3 rounded-lg border border-amber-300 bg-white/70 p-3 text-xs text-amber-900">
-          {t.expenseActions.deleteDisabled}
-        </div>
-
         <div className="flex gap-2">
           <button
             type="button"
@@ -75,7 +77,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
             disabled={isPending}
             className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
           >
-            {t.expenseActions.deleteForever}
+            {deleteForeverLabel}
           </button>
         </div>
 

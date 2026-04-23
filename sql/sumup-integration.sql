@@ -79,6 +79,22 @@ create table if not exists public.sumup_transactions (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+alter table public.sumup_transactions
+  add column if not exists user_id uuid references auth.users(id) on delete cascade,
+  add column if not exists order_id uuid references public.orders(id) on delete set null,
+  add column if not exists sumup_transaction_id text,
+  add column if not exists transaction_code text,
+  add column if not exists receipt_no text,
+  add column if not exists amount numeric(12, 2),
+  add column if not exists currency text not null default 'EUR',
+  add column if not exists status text,
+  add column if not exists payment_type text,
+  add column if not exists entry_mode text,
+  add column if not exists paid_at timestamptz,
+  add column if not exists raw_json jsonb,
+  add column if not exists created_at timestamptz not null default timezone('utc', now()),
+  add column if not exists updated_at timestamptz not null default timezone('utc', now());
+
 do $$
 begin
   if not exists (

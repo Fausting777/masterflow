@@ -37,6 +37,20 @@ alter table public.sumup_connections
 
 do $$
 begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'sumup_connections'
+      and column_name = 'access_token'
+  ) then
+    alter table public.sumup_connections
+      alter column access_token drop not null;
+  end if;
+end $$;
+
+do $$
+begin
   if not exists (
     select 1
     from pg_constraint

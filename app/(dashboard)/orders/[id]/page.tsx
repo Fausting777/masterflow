@@ -115,14 +115,14 @@ export default async function OrderPage({
       .select('id, invoice_number, created_at')
       .eq('correction_of_order_id', o.id)
       .order('created_at', { ascending: false }),
-    o.sumup_transaction_id
-      ? supabase
-          .from('sumup_transactions')
-          .select('*')
-          .eq('id', o.sumup_transaction_id)
-          .eq('user_id', o.user_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+    supabase
+      .from('sumup_transactions')
+      .select('*')
+      .eq('order_id', o.id)
+      .eq('user_id', o.user_id)
+      .order('paid_at', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from('sumup_transactions')
       .select('*')
@@ -177,6 +177,8 @@ export default async function OrderPage({
       return Math.abs(Number(a.amount) - Number(priceToShow)) - Math.abs(Number(b.amount) - Number(priceToShow));
     })
     .slice(0, 10);
+  const sumupReceiptNo = linkedSumupTransaction?.receipt_no ?? o.sumup_receipt_no;
+  const sumupPaidAt = linkedSumupTransaction?.paid_at ?? o.paid_at;
   const boundUpdate = updateOrderAction.bind(null, o.id);
 
   const statusLabels: Record<OrderStatus, string> = {
@@ -387,11 +389,14 @@ export default async function OrderPage({
             )}
             <Row label={t.orderPage.price} value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
             {o.payment_method && <Row label={t.orderPage.paymentMethod} value={paymentLabels[o.payment_method]} />}
-            {o.payment_provider && (
-              <Row label={paymentMetaText.paymentProvider} value={paymentProviderLabels[o.payment_provider]} />
+            {(o.payment_provider || linkedSumupTransaction) && (
+              <Row
+                label={paymentMetaText.paymentProvider}
+                value={o.payment_provider ? paymentProviderLabels[o.payment_provider] : 'SumUp'}
+              />
             )}
-            {o.sumup_receipt_no && <Row label="SumUp" value={o.sumup_receipt_no} />}
-            {o.paid_at && <Row label={paymentMetaText.paidAt} value={formatDateTimeLocal(o.paid_at)} />}
+            {sumupReceiptNo && <Row label="SumUp" value={sumupReceiptNo} />}
+            {sumupPaidAt && <Row label={paymentMetaText.paidAt} value={formatDateTimeLocal(sumupPaidAt)} />}
             <Row label={t.orderPage.workAddress} value={o.order_address ?? client?.address ?? DASH} />
             <Row label={t.orderPage.scheduledAt} value={formatDateTimeLocal(o.scheduled_at)} />
             <Row

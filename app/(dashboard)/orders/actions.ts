@@ -418,19 +418,21 @@ export async function linkSumupTransactionAction(
 
   if (updateTransactionError) return { ok: false, error: updateTransactionError.message };
 
-  const { error: updateOrderError } = await supabase
-    .from('orders')
-    .update({
-      payment_method: 'ec_card',
-      payment_provider: 'sumup',
-      paid_at: transaction.paid_at,
-      sumup_transaction_id: transaction.id,
-      sumup_receipt_no: transaction.receipt_no,
-    })
-    .eq('id', orderId)
-    .eq('user_id', user.id);
+  if (!order.invoice_number && !order.invoice_locked_at) {
+    const { error: updateOrderError } = await supabase
+      .from('orders')
+      .update({
+        payment_method: 'ec_card',
+        payment_provider: 'sumup',
+        paid_at: transaction.paid_at,
+        sumup_transaction_id: transaction.id,
+        sumup_receipt_no: transaction.receipt_no,
+      })
+      .eq('id', orderId)
+      .eq('user_id', user.id);
 
-  if (updateOrderError) return { ok: false, error: updateOrderError.message };
+    if (updateOrderError) return { ok: false, error: updateOrderError.message };
+  }
 
   await supabase.from('activity_logs').insert({
     order_id: orderId,

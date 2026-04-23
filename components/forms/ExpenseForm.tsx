@@ -99,7 +99,7 @@ export default function ExpenseForm({
     'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900';
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-4 pb-28 sm:pb-0">
       <CsrfTokenInput />
 
       <div>
@@ -263,7 +263,9 @@ export default function ExpenseForm({
         </div>
       )}
 
-      <div className="flex gap-2 pt-2">
+      <div
+        className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-10 -mx-2 flex gap-2 border-t border-neutral-200 bg-neutral-50/95 px-2 pt-3 pb-2 backdrop-blur sm:static sm:z-auto sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-2 sm:pb-0"
+      >
         <button
           type="submit"
           disabled={isPending}

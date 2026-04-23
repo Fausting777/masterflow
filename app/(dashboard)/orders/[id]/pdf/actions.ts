@@ -39,6 +39,19 @@ type InvoiceOrderRow = {
   correction_reason: string | null;
 };
 
+type InvoiceSumupTransactionRow = {
+  id: string;
+  receipt_no: string | null;
+  transaction_code: string | null;
+  sumup_transaction_id: string | null;
+  amount: number | string | null;
+  currency: string | null;
+  status: string | null;
+  payment_type: string | null;
+  entry_mode: string | null;
+  paid_at: string | null;
+};
+
 async function getMessages() {
   const locale = await getLocale();
   return locale === 'de'
@@ -189,6 +202,17 @@ async function buildLiveInvoiceSnapshot(
 
   const serviceDate = order.service_date ?? order.completed_at ?? order.created_at;
   let description = order.description;
+  const { data: sumupTransaction } = await supabase
+    .from('sumup_transactions')
+    .select(
+      'id, receipt_no, transaction_code, sumup_transaction_id, amount, currency, status, payment_type, entry_mode, paid_at'
+    )
+    .eq('order_id', order.id)
+    .eq('user_id', userId)
+    .order('paid_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  const sumup = sumupTransaction as InvoiceSumupTransactionRow | null;
 
   if (order.correction_of_order_id) {
     const { data: sourceOrder } = await supabase
@@ -253,9 +277,22 @@ async function buildLiveInvoiceSnapshot(
         correction_of_invoice_number: correctionOfInvoiceNumber,
         description,
         order_address: order.order_address,
-        payment_method: order.payment_method,
-        payment_provider: order.payment_provider,
-        paid_at: order.paid_at,
+        payment_method: order.payment_method ?? (sumup ? 'ec_card' : null),
+        payment_provider: order.payment_provider ?? (sumup ? 'sumup' : null),
+        paid_at: order.paid_at ?? sumup?.paid_at ?? null,
+        sumup: sumup
+          ? {
+              receipt_no: sumup.receipt_no,
+              transaction_code: sumup.transaction_code,
+              transaction_id: sumup.sumup_transaction_id,
+              amount: sumup.amount === null ? null : Number(sumup.amount),
+              currency: sumup.currency,
+              paid_at: sumup.paid_at,
+              status: sumup.status,
+              payment_type: sumup.payment_type,
+              entry_mode: sumup.entry_mode,
+            }
+          : null,
       },
     }),
   };

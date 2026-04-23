@@ -38,6 +38,17 @@ export type InvoiceData = {
     payment_method: 'cash' | 'transfer' | 'ec_card' | 'paypal' | null;
     payment_provider?: 'sumup' | null;
     paid_at?: string | null;
+    sumup?: {
+      receipt_no: string | null;
+      transaction_code: string | null;
+      transaction_id: string | null;
+      amount: number | null;
+      currency: string | null;
+      paid_at: string | null;
+      status: string | null;
+      payment_type: string | null;
+      entry_mode: string | null;
+    } | null;
   };
   signature: Uint8Array | null;
   photosBefore: Uint8Array[];
@@ -332,7 +343,7 @@ if (data.client.phone) {
   }
 
   // ===================== ZAHLUNG =====================
-if (data.order.payment_method || data.order.paid_at) {
+if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   const paymentLabels: Record<string, string> = {
     cash: 'Barzahlung',
     transfer: 'Ueberweisung',
@@ -342,9 +353,9 @@ if (data.order.payment_method || data.order.paid_at) {
   const label = data.order.payment_method
     ? paymentLabels[data.order.payment_method] ?? data.order.payment_method
     : 'Unbekannt';
-  const providerLabel = data.order.payment_provider === 'sumup' ? 'SumUp' : null;
+  const providerLabel = data.order.payment_provider === 'sumup' || data.order.sumup ? 'SumUp' : null;
 
-  ensureSpace(72);
+  ensureSpace(data.order.sumup ? 142 : 72);
   drawText('Zahlung', margin, bold, 10);
   y -= 14;
   if (data.order.paid_at) {
@@ -362,6 +373,30 @@ if (data.order.payment_method || data.order.paid_at) {
   if (data.order.paid_at) {
     drawText(`Bezahlt am: ${formatDate(data.order.paid_at)}`, margin, regular, 10, COLORS.text);
     y -= 14;
+  }
+  if (data.order.sumup) {
+    const sumup = data.order.sumup;
+    if (sumup.receipt_no) {
+      drawText(`SumUp Beleg-Nr.: ${sumup.receipt_no}`, margin, regular, 10, COLORS.text);
+      y -= 14;
+    }
+    if (sumup.transaction_code) {
+      drawText(`SumUp Transaktionscode: ${sumup.transaction_code}`, margin, regular, 10, COLORS.text);
+      y -= 14;
+    }
+    if (sumup.transaction_id) {
+      drawText(`SumUp Transaktions-ID: ${sumup.transaction_id}`, margin, regular, 9, COLORS.muted);
+      y -= 13;
+    }
+    if (sumup.amount !== null) {
+      const currency = sumup.currency ?? 'EUR';
+      drawText(`SumUp Betrag: ${formatEUR(sumup.amount)} ${currency === 'EUR' ? '' : currency}`.trim(), margin, regular, 10, COLORS.text);
+      y -= 14;
+    }
+    if (sumup.status) {
+      drawText(`SumUp Status: ${sumup.status}`, margin, regular, 9, COLORS.muted);
+      y -= 13;
+    }
   }
   y -= 6;
 }

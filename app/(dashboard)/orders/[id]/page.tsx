@@ -359,10 +359,12 @@ export default async function OrderPage({
             )}
           </div>
 
-          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-2 text-sm text-neutral-500">{t.orderPage.changeStatus}</div>
-            <OrderStatusSwitcher orderId={o.id} currentStatus={o.status} />
-          </div>
+          {!isInvoiceLocked && (
+            <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+              <div className="mb-2 text-sm text-neutral-500">{t.orderPage.changeStatus}</div>
+              <OrderStatusSwitcher orderId={o.id} currentStatus={o.status} />
+            </div>
+          )}
 
           <div className="mb-4 space-y-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <Row

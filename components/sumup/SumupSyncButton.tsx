@@ -21,10 +21,12 @@ export default function SumupSyncButton({ action, locale }: Props) {
           imported: 'Transaktionen verarbeitet',
         }
       : {
-          sync: 'Импортировать транзакции',
-          syncing: 'Импорт...',
-          success: 'Импорт завершен',
-          imported: 'транзакций обработано',
+          sync: '\u0418\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0438',
+          syncing: '\u0418\u043c\u043f\u043e\u0440\u0442...',
+          success:
+            '\u0418\u043c\u043f\u043e\u0440\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d',
+          imported:
+            '\u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0439 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d\u043e',
         };
 
   return (

@@ -4,6 +4,7 @@ const SUMUP_API_BASE_URL = 'https://api.sumup.com';
 
 type SumupTransactionItem = {
   id?: string;
+  transaction_id?: string;
   transaction_code?: string;
   amount?: number | string;
   currency?: string;
@@ -88,12 +89,22 @@ export async function listSumupTransactions({
     limit: String(limit),
   });
 
-  const data = await requestSumup<SumupTransactionsResponse>(
+  const merchantHistory = await requestSumup<SumupTransactionsResponse>(
     `/v2.1/merchants/${encodeURIComponent(merchantCode)}/transactions/history?${params.toString()}`,
     accessToken
   );
+  const merchantItems = merchantHistory.items ?? [];
 
-  return data.items ?? [];
+  if (merchantItems.length > 0) {
+    return merchantItems;
+  }
+
+  const legacyHistory = await requestSumup<SumupTransactionsResponse>(
+    `/v0.1/me/transactions/history?${params.toString()}`,
+    accessToken
+  );
+
+  return legacyHistory.items ?? [];
 }
 
 export async function resolveSumupMerchant(accessToken: string) {
@@ -156,7 +167,8 @@ export async function importableSumupTransactions({
     const amount = Number(item.amount);
     if (!Number.isFinite(amount)) continue;
 
-    const receiptLookupId = item.id ?? item.transaction_code;
+    const transactionId = item.id ?? item.transaction_id ?? null;
+    const receiptLookupId = transactionId ?? item.transaction_code;
     let receiptNo: string | null = null;
     let receipt: SumupReceiptResponse | null = null;
 
@@ -174,7 +186,7 @@ export async function importableSumupTransactions({
     }
 
     imported.push({
-      sumup_transaction_id: item.id ?? receipt?.transaction_data?.transaction_id ?? null,
+      sumup_transaction_id: transactionId ?? receipt?.transaction_data?.transaction_id ?? null,
       transaction_code: item.transaction_code ?? receipt?.transaction_data?.transaction_code ?? null,
       receipt_no: receiptNo,
       amount,

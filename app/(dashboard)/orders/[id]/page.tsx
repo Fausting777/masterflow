@@ -10,6 +10,7 @@ import CreateCorrectionButton from '@/components/orders/CreateCorrectionButton';
 import PhotoUploader from '@/components/orders/PhotoUploader';
 import PhotoGallery from '@/components/orders/PhotoGallery';
 import PdfSection from '@/components/orders/PdfSection';
+import SumupPaymentLinker from '@/components/orders/SumupPaymentLinker';
 import { getDictionary, getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { getSignedUrl, getSignedUrls } from '@/lib/supabase/storage';
@@ -24,6 +25,7 @@ import type {
   PaymentMethod,
   PaymentProvider,
   Service,
+  SumupTransaction,
 } from '@/types/database';
 import { updateOrderAction } from '../actions';
 
@@ -67,6 +69,8 @@ export default async function OrderPage({
     profileRes,
     correctionSourceRes,
     correctionsRes,
+    linkedSumupTransactionRes,
+    sumupCandidatesRes,
   ] = await Promise.all([
     supabase.from('clients').select('*').eq('id', o.client_id).maybeSingle(),
     o.service_id
@@ -111,6 +115,21 @@ export default async function OrderPage({
       .select('id, invoice_number, created_at')
       .eq('correction_of_order_id', o.id)
       .order('created_at', { ascending: false }),
+    o.sumup_transaction_id
+      ? supabase
+          .from('sumup_transactions')
+          .select('*')
+          .eq('id', o.sumup_transaction_id)
+          .eq('user_id', o.user_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('sumup_transactions')
+      .select('*')
+      .eq('user_id', o.user_id)
+      .is('order_id', null)
+      .order('paid_at', { ascending: false, nullsFirst: false })
+      .limit(20),
   ]);
 
   const client = clientRes.data as Client | null;
@@ -126,6 +145,7 @@ export default async function OrderPage({
   const corrections = (correctionsRes.data ?? []) as Array<
     Pick<Order, 'id' | 'invoice_number' | 'created_at'>
   >;
+  const linkedSumupTransaction = linkedSumupTransactionRes.data as SumupTransaction | null;
 
   const photoPaths = photos.map((p) => p.file_path);
   const photoSignedUrls =
@@ -148,6 +168,15 @@ export default async function OrderPage({
 
   const serviceTitle = service?.title ?? o.custom_service_title ?? DASH;
   const priceToShow = o.custom_price ?? service?.default_price ?? null;
+  const sumupCandidates = ((sumupCandidatesRes.data ?? []) as SumupTransaction[])
+    .sort((a, b) => {
+      if (priceToShow === null) {
+        return new Date(b.paid_at ?? 0).getTime() - new Date(a.paid_at ?? 0).getTime();
+      }
+
+      return Math.abs(Number(a.amount) - Number(priceToShow)) - Math.abs(Number(b.amount) - Number(priceToShow));
+    })
+    .slice(0, 10);
   const boundUpdate = updateOrderAction.bind(null, o.id);
 
   const statusLabels: Record<OrderStatus, string> = {
@@ -361,6 +390,7 @@ export default async function OrderPage({
             {o.payment_provider && (
               <Row label={paymentMetaText.paymentProvider} value={paymentProviderLabels[o.payment_provider]} />
             )}
+            {o.sumup_receipt_no && <Row label="SumUp" value={o.sumup_receipt_no} />}
             {o.paid_at && <Row label={paymentMetaText.paidAt} value={formatDateTimeLocal(o.paid_at)} />}
             <Row label={t.orderPage.workAddress} value={o.order_address ?? client?.address ?? DASH} />
             <Row label={t.orderPage.scheduledAt} value={formatDateTimeLocal(o.scheduled_at)} />
@@ -405,6 +435,14 @@ export default async function OrderPage({
               </div>
             )}
           </div>
+
+          <SumupPaymentLinker
+            orderId={o.id}
+            orderAmount={priceToShow !== null ? Number(priceToShow) : null}
+            linkedTransaction={linkedSumupTransaction}
+            candidates={sumupCandidates}
+            locale={locale}
+          />
 
           {showMedia ? (
             <>

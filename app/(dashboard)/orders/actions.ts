@@ -69,6 +69,9 @@ function getMessages(locale: UiLocale) {
         'Endgueltiges Loeschen ist nicht moeglich, weil fuer diesen Auftrag bereits eine Quittung erstellt wurde.',
       moveToTrashFirst:
         'Der Auftrag muss zuerst in den Papierkorb verschoben werden.',
+      sumupTransactionMissing: 'SumUp Zahlung nicht gefunden',
+      sumupAlreadyLinked: 'Diese SumUp Zahlung ist bereits mit einem Auftrag verknuepft',
+      sumupLinkLogPrefix: 'SumUp Zahlung verknuepft',
     };
   }
 
@@ -106,6 +109,9 @@ function getMessages(locale: UiLocale) {
       '\u041d\u0435\u043b\u044c\u0437\u044f \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043d\u0430\u0432\u0441\u0435\u0433\u0434\u0430: \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0437\u0430\u043a\u0430\u0437\u0430 \u0443\u0436\u0435 \u0441\u043e\u0437\u0434\u0430\u043d\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044f.',
     moveToTrashFirst:
       '\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u0435 \u0437\u0430\u043a\u0430\u0437 \u0432 \u043a\u043e\u0440\u0437\u0438\u043d\u0443.',
+    sumupTransactionMissing: '\u041e\u043f\u043b\u0430\u0442\u0430 SumUp \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u0430',
+    sumupAlreadyLinked: '\u042d\u0442\u0430 \u043e\u043f\u043b\u0430\u0442\u0430 SumUp \u0443\u0436\u0435 \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d\u0430 \u043a \u0437\u0430\u043a\u0430\u0437\u0443',
+    sumupLinkLogPrefix: '\u041e\u043f\u043b\u0430\u0442\u0430 SumUp \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d\u0430',
   };
 }
 
@@ -367,6 +373,77 @@ export async function updateOrderAction(
   revalidatePath('/orders');
   revalidatePath(`/orders/${id}`);
   redirect(`/orders/${id}`);
+}
+
+export async function linkSumupTransactionAction(
+  orderId: string,
+  sumupTransactionId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, error: m.unauthorized };
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, user_id, invoice_number, invoice_locked_at')
+    .eq('id', orderId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!order) return { ok: false, error: m.orderNotFound };
+
+  const { data: transaction, error: transactionError } = await supabase
+    .from('sumup_transactions')
+    .select('id, order_id, receipt_no, paid_at, transaction_code, sumup_transaction_id, amount')
+    .eq('id', sumupTransactionId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (transactionError) return { ok: false, error: transactionError.message };
+  if (!transaction) return { ok: false, error: m.sumupTransactionMissing };
+  if (transaction.order_id && transaction.order_id !== orderId) {
+    return { ok: false, error: m.sumupAlreadyLinked };
+  }
+
+  const { error: updateTransactionError } = await supabase
+    .from('sumup_transactions')
+    .update({ order_id: orderId })
+    .eq('id', sumupTransactionId)
+    .eq('user_id', user.id);
+
+  if (updateTransactionError) return { ok: false, error: updateTransactionError.message };
+
+  const { error: updateOrderError } = await supabase
+    .from('orders')
+    .update({
+      payment_method: 'ec_card',
+      payment_provider: 'sumup',
+      paid_at: transaction.paid_at,
+      sumup_transaction_id: transaction.id,
+      sumup_receipt_no: transaction.receipt_no,
+    })
+    .eq('id', orderId)
+    .eq('user_id', user.id);
+
+  if (updateOrderError) return { ok: false, error: updateOrderError.message };
+
+  await supabase.from('activity_logs').insert({
+    order_id: orderId,
+    user_id: user.id,
+    action_type: 'sumup_payment_linked',
+    action_text: `${m.sumupLinkLogPrefix}: ${
+      transaction.receipt_no ?? transaction.transaction_code ?? transaction.sumup_transaction_id ?? transaction.id
+    } (${transaction.amount})`,
+  });
+
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath('/settings/sumup');
+  return { ok: true };
 }
 
 export async function changeOrderStatusAction(id: string, status: OrderStatus): Promise<void> {

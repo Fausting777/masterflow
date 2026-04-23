@@ -3,14 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { validateCsrfFormData } from '@/lib/csrf/server';
 import { createClient } from '@/lib/supabase/server';
-import { importableSumupTransactions } from '@/lib/sumup/client';
+import { importableSumupTransactions, resolveSumupMerchant } from '@/lib/sumup/client';
 import { decryptSumupToken, encryptSumupToken, maskToken } from '@/lib/sumup/tokens';
 
 export type SumupConnectionState = {
   formError?: string;
   success?: boolean;
   values?: {
-    merchant_code: string;
     access_token: string;
   };
 };
@@ -32,16 +31,25 @@ export async function saveSumupConnectionAction(
   }
 
   const raw = {
-    merchant_code: String(formData.get('merchant_code') ?? '').trim(),
     access_token: String(formData.get('access_token') ?? '').trim(),
   };
 
-  if (!raw.merchant_code) {
-    return { formError: 'SumUp merchant code is required', values: raw };
-  }
-
   if (!raw.access_token) {
     return { formError: 'SumUp access token is required', values: raw };
+  }
+
+  let merchantCode: string;
+  try {
+    const merchant = await resolveSumupMerchant(raw.access_token);
+    merchantCode = merchant.merchantCode;
+  } catch (error) {
+    return {
+      formError:
+        error instanceof Error
+          ? `Could not detect SumUp merchant code: ${error.message}`
+          : 'Could not detect SumUp merchant code',
+      values: raw,
+    };
   }
 
   let encryptedToken: string;
@@ -66,7 +74,7 @@ export async function saveSumupConnectionAction(
   const { error } = await supabase.from('sumup_connections').upsert(
     {
       user_id: user.id,
-      merchant_code: raw.merchant_code,
+      merchant_code: merchantCode,
       access_token_encrypted: encryptedToken,
       access_token_hint: maskToken(raw.access_token),
     },
@@ -78,7 +86,7 @@ export async function saveSumupConnectionAction(
   }
 
   revalidatePath('/settings/sumup');
-  return { success: true, values: { merchant_code: raw.merchant_code, access_token: '' } };
+  return { success: true, values: { access_token: '' } };
 }
 
 export async function deleteSumupConnectionAction(formData: FormData) {

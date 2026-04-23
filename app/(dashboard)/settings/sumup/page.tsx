@@ -63,32 +63,35 @@ export default async function SumupSettingsPage() {
           receipt: 'Beleg',
           status: 'Status',
           paidAt: 'Bezahlt am',
-          nextStepTitle: 'Naechster Schritt',
+          nextStepTitle: 'So funktioniert es',
           nextStepText:
-            'Als naechstes wird in jedem Auftrag eine Aktion hinzugefuegt, mit der diese Zahlungen per Betrag und Datum verknuepft werden koennen.',
+            'Gib nur den SumUp Access Token ein. Merchant Code wird automatisch erkannt und danach fuer den Import der Transaktionen verwendet.',
         }
       : {
-          back: 'Назад к настройкам',
-          title: 'Интеграция SumUp',
+          back: '\u041d\u0430\u0437\u0430\u0434 \u043a \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430\u043c',
+          title: '\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044f SumUp',
           subtitle:
-            'Подключи свой аккаунт SumUp, импортируй оплаты и потом привязывай их к заказам.',
-          currentConnection: 'Текущее подключение',
-          notConnected: 'SumUp еще не подключен.',
+            '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0438 \u0441\u0432\u043e\u0439 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 SumUp, \u0438\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439 \u043e\u043f\u043b\u0430\u0442\u044b \u0438 \u043f\u043e\u0442\u043e\u043c \u043f\u0440\u0438\u0432\u044f\u0437\u044b\u0432\u0430\u0439 \u0438\u0445 \u043a \u0437\u0430\u043a\u0430\u0437\u0430\u043c.',
+          currentConnection: '\u0422\u0435\u043a\u0443\u0449\u0435\u0435 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435',
+          notConnected: 'SumUp \u0435\u0449\u0435 \u043d\u0435 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d.',
           merchantCode: 'Merchant Code',
-          token: 'Токен',
-          lastSync: 'Последняя синхронизация',
-          never: 'Еще не было',
-          disconnect: 'Удалить подключение',
-          importedPayments: 'Непривязанные оплаты SumUp',
+          token: '\u0422\u043e\u043a\u0435\u043d',
+          lastSync:
+            '\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u044f\u044f \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f',
+          never: '\u0415\u0449\u0435 \u043d\u0435 \u0431\u044b\u043b\u043e',
+          disconnect:
+            '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435',
+          importedPayments:
+            '\u041d\u0435\u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d\u043d\u044b\u0435 \u043e\u043f\u043b\u0430\u0442\u044b SumUp',
           noPayments:
-            'Пока нет непривязанных оплат SumUp. Импортируй транзакции или проверь позже.',
-          transaction: 'Транзакция',
-          receipt: 'Чек',
-          status: 'Статус',
-          paidAt: 'Оплачено',
-          nextStepTitle: 'Следующий шаг',
+            '\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u043d\u0435\u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d\u043d\u044b\u0445 \u043e\u043f\u043b\u0430\u0442 SumUp. \u0418\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0438 \u0438\u043b\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u044c \u043f\u043e\u0437\u0436\u0435.',
+          transaction: '\u0422\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u044f',
+          receipt: '\u0427\u0435\u043a',
+          status: '\u0421\u0442\u0430\u0442\u0443\u0441',
+          paidAt: '\u041e\u043f\u043b\u0430\u0447\u0435\u043d\u043e',
+          nextStepTitle: '\u041a\u0430\u043a \u044d\u0442\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442',
           nextStepText:
-            'Дальше добавим в каждый заказ действие, чтобы эти оплаты можно было привязывать по сумме и дате.',
+            '\u0412\u0432\u043e\u0434\u0438\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e SumUp Access Token. Merchant Code \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u0438 \u0434\u0430\u043b\u044c\u0448\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0434\u043b\u044f \u0438\u043c\u043f\u043e\u0440\u0442\u0430 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0439.',
         };
 
   const formatDateTime = (value: string | null) =>
@@ -138,11 +141,7 @@ export default async function SumupSettingsPage() {
       </div>
 
       <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">
-        <SumupConnectionForm
-          action={saveSumupConnectionAction}
-          initial={{ merchant_code: savedConnection?.merchant_code ?? null }}
-          locale={locale}
-        />
+        <SumupConnectionForm action={saveSumupConnectionAction} locale={locale} />
       </div>
 
       <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">

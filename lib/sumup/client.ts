@@ -31,6 +31,19 @@ type SumupReceiptResponse = {
   };
 };
 
+type SumupMembershipResponse = {
+  items?: Array<{
+    resource_id?: string;
+    type?: string;
+    status?: string;
+    resource?: {
+      id?: string;
+      type?: string;
+      name?: string;
+    };
+  }>;
+};
+
 async function requestSumup<T>(path: string, accessToken: string): Promise<T> {
   const response = await fetch(`${SUMUP_API_BASE_URL}${path}`, {
     headers: {
@@ -81,6 +94,33 @@ export async function listSumupTransactions({
   );
 
   return data.items ?? [];
+}
+
+export async function resolveSumupMerchant(accessToken: string) {
+  const params = new URLSearchParams({
+    limit: '25',
+    'resource.type': 'merchant',
+    status: 'accepted',
+  });
+
+  const data = await requestSumup<SumupMembershipResponse>(
+    `/v0.1/memberships?${params.toString()}`,
+    accessToken
+  );
+
+  const membership = (data.items ?? []).find((item) => {
+    const type = item.resource?.type ?? item.type;
+    return type === 'merchant' && (item.resource?.id || item.resource_id);
+  });
+
+  if (!membership) {
+    throw new Error('No SumUp merchant account was found for this access token');
+  }
+
+  return {
+    merchantCode: membership.resource?.id ?? membership.resource_id!,
+    merchantName: membership.resource?.name ?? null,
+  };
 }
 
 export async function getSumupReceipt({

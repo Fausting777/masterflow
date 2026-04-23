@@ -6,61 +6,38 @@ import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 
 type Props = {
   action: (prev: SumupConnectionState, fd: FormData) => Promise<SumupConnectionState>;
-  initial?: {
-    merchant_code?: string | null;
-  };
   locale: 'ru' | 'de';
 };
 
-export default function SumupConnectionForm({ action, initial, locale }: Props) {
+export default function SumupConnectionForm({ action, locale }: Props) {
   const [state, formAction, isPending] = useActionState<SumupConnectionState, FormData>(action, {});
 
   const text =
     locale === 'de'
       ? {
-          merchantCode: 'Merchant Code',
           accessToken: 'Access Token',
           accessTokenHelp:
-            'Der Token wird nur serverseitig verschluesselt gespeichert und nicht im Browser abgelegt.',
+            'Merchant Code wird automatisch aus deinem SumUp Account erkannt. Der Token wird nur serverseitig verschluesselt gespeichert.',
           save: 'SumUp verbinden',
           saving: 'Speichern...',
           success: 'SumUp Verbindung wurde gespeichert.',
         }
       : {
-          merchantCode: 'Merchant Code',
           accessToken: 'Access Token',
           accessTokenHelp:
-            'Токен сохраняется только на сервере в зашифрованном виде и не хранится в браузере.',
-          save: 'Подключить SumUp',
-          saving: 'Сохранение...',
-          success: 'Подключение SumUp сохранено.',
+            'Merchant Code \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u0438\u0437 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u0430 SumUp. \u0422\u043e\u043a\u0435\u043d \u0445\u0440\u0430\u043d\u0438\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u043d\u0430 \u0441\u0435\u0440\u0432\u0435\u0440\u0435 \u0432 \u0437\u0430\u0448\u0438\u0444\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u043c \u0432\u0438\u0434\u0435.',
+          save: '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0438\u0442\u044c SumUp',
+          saving: '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...',
+          success: '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 SumUp \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e.',
         };
 
   const values = state.values ?? {
-    merchant_code: initial?.merchant_code ?? '',
     access_token: '',
   };
-
-  const inputClass =
-    'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
 
   return (
     <form action={formAction} className="space-y-4">
       <CsrfTokenInput />
-
-      <div>
-        <label htmlFor="merchant_code" className="mb-1 block text-sm font-medium">
-          {text.merchantCode}
-        </label>
-        <input
-          id="merchant_code"
-          name="merchant_code"
-          type="text"
-          required
-          defaultValue={values.merchant_code}
-          className={inputClass}
-        />
-      </div>
 
       <div>
         <label htmlFor="access_token" className="mb-1 block text-sm font-medium">
@@ -72,7 +49,7 @@ export default function SumupConnectionForm({ action, initial, locale }: Props) 
           type="password"
           required
           defaultValue={values.access_token}
-          className={inputClass}
+          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           autoComplete="off"
         />
         <p className="mt-1 text-xs text-neutral-500">{text.accessTokenHelp}</p>

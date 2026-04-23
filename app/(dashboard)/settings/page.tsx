@@ -1,6 +1,7 @@
 import ExportAuditTrailButton from '@/components/audit/ExportAuditTrailButton';
 import PasswordChangeForm from '@/components/forms/PasswordChangeForm';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getDictionary } from '@/lib/i18n/server';
 import ProfileForm from '@/components/forms/ProfileForm';
@@ -72,6 +73,23 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-neutral-500">{t.settings.languageText}</p>
         </div>
         <LanguageSwitcher />
+      </div>
+
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="text-base font-semibold">
+          {locale === 'de' ? 'SumUp Integration' : 'Интеграция SumUp'}
+        </h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          {locale === 'de'
+            ? 'Verbinde SumUp, um Zahlungen spaeter mit Auftraegen zu verknuepfen.'
+            : 'Подключи SumUp, чтобы позже привязывать оплаты к заказам.'}
+        </p>
+        <Link
+          href="/settings/sumup"
+          className="mt-3 inline-flex rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+        >
+          {locale === 'de' ? 'SumUp einrichten' : 'Настроить SumUp'}
+        </Link>
       </div>
 
       <div className="rounded-xl border border-neutral-200 bg-white p-5">

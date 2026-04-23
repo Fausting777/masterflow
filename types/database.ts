@@ -76,6 +76,8 @@ export interface Order {
   payment_method: PaymentMethod | null;
   payment_provider: PaymentProvider | null;
   paid_at: string | null;
+  sumup_transaction_id: string | null;
+  sumup_receipt_no: string | null;
   invoice_sent_at: string | null;
   invoice_sent_to: string | null;
   deleted_at: string | null;
@@ -99,6 +101,37 @@ export interface ActivityLog {
   action_type: string;
   action_text: string | null;
   created_at: string;
+}
+
+export interface SumupConnection {
+  id: string;
+  user_id: string;
+  merchant_code: string;
+  access_token_encrypted: string;
+  access_token_hint: string | null;
+  refresh_token_encrypted: string | null;
+  token_expires_at: string | null;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SumupTransaction {
+  id: string;
+  user_id: string;
+  order_id: string | null;
+  sumup_transaction_id: string | null;
+  transaction_code: string | null;
+  receipt_no: string | null;
+  amount: number;
+  currency: string;
+  status: string | null;
+  payment_type: string | null;
+  entry_mode: string | null;
+  paid_at: string | null;
+  raw_json: unknown | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuditTrailEntry {

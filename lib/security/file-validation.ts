@@ -2,10 +2,14 @@ const FILE_SIGNATURE_BYTES = 16;
 
 const MIME_ALIASES: Record<string, string> = {
   'image/jpg': 'image/jpeg',
+  'image/heic-sequence': 'image/heic',
+  'image/heif-sequence': 'image/heif',
 };
 
 const EXTENSIONS_BY_MIME = {
   'application/pdf': 'pdf',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
@@ -35,6 +39,22 @@ function normalizeMimeType(mimeType: string): string {
 }
 
 function detectMimeType(bytes: Uint8Array): SupportedFileMime | null {
+  if (
+    bytes.length >= 12 &&
+    bytes[4] === 0x66 &&
+    bytes[5] === 0x74 &&
+    bytes[6] === 0x79 &&
+    bytes[7] === 0x70
+  ) {
+    const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+    if (['heic', 'heix', 'hevc', 'hevx'].includes(brand)) {
+      return 'image/heic';
+    }
+    if (['heif', 'heim', 'mif1', 'msf1'].includes(brand)) {
+      return 'image/heif';
+    }
+  }
+
   if (
     bytes.length >= 8 &&
     bytes[0] === 0x89 &&

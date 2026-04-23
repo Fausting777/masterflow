@@ -249,7 +249,7 @@ export default function ExpenseForm({
           id="receipt"
           name="receipt"
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
           capture="environment"
           onChange={handleFileChange}
           className="block w-full text-sm text-neutral-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"

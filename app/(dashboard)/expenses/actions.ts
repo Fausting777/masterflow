@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { normalizeExpenseInput, validateExpense, type ExpenseValidationErrors } from '@/lib/validators/expense';
 
 const MAX_RECEIPT_FILE_SIZE = 10 * 1024 * 1024;
-const RECEIPT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const RECEIPT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const;
 
 export type ExpenseFormState = {
   errors?: ExpenseValidationErrors;
@@ -48,7 +48,7 @@ async function getActionMessages() {
         updateError: 'Fehler',
         uploadLog: 'Fehler beim Hochladen des Belegs:',
         receiptLarge: 'Beleg ist zu groß (max. 10 MB)',
-        receiptType: 'Beleg muss JPEG, PNG oder WebP sein',
+        receiptType: 'Beleg muss JPEG, PNG, WebP, HEIC oder HEIF sein',
         permanentDelete:
           'Die endgültige Löschung von Ausgaben und Belegen ist deaktiviert. Steuerlich relevante Belege müssen aufbewahrt werden und können nur über den Papierkorb ausgeblendet werden.',
       }
@@ -90,6 +90,22 @@ async function mapReceiptError(validation: Awaited<ReturnType<typeof validateUpl
   if (!validation || validation.ok) return null;
   if (validation.error === 'too_large') return m.receiptLarge;
   return m.receiptType;
+}
+
+function mapExpenseInsertError(message: string): string {
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes('expense_date') ||
+    lower.includes('tax_deductible') ||
+    lower.includes('updated_at') ||
+    lower.includes('deleted_at') ||
+    lower.includes('receipt_sha256')
+  ) {
+    return `${message}. Run sql/expenses-compat.sql in Supabase SQL Editor.`;
+  }
+
+  return message;
 }
 
 export async function createExpenseAction(
@@ -134,7 +150,7 @@ export async function createExpenseAction(
     .select('id')
     .single();
 
-  if (error) return { formError: `${m.createError}: ${error.message}`, values: raw };
+  if (error) return { formError: `${m.createError}: ${mapExpenseInsertError(error.message)}`, values: raw };
 
   if (receiptFile && receiptValidation?.ok) {
     const path = `${user.id}/${expense.id}/receipt.${receiptValidation.extension}`;
@@ -201,7 +217,7 @@ export async function updateExpenseAction(
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return { formError: `${m.updateError}: ${error.message}`, values: raw };
+  if (error) return { formError: `${m.updateError}: ${mapExpenseInsertError(error.message)}`, values: raw };
 
   if (receiptFile && receiptValidation?.ok) {
     const path = `${user.id}/${id}/receipt.${receiptValidation.extension}`;

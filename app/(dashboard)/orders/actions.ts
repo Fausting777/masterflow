@@ -470,7 +470,7 @@ export async function changeOrderStatusAction(
   if (status === 'completed') {
     const { data: current, error: currentError } = await supabase
       .from('orders')
-      .select('service_date')
+      .select('service_date, completed_at')
       .eq('id', id)
       .eq('user_id', user.id)
       .maybeSingle();
@@ -478,9 +478,14 @@ export async function changeOrderStatusAction(
     if (currentError) return { ok: false, error: currentError.message };
     if (!current) return { ok: false, error: m.orderNotFound };
 
-    if (current && !current.service_date) {
+    if (!current.service_date) {
       updates.service_date = new Date().toISOString();
     }
+    if (!current.completed_at) {
+      updates.completed_at = new Date().toISOString();
+    }
+  } else {
+    updates.completed_at = null;
   }
 
   const { error } = await supabase.from('orders').update(updates).eq('id', id).eq('user_id', user.id);

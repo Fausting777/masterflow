@@ -24,6 +24,29 @@ create table if not exists public.sumup_connections (
   constraint sumup_connections_user_unique unique (user_id)
 );
 
+alter table public.sumup_connections
+  add column if not exists user_id uuid references auth.users(id) on delete cascade,
+  add column if not exists merchant_code text,
+  add column if not exists access_token_encrypted text,
+  add column if not exists access_token_hint text,
+  add column if not exists refresh_token_encrypted text,
+  add column if not exists token_expires_at timestamptz,
+  add column if not exists last_synced_at timestamptz,
+  add column if not exists created_at timestamptz not null default timezone('utc', now()),
+  add column if not exists updated_at timestamptz not null default timezone('utc', now());
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'sumup_connections_user_unique'
+  ) then
+    alter table public.sumup_connections
+      add constraint sumup_connections_user_unique unique (user_id);
+  end if;
+end $$;
+
 create table if not exists public.sumup_transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -111,5 +134,7 @@ comment on column public.orders.sumup_transaction_id is
 
 comment on column public.orders.sumup_receipt_no is
   'SumUp receipt number copied onto the order for invoice/payment proof display.';
+
+notify pgrst, 'reload schema';
 
 commit;

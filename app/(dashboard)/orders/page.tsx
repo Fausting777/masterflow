@@ -4,23 +4,14 @@ import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
 import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { getMonthOptions, getRange } from '@/lib/utils/date-range';
-import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
-import type { OrderStatus, OrderWithClient } from '@/types/database';
+import { formatPrice } from '@/lib/utils/format';
+import type { OrderWithClient } from '@/types/database';
 
 type SearchParams = Promise<{
-  status?: string;
   invoice?: string;
   q?: string;
   m?: string;
 }>;
-
-const STATUS_FILTERS: Array<{ key: OrderStatus | 'all' }> = [
-  { key: 'all' },
-  { key: 'new' },
-  { key: 'in_progress' },
-  { key: 'completed' },
-  { key: 'canceled' },
-];
 
 const INVOICE_FILTERS = [
   { key: 'all', icon: '' },
@@ -36,8 +27,7 @@ function effectiveDate(order: Pick<OrderWithClient, 'service_date' | 'completed_
 }
 
 export default async function OrdersPage({ searchParams }: { searchParams: SearchParams }) {
-  const { status, invoice, q, m } = await searchParams;
-  const activeFilter = (status ?? 'all') as OrderStatus | 'all';
+  const { invoice, q, m } = await searchParams;
   const invoiceFilter = (invoice ?? 'all') as 'all' | 'with' | 'without' | 'sent';
   const currentMonth = m ?? '';
   const locale = await getLocale();
@@ -53,10 +43,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           trash: 'Papierkorb',
           new: 'Neu',
           all: 'Alle',
-          newStatus: 'Neu',
-          inProgress: 'In Arbeit',
-          completed: 'Abgeschlossen',
-          canceled: 'Abgebrochen',
           withInvoice: 'Mit Quittung',
           withoutInvoice: 'Ohne Quittung',
           sent: 'Versendet',
@@ -77,32 +63,28 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           monthSummaryPrefix: 'Zeitraum',
         }
       : {
-          title: 'Заказы',
-          trash: 'Корзина',
-          new: 'Новый',
-          all: 'Все',
-          newStatus: 'Новые',
-          inProgress: 'В работе',
-          completed: 'Завершенные',
-          canceled: 'Отмененные',
-          withInvoice: 'С квитанцией',
-          withoutInvoice: 'Без квитанции',
-          sent: 'Отправленные',
-          month: 'Месяц',
-          chooseMonth: 'Выбрать месяц',
-          apply: 'Применить',
-          resetMonth: 'Сбросить месяц',
-          currentSelection: 'Текущая выборка',
-          totalOrders: 'Всего заказов',
-          invoicedOrders: 'С квитанцией',
-          openOrders: 'Без квитанции',
-          totalAmount: 'Общая сумма',
-          amountHint: 'Сумма всех цен в текущей выборке',
-          error: 'Ошибка',
-          emptyDefault: 'Пока нет заказов.',
-          createFirst: 'Создать первый',
-          emptyFilter: 'Нет заказов для этого фильтра',
-          monthSummaryPrefix: 'Период',
+          title: '\u0417\u0430\u043a\u0430\u0437\u044b',
+          trash: '\u041a\u043e\u0440\u0437\u0438\u043d\u0430',
+          new: '\u041d\u043e\u0432\u044b\u0439',
+          all: '\u0412\u0441\u0435',
+          withInvoice: '\u0421 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0435\u0439',
+          withoutInvoice: '\u0411\u0435\u0437 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
+          sent: '\u041e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043d\u044b\u0435',
+          month: '\u041c\u0435\u0441\u044f\u0446',
+          chooseMonth: '\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043c\u0435\u0441\u044f\u0446',
+          apply: '\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c',
+          resetMonth: '\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u043c\u0435\u0441\u044f\u0446',
+          currentSelection: '\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u0432\u044b\u0431\u043e\u0440\u043a\u0430',
+          totalOrders: '\u0412\u0441\u0435\u0433\u043e \u0437\u0430\u043a\u0430\u0437\u043e\u0432',
+          invoicedOrders: '\u0421 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0435\u0439',
+          openOrders: '\u0411\u0435\u0437 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
+          totalAmount: '\u041e\u0431\u0449\u0430\u044f \u0441\u0443\u043c\u043c\u0430',
+          amountHint: '\u0421\u0443\u043c\u043c\u0430 \u0432\u0441\u0435\u0445 \u0446\u0435\u043d \u0432 \u0442\u0435\u043a\u0443\u0449\u0435\u0439 \u0432\u044b\u0431\u043e\u0440\u043a\u0435',
+          error: '\u041e\u0448\u0438\u0431\u043a\u0430',
+          emptyDefault: '\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0437\u0430\u043a\u0430\u0437\u043e\u0432.',
+          createFirst: '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u0435\u0440\u0432\u044b\u0439',
+          emptyFilter: '\u041d\u0435\u0442 \u0437\u0430\u043a\u0430\u0437\u043e\u0432 \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0444\u0438\u043b\u044c\u0442\u0440\u0430',
+          monthSummaryPrefix: '\u041f\u0435\u0440\u0438\u043e\u0434',
         };
 
   const formatDate = (value: string | null | undefined) => {
@@ -114,13 +96,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     }).format(new Date(value));
   };
 
-  const statusLabels: Record<OrderStatus, string> = {
-    new: text.newStatus,
-    in_progress: text.inProgress,
-    completed: text.completed,
-    canceled: text.canceled,
-  };
-
   const supabase = await createClient();
 
   let query = supabase
@@ -128,10 +103,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     .select('*')
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
-
-  if (activeFilter !== 'all') {
-    query = query.eq('status', activeFilter);
-  }
 
   if (invoiceFilter === 'with') {
     query = query.not('invoice_number', 'is', null);
@@ -203,27 +174,17 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     { totalOrders: 0, withInvoice: 0, withoutInvoice: 0, totalAmount: 0 }
   );
 
-  function buildHref(params: { status?: string; invoice?: string; m?: string | null }) {
+  function buildHref(params: { invoice?: string; m?: string | null }) {
     const searchParamsNext = new URLSearchParams();
-    const nextStatus = params.status ?? activeFilter;
     const nextInvoice = params.invoice ?? invoiceFilter;
     const nextMonth = params.m === undefined ? currentMonth : params.m ?? '';
 
-    if (nextStatus !== 'all') searchParamsNext.set('status', nextStatus);
     if (nextInvoice !== 'all') searchParamsNext.set('invoice', nextInvoice);
     if (nextMonth) searchParamsNext.set('m', nextMonth);
     if (q) searchParamsNext.set('q', q);
 
     return `/orders${searchParamsNext.toString() ? `?${searchParamsNext}` : ''}`;
   }
-
-  const statusFilterLabels: Record<OrderStatus | 'all', string> = {
-    all: text.all,
-    new: text.newStatus,
-    in_progress: text.inProgress,
-    completed: text.completed,
-    canceled: text.canceled,
-  };
 
   const invoiceLabels: Record<string, string> = {
     all: text.all,
@@ -253,25 +214,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
             + {text.new}
           </Link>
         </div>
-      </div>
-
-      <div className="mb-3 flex flex-wrap gap-2">
-        {STATUS_FILTERS.map((filter) => {
-          const active = filter.key === activeFilter;
-          return (
-            <Link
-              key={filter.key}
-              href={buildHref({ status: filter.key })}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                active
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
-              }`}
-            >
-              {statusFilterLabels[filter.key]}
-            </Link>
-          );
-        })}
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -313,7 +255,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
             </select>
           </div>
 
-          {activeFilter !== 'all' && <input type="hidden" name="status" value={activeFilter} />}
           {invoiceFilter !== 'all' && <input type="hidden" name="invoice" value={invoiceFilter} />}
           {q && <input type="hidden" name="q" value={q} />}
 
@@ -364,7 +305,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
 
       {ordersList.length === 0 ? (
         <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          {activeFilter === 'all' && invoiceFilter === 'all' && !currentMonth ? (
+          {invoiceFilter === 'all' && !currentMonth ? (
             <>
               {text.emptyDefault}{' '}
               <Link href="/orders/new" className="text-blue-600 hover:underline">
@@ -386,9 +327,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[order.status]}`}>
-                        {statusLabels[order.status]}
-                      </span>
                       <InvoiceBadges
                         invoiceNumber={order.invoice_number}
                         invoiceSentAt={order.invoice_sent_at}
@@ -401,7 +339,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
                     <h3 className="truncate font-medium">{order.client_name}</h3>
                     <p className="truncate text-sm text-neutral-500">
                       {order.custom_service_title ?? DASH}
-                      {order.order_address ? ` • ${order.order_address}` : ''}
+                      {order.order_address ? ` · ${order.order_address}` : ''}
                     </p>
                   </div>
                   <div className="whitespace-nowrap text-right">

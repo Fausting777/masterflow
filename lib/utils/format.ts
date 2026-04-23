@@ -1,4 +1,4 @@
-import type { ExpenseCategory, OrderStatus, PaymentMethod } from '@/types/database';
+import type { ExpenseCategory, PaymentMethod } from '@/types/database';
 
 export type UiLocale = 'ru' | 'de';
 
@@ -33,33 +33,6 @@ export function formatDateTime(
     minute: '2-digit',
   }).format(new Date(value));
 }
-
-export const STATUS_LABELS: Record<OrderStatus, string> = {
-  new: 'Новый',
-  in_progress: 'В работе',
-  completed: 'Завершен',
-  canceled: 'Отменен',
-};
-
-export function getStatusLabel(status: OrderStatus, locale: UiLocale): string {
-  if (locale === 'de') {
-    return {
-      new: 'Neu',
-      in_progress: 'In Arbeit',
-      completed: 'Abgeschlossen',
-      canceled: 'Abgebrochen',
-    }[status];
-  }
-
-  return STATUS_LABELS[status];
-}
-
-export const STATUS_COLORS: Record<OrderStatus, string> = {
-  new: 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300',
-  in_progress: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-300',
-  completed: 'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300',
-  canceled: 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
-};
 
 export function parsePriceInput(raw: string): number | null {
   const cleaned = raw.trim().replace(',', '.');

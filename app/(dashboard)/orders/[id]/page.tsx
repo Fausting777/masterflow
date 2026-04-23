@@ -4,7 +4,6 @@ import AuditTrailList from '@/components/audit/AuditTrailList';
 import FileIntegrityPanel from '@/components/audit/FileIntegrityPanel';
 import TrashActions from '@/components/orders/TrashActions';
 import OrderForm from '@/components/forms/OrderForm';
-import OrderStatusSwitcher from '@/components/forms/OrderStatusSwitcher';
 import DeleteOrderButton from '@/components/forms/DeleteOrderButton';
 import CreateCorrectionButton from '@/components/orders/CreateCorrectionButton';
 import PhotoUploader from '@/components/orders/PhotoUploader';
@@ -14,14 +13,13 @@ import SumupPaymentLinker from '@/components/orders/SumupPaymentLinker';
 import { getDictionary, getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { getSignedUrl, getSignedUrls } from '@/lib/supabase/storage';
-import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
+import { formatPrice } from '@/lib/utils/format';
 import type {
   ActivityLog,
   AuditTrailEntry,
   Client,
   Order,
   OrderPhoto,
-  OrderStatus,
   PaymentMethod,
   PaymentProvider,
   Service,
@@ -104,11 +102,7 @@ export default async function OrderPage({
     isEditing ? supabase.from('services').select('*').order('title') : Promise.resolve({ data: [] }),
     supabase.from('profiles').select('full_name, company_name').eq('id', o.user_id).maybeSingle(),
     o.correction_of_order_id
-      ? supabase
-          .from('orders')
-          .select('id, invoice_number')
-          .eq('id', o.correction_of_order_id)
-          .maybeSingle()
+      ? supabase.from('orders').select('id, invoice_number').eq('id', o.correction_of_order_id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase
       .from('orders')
@@ -180,13 +174,6 @@ export default async function OrderPage({
   const sumupReceiptNo = linkedSumupTransaction?.receipt_no ?? o.sumup_receipt_no;
   const sumupPaidAt = linkedSumupTransaction?.paid_at ?? o.paid_at;
   const boundUpdate = updateOrderAction.bind(null, o.id);
-
-  const statusLabels: Record<OrderStatus, string> = {
-    new: locale === 'de' ? 'Neu' : '\u041d\u043e\u0432\u044b\u0439',
-    in_progress: locale === 'de' ? 'In Arbeit' : '\u0412 \u0440\u0430\u0431\u043e\u0442\u0435',
-    completed: locale === 'de' ? 'Abgeschlossen' : '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d',
-    canceled: locale === 'de' ? 'Abgebrochen' : '\u041e\u0442\u043c\u0435\u043d\u0435\u043d',
-  };
 
   const paymentLabels: Record<PaymentMethod, string> = {
     cash: locale === 'de' ? 'Barzahlung' : '\u041d\u0430\u043b\u0438\u0447\u043d\u044b\u0435',
@@ -337,11 +324,6 @@ export default async function OrderPage({
 
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[o.status]}`}>
-                  {statusLabels[o.status]}
-                </span>
-              </div>
               <h1 className="truncate text-2xl font-semibold">{serviceTitle}</h1>
               {o.deleted_at && (
                 <div className="mt-2 inline-block rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
@@ -358,13 +340,6 @@ export default async function OrderPage({
               </Link>
             )}
           </div>
-
-          {!isInvoiceLocked && (
-            <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-              <div className="mb-2 text-sm text-neutral-500">{t.orderPage.changeStatus}</div>
-              <OrderStatusSwitcher orderId={o.id} currentStatus={o.status} />
-            </div>
-          )}
 
           <div className="mb-4 space-y-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <Row
@@ -411,7 +386,6 @@ export default async function OrderPage({
                 )
               }
             />
-            {o.completed_at && <Row label={t.orderPage.completedAt} value={formatDateTimeLocal(o.completed_at)} />}
             {o.invoice_number && (
               <Row
                 label={invoiceText.invoiceNumber}

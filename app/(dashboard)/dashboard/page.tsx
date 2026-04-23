@@ -4,10 +4,10 @@ import { getExpensesSummary } from '@/lib/stats/expenses';
 import { getRevenueStats } from '@/lib/stats/calculate';
 import { createClient } from '@/lib/supabase/server';
 import { getRange, toDateOnly } from '@/lib/utils/date-range';
-import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
-import type { OrderStatus, OrderWithClient } from '@/types/database';
+import { formatPrice } from '@/lib/utils/format';
+import type { OrderWithClient } from '@/types/database';
 
-const DASH = '—';
+const DASH = '-';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -18,14 +18,10 @@ export default async function DashboardPage() {
   ]);
   const user = auth.user;
 
-  const [clientsCountRes, servicesCountRes, ordersActiveCountRes, recentOrdersRes] = await Promise.all([
+  const [clientsCountRes, servicesCountRes, ordersCountRes, recentOrdersRes] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true }),
     supabase.from('services').select('*', { count: 'exact', head: true }),
-    supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['new', 'in_progress'])
-      .is('deleted_at', null),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).is('deleted_at', null),
     supabase
       .from('orders_with_client')
       .select('*')
@@ -44,21 +40,6 @@ export default async function DashboardPage() {
     toDateOnly(monthRange.to)
   );
   const monthProfit = monthStats.total - monthExpenses.total;
-
-  const statusLabels: Record<OrderStatus, string> =
-    locale === 'de'
-      ? {
-          new: 'Neu',
-          in_progress: 'In Arbeit',
-          completed: 'Abgeschlossen',
-          canceled: 'Abgebrochen',
-        }
-      : {
-          new: 'Новый',
-          in_progress: 'В работе',
-          completed: 'Завершен',
-          canceled: 'Отменен',
-        };
 
   const formatDateLocal = (value: string | null | undefined) =>
     value
@@ -106,7 +87,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard href="/orders" label={t.dashboard.activeOrders} value={ordersActiveCountRes.count ?? 0} accent />
+        <StatCard href="/orders" label={t.nav.orders} value={ordersCountRes.count ?? 0} accent />
         <StatCard href="/clients" label={t.nav.clients} value={clientsCountRes.count ?? 0} />
         <StatCard href="/services" label={t.nav.services} value={servicesCountRes.count ?? 0} />
       </div>
@@ -137,12 +118,7 @@ export default async function DashboardPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[o.status]}`}>
-                        {statusLabels[o.status]}
-                      </span>
-                      <span className="text-xs text-neutral-500">{formatDateLocal(o.created_at)}</span>
-                    </div>
+                    <div className="mb-1 text-xs text-neutral-500">{formatDateLocal(o.created_at)}</div>
                     <div className="truncate font-medium">{o.client_name}</div>
                     <div className="truncate text-sm text-neutral-500">{o.custom_service_title ?? DASH}</div>
                   </div>

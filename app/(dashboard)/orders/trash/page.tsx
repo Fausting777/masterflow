@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
-import { formatPrice, STATUS_COLORS } from '@/lib/utils/format';
-import type { OrderStatus, OrderWithClient } from '@/types/database';
+import { formatPrice } from '@/lib/utils/format';
+import type { OrderWithClient } from '@/types/database';
 
 export default async function TrashPage() {
   const { locale } = await getDictionary();
@@ -26,45 +26,30 @@ export default async function TrashPage() {
           laterCleanup: 'Kann nach Pruefung spaeter bereinigt werden',
         }
       : {
-          back: 'Назад к заказам',
-          title: 'Корзина заказов',
-          countSuffix: 'шт.',
-          archiveTitle: 'Архивные документы',
+          back: '\u041d\u0430\u0437\u0430\u0434 \u043a \u0437\u0430\u043a\u0430\u0437\u0430\u043c',
+          title: '\u041a\u043e\u0440\u0437\u0438\u043d\u0430 \u0437\u0430\u043a\u0430\u0437\u043e\u0432',
+          countSuffix: '\u0448\u0442.',
+          archiveTitle: '\u0410\u0440\u0445\u0438\u0432\u043d\u044b\u0435 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u044b',
           archiveText:
-            'Заказы с квитанцией нельзя удалить окончательно. В этом разделе они только скрываются и остаются в архиве.',
+            '\u0417\u0430\u043a\u0430\u0437\u044b \u0441 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0435\u0439 \u043d\u0435\u043b\u044c\u0437\u044f \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043e\u043a\u043e\u043d\u0447\u0430\u0442\u0435\u043b\u044c\u043d\u043e. \u0412 \u044d\u0442\u043e\u043c \u0440\u0430\u0437\u0434\u0435\u043b\u0435 \u043e\u043d\u0438 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u043a\u0440\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u0432 \u0430\u0440\u0445\u0438\u0432\u0435.',
           noInvoiceText:
-            'Заказы без квитанции можно очистить позже после проверки. Этот раздел не удаляет их автоматически.',
-          error: 'Ошибка',
-          empty: 'Корзина пуста',
-          noInvoice: 'Без квитанции',
-          hiddenAt: 'Скрыт',
-          archivedNote: 'Документ остается в архиве из-за квитанции',
-          laterCleanup: 'Можно очистить позже после проверки',
+            '\u0417\u0430\u043a\u0430\u0437\u044b \u0431\u0435\u0437 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438 \u043c\u043e\u0436\u043d\u043e \u043e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043f\u043e\u0437\u0436\u0435 \u043f\u043e\u0441\u043b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438. \u042d\u0442\u043e\u0442 \u0440\u0430\u0437\u0434\u0435\u043b \u043d\u0435 \u0443\u0434\u0430\u043b\u044f\u0435\u0442 \u0438\u0445 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438.',
+          error: '\u041e\u0448\u0438\u0431\u043a\u0430',
+          empty: '\u041a\u043e\u0440\u0437\u0438\u043d\u0430 \u043f\u0443\u0441\u0442\u0430',
+          noInvoice: '\u0411\u0435\u0437 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
+          hiddenAt: '\u0421\u043a\u0440\u044b\u0442',
+          archivedNote: '\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u043e\u0441\u0442\u0430\u0435\u0442\u0441\u044f \u0432 \u0430\u0440\u0445\u0438\u0432\u0435 \u0438\u0437-\u0437\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
+          laterCleanup: '\u041c\u043e\u0436\u043d\u043e \u043e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043f\u043e\u0437\u0436\u0435 \u043f\u043e\u0441\u043b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438',
         };
 
   const formatDate = (value: string | null | undefined) => {
-    if (!value) return '—';
+    if (!value) return '-';
     return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'ru-RU', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     }).format(new Date(value));
   };
-
-  const statusLabels: Record<OrderStatus, string> =
-    locale === 'de'
-      ? {
-          new: 'Neu',
-          in_progress: 'In Arbeit',
-          completed: 'Abgeschlossen',
-          canceled: 'Abgebrochen',
-        }
-      : {
-          new: 'Новый',
-          in_progress: 'В работе',
-          completed: 'Завершен',
-          canceled: 'Отменен',
-        };
 
   const supabase = await createClient();
   const { data: orders, error } = await supabase
@@ -122,9 +107,6 @@ export default async function TrashPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[order.status]}`}>
-                        {statusLabels[order.status]}
-                      </span>
                       {order.invoice_number ? (
                         <span className="rounded bg-blue-100 px-2 py-0.5 font-mono text-xs text-blue-700">
                           {order.invoice_number}
@@ -139,7 +121,7 @@ export default async function TrashPage() {
                       </span>
                     </div>
                     <h3 className="truncate font-medium">{order.client_name}</h3>
-                    <p className="truncate text-sm text-neutral-500">{order.custom_service_title ?? '—'}</p>
+                    <p className="truncate text-sm text-neutral-500">{order.custom_service_title ?? '-'}</p>
                     <div className="mt-1 text-xs text-neutral-500">
                       {order.invoice_number ? text.archivedNote : text.laterCleanup}
                     </div>

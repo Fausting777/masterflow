@@ -17,17 +17,15 @@ import {
   getMonthlyRevenue,
   getOrdersWithoutInvoice,
   getRevenueStats,
-  getStatusBreakdown,
   getTopClients,
   getTopServices,
 } from '@/lib/stats/calculate';
 import {
-  STATUS_COLORS,
   formatPrice,
   getExpenseCategoryEmoji,
   getExpenseCategoryLabel,
 } from '@/lib/utils/format';
-import type { ExpenseCategory, OrderStatus } from '@/types/database';
+import type { ExpenseCategory } from '@/types/database';
 
 type SearchParams = Promise<{
   period?: string;
@@ -59,9 +57,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           profit: 'Gewinn',
           loss: 'Verlust',
           monthlyChart: 'Einnahmen und Ausgaben pro Monat',
-          statuses: 'Auftraege nach Status',
-          total: 'gesamt',
-          noOrders: 'Keine Auftraege in diesem Zeitraum',
           byCategory: 'Ausgaben nach Kategorien',
           details: 'Mehr',
           pendingInvoices: 'Offene Quittungen',
@@ -77,49 +72,40 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           notes2:
             'Alle Kennzahlen beziehen sich primaer auf das Leistungsdatum. Wenn es fehlt, wird das Erstellungsdatum des Auftrags verwendet.',
           notes3: 'Der Indikator vergleicht mit dem vorherigen passenden Zeitraum.',
-          new: 'Neu',
-          inProgress: 'In Arbeit',
-          completed: 'Abgeschlossen',
-          canceled: 'Abgebrochen',
           of: 'von',
+          showing: 'Es werden 10',
         }
       : {
-          back: '\u041d\u0430\u0437\u0430\u0434 \u043a \u0434\u0430\u0448\u0431\u043e\u0440\u0434\u0443',
-          title: '\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430',
-          previous: 'vs. \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u0439',
-          revenue: '\u0412\u044b\u0440\u0443\u0447\u043a\u0430',
-          invoices: '\u0421\u0447\u0435\u0442\u0430',
-          avgCheck: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439 \u0447\u0435\u043a',
-          withoutInvoice: '\u0411\u0435\u0437 \u0441\u0447\u0435\u0442\u0430',
-          income: '\u0414\u043e\u0445\u043e\u0434',
-          expenses: '\u0420\u0430\u0441\u0445\u043e\u0434\u044b',
-          deductible: '\u0418\u0437 \u043d\u0438\u0445 \u043a \u0432\u044b\u0447\u0435\u0442\u0443',
-          profit: '\u041f\u0440\u0438\u0431\u044b\u043b\u044c',
-          loss: '\u0423\u0431\u044b\u0442\u043e\u043a',
-          monthlyChart: '\u0414\u043e\u0445\u043e\u0434\u044b \u0438 \u0440\u0430\u0441\u0445\u043e\u0434\u044b \u043f\u043e \u043c\u0435\u0441\u044f\u0446\u0430\u043c',
-          statuses: '\u0417\u0430\u043a\u0430\u0437\u044b \u043f\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430\u043c',
-          total: '\u0432\u0441\u0435\u0433\u043e',
-          noOrders: '\u041d\u0435\u0442 \u0437\u0430\u043a\u0430\u0437\u043e\u0432 \u0432 \u044d\u0442\u043e\u043c \u043f\u0435\u0440\u0438\u043e\u0434\u0435',
-          byCategory: '\u0420\u0430\u0441\u0445\u043e\u0434\u044b \u043f\u043e \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f\u043c',
-          details: '\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0435\u0435',
-          pendingInvoices: '\u0416\u0434\u0443\u0442 \u0441\u0447\u0435\u0442',
-          all: '\u0412\u0441\u0435',
-          showAll: '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0432\u0441\u0435',
-          topClients: '\u0422\u043e\u043f \u043a\u043b\u0438\u0435\u043d\u0442\u043e\u0432',
-          byRevenue: '\u043f\u043e \u0432\u044b\u0440\u0443\u0447\u043a\u0435',
-          noData: '\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445',
-          topServices: '\u0422\u043e\u043f \u0443\u0441\u043b\u0443\u0433',
-          byFrequency: '\u043f\u043e \u0447\u0430\u0441\u0442\u043e\u0442\u0435',
-          jobs: '\u0437\u0430\u043a\u0430\u0437\u043e\u0432',
-          notes1: '\u0412 \u0432\u044b\u0440\u0443\u0447\u043a\u0435 \u0443\u0447\u0438\u0442\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0437\u0430\u043a\u0430\u0437\u044b \u0441 \u0432\u044b\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u043d\u044b\u043c \u0441\u0447\u0435\u0442\u043e\u043c.',
+          back: 'Назад к дашборду',
+          title: 'Статистика',
+          previous: 'vs. предыдущий',
+          revenue: 'Выручка',
+          invoices: 'Квитанции',
+          avgCheck: 'Средний чек',
+          withoutInvoice: 'Без квитанции',
+          income: 'Доход',
+          expenses: 'Расходы',
+          deductible: 'Из них к вычету',
+          profit: 'Прибыль',
+          loss: 'Убыток',
+          monthlyChart: 'Доходы и расходы по месяцам',
+          byCategory: 'Расходы по категориям',
+          details: 'Подробнее',
+          pendingInvoices: 'Ждут квитанцию',
+          all: 'Все',
+          showAll: 'Открыть все',
+          topClients: 'Топ клиентов',
+          byRevenue: 'по выручке',
+          noData: 'Нет данных',
+          topServices: 'Топ услуг',
+          byFrequency: 'по частоте',
+          jobs: 'заказов',
+          notes1: 'В выручке учитываются только заказы с выпущенной квитанцией.',
           notes2:
-            '\u0412\u0441\u0435 \u0446\u0438\u0444\u0440\u044b \u0441\u0447\u0438\u0442\u0430\u044e\u0442\u0441\u044f \u043f\u043e \u0434\u0430\u0442\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f \u0440\u0430\u0431\u043e\u0442\u044b. \u0415\u0441\u043b\u0438 \u0435\u0451 \u043d\u0435\u0442, \u0431\u0435\u0440\u0451\u0442\u0441\u044f \u0434\u0430\u0442\u0430 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f \u0437\u0430\u043a\u0430\u0437\u0430.',
-          notes3: '\u0418\u043d\u0434\u0438\u043a\u0430\u0442\u043e\u0440 \u0441\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u0435\u0442 \u0441 \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u043c \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0438\u043c \u043f\u0435\u0440\u0438\u043e\u0434\u043e\u043c.',
-          new: '\u041d\u043e\u0432\u044b\u0439',
-          inProgress: '\u0412 \u0440\u0430\u0431\u043e\u0442\u0435',
-          completed: '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d',
-          canceled: '\u041e\u0442\u043c\u0435\u043d\u0435\u043d',
-          of: '\u0438\u0437',
+            'Все цифры считаются по дате выполнения работы. Если ее нет, берется дата создания заказа.',
+          notes3: 'Индикатор сравнивает с предыдущим подходящим периодом.',
+          of: 'из',
+          showing: 'Показано 10',
         };
 
   const formatDate = (value: string | null | undefined) => {
@@ -129,13 +115,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
       month: '2-digit',
       year: 'numeric',
     }).format(new Date(value));
-  };
-
-  const statusLabels: Record<OrderStatus, string> = {
-    new: text.new,
-    in_progress: text.inProgress,
-    completed: text.completed,
-    canceled: text.canceled,
   };
 
   const rangeOptions: { from?: Date; to?: Date; specificMonth?: string } = {};
@@ -165,7 +144,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
 
   const [
     revenue,
-    statuses,
     monthly,
     topClients,
     topServices,
@@ -177,7 +155,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
     monthlyExpenses,
   ] = await Promise.all([
     getRevenueStats(supabase, user!.id, range.from, range.to),
-    getStatusBreakdown(supabase, user!.id, range.from, range.to),
     getMonthlyRevenue(supabase, user!.id, months12.map((m) => ({ from: m.from, to: m.to }))),
     getTopClients(supabase, user!.id, range.from, range.to),
     getTopServices(supabase, user!.id, range.from, range.to),
@@ -202,8 +179,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
 
   const profit = revenue.total - expenses.total;
   const profitPrev = revenuePrev.total - expensesPrev.total;
-  const statusOrder: OrderStatus[] = ['new', 'in_progress', 'completed', 'canceled'];
-  const totalOrders = Object.values(statuses).reduce((sum, value) => sum + value, 0);
 
   return (
     <div>
@@ -237,7 +212,11 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">{text.invoices}</div>
           <div className="text-2xl font-bold">{revenue.invoicesCount}</div>
           {previousRange && (
-            <ChangeIndicator current={revenue.invoicesCount} previous={revenuePrev.invoicesCount} label={text.previous} />
+            <ChangeIndicator
+              current={revenue.invoicesCount}
+              previous={revenuePrev.invoicesCount}
+              label={text.previous}
+            />
           )}
         </div>
 
@@ -283,7 +262,12 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
             {text.deductible}: <span className="font-semibold">{formatPrice(expenses.taxDeductible)}</span>
           </div>
           {previousRange && (
-            <ChangeIndicator current={expenses.total} previous={expensesPrev.total} higherIsBetter={false} label={text.previous} />
+            <ChangeIndicator
+              current={expenses.total}
+              previous={expensesPrev.total}
+              higherIsBetter={false}
+              label={text.previous}
+            />
           )}
         </div>
 
@@ -309,35 +293,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           values={monthly}
           expenses={monthlyExpenses}
         />
-      </div>
-
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-medium text-neutral-500">
-          {text.statuses} <span className="text-neutral-400">· {totalOrders} {text.total}</span>
-        </h2>
-        {totalOrders === 0 ? (
-          <p className="text-sm italic text-neutral-400">{text.noOrders}</p>
-        ) : (
-          <div className="space-y-2">
-            {statusOrder.map((status) => {
-              const count = statuses[status];
-              const pct = totalOrders > 0 ? (count / totalOrders) * 100 : 0;
-              return (
-                <div key={status}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[status]}`}>
-                      {statusLabels[status]}
-                    </span>
-                    <span className="font-semibold">{count}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
-                    <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {expenses.total > 0 && (
@@ -412,9 +367,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
 
           {ordersNoInvoice.length > 10 && (
             <div className="mt-3 text-center text-xs text-amber-700">
-              {locale === 'de'
-                ? `Es werden 10 ${text.of} ${ordersNoInvoice.length} gezeigt. `
-                : `Показано 10 ${text.of} ${ordersNoInvoice.length}. `}
+              {text.showing} {text.of} {ordersNoInvoice.length}.{' '}
               <Link href="/orders?invoice=without" className="underline">
                 {text.showAll}
               </Link>

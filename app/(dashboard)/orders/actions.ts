@@ -10,7 +10,6 @@ import {
   validateOrder,
   type OrderValidationErrors,
 } from '@/lib/validators/order';
-import type { OrderStatus } from '@/types/database';
 
 export type OrderFormState = {
   errors?: OrderValidationErrors;
@@ -445,55 +444,6 @@ export async function linkSumupTransactionAction(
 
   revalidatePath(`/orders/${orderId}`);
   revalidatePath('/settings/sumup');
-  return { ok: true };
-}
-
-export async function changeOrderStatusAction(
-  id: string,
-  status: OrderStatus
-): Promise<{ ok: boolean; error?: string }> {
-  const locale = await getLocale();
-  const m = getMessages(locale);
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { ok: false, error: m.unauthorized };
-
-  if (!['new', 'in_progress', 'completed', 'canceled'].includes(status)) {
-    return { ok: false, error: m.genericError };
-  }
-
-  const updates: Record<string, unknown> = { status };
-
-  if (status === 'completed') {
-    const { data: current, error: currentError } = await supabase
-      .from('orders')
-      .select('service_date, completed_at')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (currentError) return { ok: false, error: currentError.message };
-    if (!current) return { ok: false, error: m.orderNotFound };
-
-    if (!current.service_date) {
-      updates.service_date = new Date().toISOString();
-    }
-    if (!current.completed_at) {
-      updates.completed_at = new Date().toISOString();
-    }
-  } else {
-    updates.completed_at = null;
-  }
-
-  const { error } = await supabase.from('orders').update(updates).eq('id', id).eq('user_id', user.id);
-
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath('/orders');
-  revalidatePath(`/orders/${id}`);
   return { ok: true };
 }
 

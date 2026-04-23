@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
 import { useI18n } from '@/components/i18n/LocaleProvider';
@@ -93,6 +93,11 @@ export default function OrderForm({
   const [paymentMethod, setPaymentMethod] = useState(values.payment_method);
   const [paymentProvider, setPaymentProvider] = useState(values.payment_provider);
   const [paidAt, setPaidAt] = useState(values.paid_at);
+  const [selectedServiceId, setSelectedServiceId] = useState(values.service_id ?? '');
+  const [description, setDescription] = useState(values.description ?? '');
+  const previousServiceDescriptionRef = useRef(
+    services.find((service) => service.id === values.service_id)?.description?.trim() ?? ''
+  );
 
   useEffect(() => {
     if (!useQuickClient || orderAddressTouched) return;
@@ -114,6 +119,24 @@ export default function OrderForm({
     const nextOrderAddress = [selectedClient.address?.trim(), cityLine].filter(Boolean).join(', ');
     setOrderAddress(nextOrderAddress);
   }, [clients, orderAddressTouched, selectedClientId, useQuickClient]);
+
+  useEffect(() => {
+    if (useCustom) {
+      previousServiceDescriptionRef.current = '';
+      return;
+    }
+
+    const selectedService = services.find((service) => service.id === selectedServiceId);
+    const nextServiceDescription = selectedService?.description?.trim() ?? '';
+    const previousServiceDescription = previousServiceDescriptionRef.current;
+    const currentDescription = description.trim();
+
+    if (!currentDescription || currentDescription === previousServiceDescription) {
+      setDescription(nextServiceDescription);
+    }
+
+    previousServiceDescriptionRef.current = nextServiceDescription;
+  }, [description, selectedServiceId, services, useCustom]);
 
   const paymentMetaText =
     locale === 'de'
@@ -287,6 +310,9 @@ export default function OrderForm({
             onClick={() => {
               const nextUseCustom = !useCustom;
               setUseCustom(nextUseCustom);
+              if (nextUseCustom) {
+                previousServiceDescriptionRef.current = '';
+              }
             }}
             className="text-xs text-blue-600 hover:underline"
           >
@@ -308,7 +334,12 @@ export default function OrderForm({
         ) : (
           <>
             <input type="hidden" name="custom_service_title" defaultValue="" />
-            <select name="service_id" defaultValue={values.service_id} className={inputCls}>
+            <select
+              name="service_id"
+              value={selectedServiceId}
+              onChange={(e) => setSelectedServiceId(e.target.value)}
+              className={inputCls}
+            >
               <option value="">{t.orderForm.selectService}</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
@@ -471,7 +502,8 @@ export default function OrderForm({
           id="description"
           name="description"
           rows={4}
-          defaultValue={values.description}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           className={`${inputCls} resize-y`}
         />
       </div>

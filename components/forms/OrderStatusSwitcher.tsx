@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { changeOrderStatusAction } from '@/app/(dashboard)/orders/actions';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 import { STATUS_COLORS } from '@/lib/utils/format';
@@ -16,6 +17,7 @@ export default function OrderStatusSwitcher({
   currentStatus: OrderStatus;
 }) {
   const { locale } = useI18n();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -28,23 +30,24 @@ export default function OrderStatusSwitcher({
           canceled: 'Storniert',
         }
       : {
-          new: 'Новый',
-          in_progress: 'В работе',
-          completed: 'Завершен',
-          canceled: 'Отменен',
+          new: '\u041d\u043e\u0432\u044b\u0439',
+          in_progress: '\u0412 \u0440\u0430\u0431\u043e\u0442\u0435',
+          completed: '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d',
+          canceled: '\u041e\u0442\u043c\u0435\u043d\u0435\u043d',
         };
 
-  const genericError = locale === 'de' ? 'Fehler' : 'Ошибка';
+  const genericError = locale === 'de' ? 'Fehler' : '\u041e\u0448\u0438\u0431\u043a\u0430';
 
   function setStatus(next: OrderStatus) {
     if (next === currentStatus) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await changeOrderStatusAction(orderId, next);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : genericError);
+      const result = await changeOrderStatusAction(orderId, next);
+      if (!result.ok) {
+        setError(result.error ?? genericError);
+        return;
       }
+      router.refresh();
     });
   }
 

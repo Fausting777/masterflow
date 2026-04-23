@@ -18,6 +18,10 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
     locale === 'de'
       ? 'Soll diese Ausgabe endgueltig geloescht werden?'
       : 'Удалить этот расход навсегда?';
+  const deleteNowHelp =
+    locale === 'de'
+      ? 'Loescht die Ausgabe sofort inklusive gespeichertem Beleg.'
+      : 'Удаляет расход сразу, вместе с сохраненным чеком.';
 
   function handleSoftDelete() {
     if (!confirm(t.expenseActions.confirmTrash)) return;
@@ -88,15 +92,26 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={handleSoftDelete}
-        disabled={isPending}
-        className="w-full rounded-lg border border-red-300 bg-red-50 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
-      >
-        {t.expenseActions.softDelete}
-      </button>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={handleSoftDelete}
+          disabled={isPending}
+          className="w-full rounded-lg border border-amber-300 bg-amber-50 py-2.5 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+        >
+          {t.expenseActions.softDelete}
+        </button>
+        <button
+          type="button"
+          onClick={handlePermanentDelete}
+          disabled={isPending}
+          className="w-full rounded-lg border border-red-300 bg-red-50 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+        >
+          {deleteForeverLabel}
+        </button>
+      </div>
       <p className="text-xs text-neutral-500">{t.expenseActions.softDeleteHelp}</p>
+      <p className="text-xs text-neutral-500">{deleteNowHelp}</p>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );

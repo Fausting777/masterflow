@@ -66,6 +66,8 @@ function getMessages(locale: UiLocale) {
       restoredLog: 'Auftrag aus dem Papierkorb wiederhergestellt',
       cannotDeleteInvoice:
         'Endgueltiges Loeschen ist nicht moeglich, weil fuer diesen Auftrag bereits eine Quittung erstellt wurde.',
+      deleteBlockedByActivityLogs:
+        'Endgueltiges Loeschen ist blockiert, weil alte Aktivitaetsprotokolle noch per Datenbank-Referenz am Auftrag haengen. Wenden Sie die SQL-Korrektur fuer activity_logs an und versuchen Sie es erneut.',
       moveToTrashFirst:
         'Der Auftrag muss zuerst in den Papierkorb verschoben werden.',
       sumupTransactionMissing: 'SumUp Zahlung nicht gefunden',
@@ -106,6 +108,8 @@ function getMessages(locale: UiLocale) {
     restoredLog: '\u0417\u0430\u043a\u0430\u0437 \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u0438\u0437 \u043a\u043e\u0440\u0437\u0438\u043d\u044b',
     cannotDeleteInvoice:
       '\u041d\u0435\u043b\u044c\u0437\u044f \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043d\u0430\u0432\u0441\u0435\u0433\u0434\u0430: \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0437\u0430\u043a\u0430\u0437\u0430 \u0443\u0436\u0435 \u0441\u043e\u0437\u0434\u0430\u043d\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044f.',
+    deleteBlockedByActivityLogs:
+      '\u041d\u0430\u0432\u0441\u0435\u0433\u0434\u0430 \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0437\u0430\u043a\u0430\u0437 \u043f\u043e\u043a\u0430 \u043d\u0435\u043b\u044c\u0437\u044f: \u0441\u0442\u0430\u0440\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438 activity_logs \u0432 \u0431\u0430\u0437\u0435 \u0435\u0449\u0451 \u0436\u0451\u0441\u0442\u043a\u043e \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d\u044b \u043a \u044d\u0442\u043e\u043c\u0443 \u0437\u0430\u043a\u0430\u0437\u0443. \u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u0435 SQL-\u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0434\u043b\u044f activity_logs \u0438 \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u043f\u044b\u0442\u043a\u0443.',
     moveToTrashFirst:
       '\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u0435 \u0437\u0430\u043a\u0430\u0437 \u0432 \u043a\u043e\u0440\u0437\u0438\u043d\u0443.',
     sumupTransactionMissing: '\u041e\u043f\u043b\u0430\u0442\u0430 SumUp \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u0430',
@@ -635,7 +639,13 @@ export async function permanentDeleteOrderAction(id: string): Promise<{ error: s
 
   const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', user.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.message.toLowerCase().includes('activity_logs are append-only')) {
+      return { error: m.deleteBlockedByActivityLogs };
+    }
+
+    return { error: error.message };
+  }
 
   revalidatePath('/orders');
   revalidatePath('/orders/trash');

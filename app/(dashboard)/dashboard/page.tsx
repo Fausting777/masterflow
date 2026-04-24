@@ -32,13 +32,10 @@ export default async function DashboardPage() {
 
   const recent = (recentOrdersRes.data ?? []) as OrderWithClient[];
   const monthRange = getRange('month', new Date(), { locale });
-  const monthStats = await getRevenueStats(supabase, user!.id, monthRange.from, monthRange.to);
-  const monthExpenses = await getExpensesSummary(
-    supabase,
-    user!.id,
-    toDateOnly(monthRange.from),
-    toDateOnly(monthRange.to)
-  );
+  const [monthStats, monthExpenses] = await Promise.all([
+    getRevenueStats(supabase, user!.id, monthRange.from, monthRange.to),
+    getExpensesSummary(supabase, user!.id, toDateOnly(monthRange.from), toDateOnly(monthRange.to)),
+  ]);
   const monthProfit = monthStats.total - monthExpenses.total;
 
   const formatDateLocal = (value: string | null | undefined) =>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 import { formatPrice } from '@/lib/utils/format';
 
@@ -12,11 +13,15 @@ type Props = {
 export default function RevenueChart({ months, values, expenses }: Props) {
   const { locale } = useI18n();
   const hasExpenses = Boolean(expenses && expenses.length > 0);
-  const allValues = hasExpenses ? [...values, ...(expenses ?? [])] : values;
-  const max = Math.max(...allValues, 1);
 
-  const totalRevenue = values.reduce((a, b) => a + b, 0);
-  const totalExpenses = hasExpenses ? (expenses ?? []).reduce((a, b) => a + b, 0) : 0;
+  const { max, totalRevenue, totalExpenses } = useMemo(() => {
+    const allValues = hasExpenses ? [...values, ...(expenses ?? [])] : values;
+    return {
+      max: Math.max(...allValues, 1),
+      totalRevenue: values.reduce((a, b) => a + b, 0),
+      totalExpenses: hasExpenses ? (expenses ?? []).reduce((a, b) => a + b, 0) : 0,
+    };
+  }, [values, expenses, hasExpenses]);
 
   const text =
     locale === 'de'

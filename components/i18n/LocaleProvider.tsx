@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { getMessages, type Locale } from '@/lib/i18n/shared';
 
 type LocaleContextValue = {
@@ -17,8 +17,10 @@ export function LocaleProvider({
   locale: Locale;
   children: React.ReactNode;
 }) {
+  const value = useMemo(() => ({ locale, t: getMessages(locale) }), [locale]);
+
   return (
-    <LocaleContext.Provider value={{ locale, t: getMessages(locale) }}>
+    <LocaleContext.Provider value={value}>
       {children}
     </LocaleContext.Provider>
   );

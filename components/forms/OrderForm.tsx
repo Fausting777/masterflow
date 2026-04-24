@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
 import { useI18n } from '@/components/i18n/LocaleProvider';
@@ -138,6 +138,27 @@ export default function OrderForm({
     previousServiceDescriptionRef.current = nextServiceDescription;
   }, [description, selectedServiceId, services, useCustom]);
 
+  const handlePaymentMethodChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const nextMethod = e.target.value;
+      setPaymentMethod(nextMethod);
+      if (nextMethod !== 'ec_card') {
+        setPaymentProvider('');
+      } else if (!paymentProvider) {
+        setPaymentProvider('sumup');
+      }
+      if (!paidAt && ['cash', 'ec_card', 'paypal'].includes(nextMethod)) {
+        setPaidAt(toDateTimeLocal(new Date().toISOString()));
+      }
+    },
+    [paymentProvider, paidAt]
+  );
+
+  const handleCityDetected = useCallback(
+    (city: string) => setQuickCity((prev) => prev.trim() || city),
+    []
+  );
+
   const paymentMetaText =
     locale === 'de'
       ? {
@@ -234,7 +255,7 @@ export default function OrderForm({
             </div>
             <PostalCodeLookup
               postalCode={quickPostalCode}
-              onCityDetected={(city) => setQuickCity((prev) => prev.trim() || city)}
+              onCityDetected={handleCityDetected}
             />
             <p className="text-xs text-neutral-500">{t.orderForm.quickClientHelp}</p>
             {state.errors?.client_quick_name && (
@@ -430,18 +451,7 @@ export default function OrderForm({
           id="payment_method"
           name="payment_method"
           value={paymentMethod}
-          onChange={(e) => {
-            const nextMethod = e.target.value;
-            setPaymentMethod(nextMethod);
-            if (nextMethod !== 'ec_card') {
-              setPaymentProvider('');
-            } else if (!paymentProvider) {
-              setPaymentProvider('sumup');
-            }
-            if (!paidAt && ['cash', 'ec_card', 'paypal'].includes(nextMethod)) {
-              setPaidAt(toDateTimeLocal(new Date().toISOString()));
-            }
-          }}
+          onChange={handlePaymentMethodChange}
           className={inputCls}
         >
           <option value="">{t.orderForm.paymentMethodEmpty}</option>

@@ -16,7 +16,7 @@ export type PasswordChangeValidationErrors = Partial<
   Record<keyof PasswordChangeInput, string>
 >;
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 const LETTER_RE = /[A-Za-zА-Яа-яЁё]/;
 
 export const PASSWORD_POLICY = {

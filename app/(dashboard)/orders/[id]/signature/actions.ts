@@ -69,11 +69,15 @@ export async function saveSignatureAction(formData: FormData): Promise<{
   if (!order) return { ok: false, error: m.orderNotFound };
   if (order.invoice_number || order.invoice_locked_at) return { ok: false, error: m.locked };
 
-  const filePath = `${user.id}/${orderId}/signature.png`;
+  if (order.signature_file_path) {
+    await supabase.storage.from('order-signatures').remove([order.signature_file_path]);
+  }
+
+  const rand = crypto.randomUUID().slice(0, 8);
+  const filePath = `${user.id}/${orderId}/signature-${rand}.png`;
   const { error: uploadError } = await supabase.storage.from('order-signatures').upload(filePath, file!, {
     contentType: validation.detectedMimeType,
     cacheControl: '3600',
-    upsert: true,
   });
 
   if (uploadError) return { ok: false, error: `${m.uploadError}: ${uploadError.message}` };

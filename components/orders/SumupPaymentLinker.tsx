@@ -24,6 +24,12 @@ export default function SumupPaymentLinker({
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState(candidates[0]?.id ?? '');
 
+  const selectedTransaction = candidates.find((c) => c.id === selectedId) ?? candidates[0];
+  const amountWarning =
+    orderAmount !== null && selectedTransaction
+      ? Math.round((Number(selectedTransaction.amount) - orderAmount) * 100) / 100 !== 0
+      : false;
+
   const text =
     locale === 'de'
       ? {
@@ -38,6 +44,7 @@ export default function SumupPaymentLinker({
           transaction: 'Transaktion',
           paidAt: 'Bezahlt am',
           amountDiff: 'Differenz zum Auftrag',
+          amountMismatch: 'Achtung: Der Betrag der Transaktion stimmt nicht mit dem Auftragsbetrag ueberein.',
           genericError: 'Fehler',
         }
       : {
@@ -52,6 +59,7 @@ export default function SumupPaymentLinker({
           transaction: 'Транзакция',
           paidAt: 'Оплачено',
           amountDiff: 'Разница с заказом',
+          amountMismatch: 'Внимание: сумма транзакции не совпадает с суммой заказа.',
           genericError: 'Ошибка',
         };
 
@@ -143,6 +151,12 @@ export default function SumupPaymentLinker({
             <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
               {renderTransaction(candidates.find((candidate) => candidate.id === selectedId) ?? candidates[0])}
             </div>
+          )}
+
+          {amountWarning && (
+            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+              {text.amountMismatch}
+            </p>
           )}
 
           <button

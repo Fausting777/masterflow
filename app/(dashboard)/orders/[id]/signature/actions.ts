@@ -111,7 +111,8 @@ export async function deleteSignatureAction(orderId: string): Promise<{
   if (!order) return { ok: false, error: m.orderNotFound };
 
   if (order.signature_file_path) {
-    await supabase.storage.from('order-signatures').remove([order.signature_file_path]);
+    const { error: storageError } = await supabase.storage.from('order-signatures').remove([order.signature_file_path]);
+    if (storageError) return { ok: false, error: `${m.uploadError}: ${storageError.message}` };
   }
 
   const { error } = await supabase

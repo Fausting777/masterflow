@@ -1,5 +1,6 @@
 'use server';
 
+import { escapeCsvCell } from '@/lib/security/csv';
 import { createClient } from '@/lib/supabase/server';
 
 export async function exportAuditTrailCsvAction(): Promise<{
@@ -25,13 +26,6 @@ export async function exportAuditTrailCsvAction(): Promise<{
   if (error) return { ok: false, error: error.message };
   if (!data || data.length === 0) return { ok: false, error: 'Keine Audit-Einträge gefunden' };
 
-  const escape = (value: string) => {
-    if (value.includes(';') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  };
-
   const headers = ['created_at', 'table_name', 'record_id', 'operation', 'changed_fields', 'old_data', 'new_data'];
   const rows = data.map((entry) => [
     entry.created_at ?? '',
@@ -44,8 +38,8 @@ export async function exportAuditTrailCsvAction(): Promise<{
   ]);
 
   const lines = [
-    headers.map(escape).join(';'),
-    ...rows.map((row) => row.map((cell) => escape(String(cell))).join(';')),
+    headers.map(escapeCsvCell).join(';'),
+    ...rows.map((row) => row.map((cell) => escapeCsvCell(String(cell))).join(';')),
   ];
 
   const csv = '\uFEFF' + lines.join('\r\n');

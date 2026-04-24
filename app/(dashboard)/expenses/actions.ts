@@ -380,7 +380,8 @@ export async function permanentDeleteExpenseAction(id: string): Promise<void> {
   if (!expense) throw new Error(m.updateError);
 
   if (expense.receipt_file_path) {
-    await supabase.storage.from('receipts').remove([expense.receipt_file_path]);
+    const { error: storageError } = await supabase.storage.from('receipts').remove([expense.receipt_file_path]);
+    if (storageError) throw new Error(storageError.message);
   }
 
   const { error } = await supabase

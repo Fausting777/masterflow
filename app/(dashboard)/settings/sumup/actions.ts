@@ -33,9 +33,10 @@ export async function saveSumupConnectionAction(
   const raw = {
     access_token: String(formData.get('access_token') ?? '').trim(),
   };
+  const emptyValues = { access_token: '' };
 
   if (!raw.access_token) {
-    return { formError: 'SumUp access token is required', values: raw };
+    return { formError: 'SumUp access token is required', values: emptyValues };
   }
 
   let merchantCode: string;
@@ -48,7 +49,7 @@ export async function saveSumupConnectionAction(
         error instanceof Error
           ? `Could not detect SumUp merchant code: ${error.message}`
           : 'Could not detect SumUp merchant code',
-      values: raw,
+      values: emptyValues,
     };
   }
 
@@ -58,7 +59,7 @@ export async function saveSumupConnectionAction(
   } catch (error) {
     return {
       formError: error instanceof Error ? error.message : 'Could not encrypt SumUp token',
-      values: raw,
+      values: emptyValues,
     };
   }
 
@@ -68,7 +69,7 @@ export async function saveSumupConnectionAction(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { formError: 'Not authorized', values: raw };
+    return { formError: 'Not authorized', values: emptyValues };
   }
 
   const { error } = await supabase.from('sumup_connections').upsert(
@@ -82,11 +83,11 @@ export async function saveSumupConnectionAction(
   );
 
   if (error) {
-    return { formError: error.message, values: raw };
+    return { formError: error.message, values: emptyValues };
   }
 
   revalidatePath('/settings/sumup');
-  return { success: true, values: { access_token: '' } };
+  return { success: true, values: emptyValues };
 }
 
 export async function deleteSumupConnectionAction(formData: FormData) {

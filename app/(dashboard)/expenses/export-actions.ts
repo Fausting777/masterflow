@@ -1,6 +1,7 @@
 'use server';
 
 import { getLocale } from '@/lib/i18n/server';
+import { escapeCsvCell } from '@/lib/security/csv';
 import { createClient } from '@/lib/supabase/server';
 import { formatDate, getExpenseCategoryLabel } from '@/lib/utils/format';
 import type { ExpenseCategory } from '@/types/database';
@@ -142,16 +143,9 @@ export async function exportExpensesCsvAction(
     ];
   });
 
-  const escape = (value: string) => {
-    if (value.includes(';') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  };
-
   const lines = [
-    text.headers.map(escape).join(';'),
-    ...rows.map((row) => row.map((cell) => escape(String(cell))).join(';')),
+    text.headers.map(escapeCsvCell).join(';'),
+    ...rows.map((row) => row.map((cell) => escapeCsvCell(String(cell))).join(';')),
   ];
 
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);

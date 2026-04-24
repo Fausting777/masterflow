@@ -607,7 +607,10 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
   const { data: photos } = await supabase.from('order_photos').select('file_path').eq('order_id', id);
 
   if (photos && photos.length > 0) {
-    await supabase.storage.from('order-photos').remove(photos.map((p) => p.file_path));
+    const { error: photosStorageError } = await supabase.storage
+      .from('order-photos')
+      .remove(photos.map((p) => p.file_path));
+    if (photosStorageError) throw new Error(photosStorageError.message);
   }
 
   const { data: fullOrder } = await supabase
@@ -618,10 +621,14 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
     .maybeSingle();
 
   if (fullOrder?.signature_file_path) {
-    await supabase.storage.from('order-signatures').remove([fullOrder.signature_file_path]);
+    const { error: signatureStorageError } = await supabase.storage
+      .from('order-signatures')
+      .remove([fullOrder.signature_file_path]);
+    if (signatureStorageError) throw new Error(signatureStorageError.message);
   }
   if (fullOrder?.pdf_file_path) {
-    await supabase.storage.from('order-pdfs').remove([fullOrder.pdf_file_path]);
+    const { error: pdfStorageError } = await supabase.storage.from('order-pdfs').remove([fullOrder.pdf_file_path]);
+    if (pdfStorageError) throw new Error(pdfStorageError.message);
   }
 
   const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', user.id);

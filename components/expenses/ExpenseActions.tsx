@@ -23,6 +23,10 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
       ? 'Loescht die Ausgabe sofort inklusive gespeichertem Beleg.'
       : 'Удаляет расход сразу, вместе с сохраненным чеком.';
 
+  function isRouterError(e: unknown): boolean {
+    return e instanceof Error && 'digest' in e;
+  }
+
   function handleSoftDelete() {
     if (!confirm(t.expenseActions.confirmTrash)) return;
     setError(null);
@@ -30,6 +34,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
       try {
         await softDeleteExpenseAction(expenseId);
       } catch (e) {
+        if (isRouterError(e)) throw e;
         setError(e instanceof Error ? e.message : t.expenseActions.genericError);
       }
     });
@@ -41,6 +46,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
       try {
         await restoreExpenseAction(expenseId);
       } catch (e) {
+        if (isRouterError(e)) throw e;
         setError(e instanceof Error ? e.message : t.expenseActions.genericError);
       }
     });
@@ -53,6 +59,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
       try {
         await permanentDeleteExpenseAction(expenseId);
       } catch (e) {
+        if (isRouterError(e)) throw e;
         setError(e instanceof Error ? e.message : t.expenseActions.genericError);
       }
     });

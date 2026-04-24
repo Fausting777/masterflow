@@ -48,6 +48,10 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
             'Удалить заказ со всеми фото и файлами навсегда?\n\nЭто действие нельзя отменить.',
         };
 
+  function isRouterError(e: unknown): boolean {
+    return e instanceof Error && 'digest' in e;
+  }
+
   function handleRestore() {
     if (!window.confirm(text.restoreConfirm)) return;
     setError(null);
@@ -55,6 +59,7 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
       try {
         await restoreOrderAction(orderId);
       } catch (e) {
+        if (isRouterError(e)) throw e;
         setError(e instanceof Error ? e.message : text.genericError);
       }
     });
@@ -73,6 +78,7 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
       try {
         await permanentDeleteOrderAction(orderId);
       } catch (e) {
+        if (isRouterError(e)) throw e;
         setError(e instanceof Error ? e.message : text.genericError);
       }
     });

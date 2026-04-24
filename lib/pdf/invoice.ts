@@ -75,6 +75,13 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('de-DE');
 }
 
+function addDays(iso: string, days: number): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
+}
+
 function detectImageType(bytes: Uint8Array): 'png' | 'jpg' | null {
   if (bytes.length < 4) return null;
   if (bytes[0] === 0x89 && bytes[1] === 0x50) return 'png';
@@ -354,11 +361,16 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
     ? paymentLabels[data.order.payment_method] ?? data.order.payment_method
     : 'Unbekannt';
   const providerLabel = data.order.payment_provider === 'sumup' || data.order.sumup ? 'SumUp' : null;
+  const isOpenTransferInvoice = data.order.payment_method === 'transfer' && !data.order.paid_at;
+  const dueDate = isOpenTransferInvoice ? addDays(data.order.invoice_date, 14) : null;
 
-  ensureSpace(data.order.sumup ? 142 : 72);
+  ensureSpace(isOpenTransferInvoice ? 160 : data.order.sumup ? 142 : 72);
   drawText('Zahlung', margin, bold, 10);
   y -= 14;
-  if (data.order.paid_at) {
+  if (isOpenTransferInvoice) {
+    drawText('Status: offen', margin, regular, 10, COLORS.text);
+    y -= 14;
+  } else if (data.order.paid_at) {
     drawText('Status: bezahlt', margin, regular, 10, COLORS.text);
     y -= 14;
   }
@@ -373,6 +385,25 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   if (data.order.paid_at) {
     drawText(`Bezahlt am: ${formatDate(data.order.paid_at)}`, margin, regular, 10, COLORS.text);
     y -= 14;
+  }
+  if (isOpenTransferInvoice) {
+    drawText(
+      `Zahlbar innerhalb von 14 Tagen${dueDate ? `, spaetestens bis ${formatDate(dueDate)}` : ''}.`,
+      margin,
+      regular,
+      10,
+      COLORS.text
+    );
+    y -= 14;
+    drawWrapped(
+      'Hinweis: Es gelten die gesetzlichen Verzugsregeln nach Paragraph 286 BGB. Gegenueber Verbrauchern tritt automatischer Verzug 30 Tage nach Faelligkeit und Zugang dieser Rechnung nur ein, wenn dieser Hinweis in der Rechnung enthalten ist.',
+      margin,
+      W - 2 * margin,
+      regular,
+      9,
+      COLORS.muted
+    );
+    y -= 4;
   }
   if (data.order.sumup) {
     const sumup = data.order.sumup;

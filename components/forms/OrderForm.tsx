@@ -489,9 +489,20 @@ export default function OrderForm({
       )}
 
       <div>
-        <label htmlFor="paid_at" className="mb-1 block text-sm font-medium">
-          {paymentMetaText.paidAt}
-        </label>
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <label htmlFor="paid_at" className="block text-sm font-medium">
+            {paymentMetaText.paidAt}
+          </label>
+          {paidAt && (
+            <button
+              type="button"
+              onClick={() => setPaidAt('')}
+              className="text-xs font-medium text-blue-600 hover:underline"
+            >
+              {locale === 'de' ? 'Noch nicht bezahlt' : 'Еще не оплачено'}
+            </button>
+          )}
+        </div>
         <input
           id="paid_at"
           name="paid_at"

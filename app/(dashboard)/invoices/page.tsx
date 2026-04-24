@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import ExportButton from '@/components/invoices/ExportButton';
+import PeriodPicker from '@/components/stats/PeriodPicker';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
 import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
-import { getRange, type PeriodKey } from '@/lib/utils/date-range';
+import { getMonthOptions, getRange, type PeriodKey } from '@/lib/utils/date-range';
 import { formatPrice } from '@/lib/utils/format';
 
 type SearchParams = Promise<{
@@ -27,14 +28,21 @@ type InvoiceRow = {
   correction_of_order_id: string | null;
 };
 
-const DASH = '—';
+const DASH = '-';
 
 export default async function InvoicesPage({ searchParams }: { searchParams: SearchParams }) {
-  const { period, q } = await searchParams;
-  const activePeriod = (period ?? 'year') as PeriodKey;
-  const range = getRange(activePeriod);
+  const { period, from, to, q } = await searchParams;
+  const activePeriod = (period ?? 'all') as PeriodKey;
   const search = (q ?? '').trim();
   const locale = await getLocale();
+  const currentMonth = activePeriod === 'month' ? from ?? null : null;
+  const range = getRange(activePeriod, new Date(), {
+    from: activePeriod === 'custom' && from ? new Date(`${from}T00:00:00`) : undefined,
+    to: activePeriod === 'custom' && to ? new Date(`${to}T23:59:59`) : undefined,
+    specificMonth: activePeriod === 'month' ? currentMonth ?? undefined : undefined,
+    locale,
+  });
+  const monthOptions = getMonthOptions(2024, new Date(), locale);
 
   const text =
     locale === 'de'
@@ -60,29 +68,31 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           correction: 'Korrektur',
           archiveNote:
             'Archivquittungen werden aus dem Snapshot zum Zeitpunkt der Ausstellung angezeigt. Korrekturen werden als separate Dokumente angezeigt und ersetzen nicht die urspruengliche Quittung.',
+          export: 'CSV exportieren',
         }
       : {
           title: 'Квитанции',
           month: 'Месяц',
           quarter: 'Квартал',
           year: 'Год',
-          allTime: 'Все время',
-          periodDesc: 'Все выпущенные квитанции за период',
-          searchPlaceholder: 'Свободный поиск по номеру квитанции, клиенту, услуге или сумме...',
+          allTime: 'Все',
+          periodDesc: 'Все выставленные квитанции за период',
+          searchPlaceholder: 'Поиск по номеру квитанции, клиенту, услуге или сумме...',
           summaryTitle: 'Квитанции в текущей выборке',
           total: 'Итого',
           error: 'Ошибка',
           emptySearch: 'Ничего не найдено по запросу',
-          emptyPeriod: 'Нет выпущенных квитанций за этот период',
+          emptyPeriod: 'Нет выставленных квитанций за этот период',
           number: 'Номер',
           date: 'Дата',
           client: 'Клиент',
           service: 'Услуга',
           amount: 'Сумма',
-          sentAt: 'Отправлен',
+          sentAt: 'Отправлено',
           correction: 'Корректировка',
           archiveNote:
-            'Архивные квитанции выводятся из snapshot на момент выпуска. Корректировки показываются как отдельные документы и не заменяют исходную квитанцию.',
+            'Архивные квитанции показываются из snapshot на момент выставления. Корректировки отображаются как отдельные документы и не заменяют исходную квитанцию.',
+          export: 'Экспорт CSV',
         };
 
   const formatDate = (value: string | null | undefined) => {
@@ -146,13 +156,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
     }
   }
 
-  const serviceIds = [
-    ...new Set(
-      invoices
-        .filter((invoice) => invoice.service_id && invoice.custom_price === null)
-        .map((invoice) => invoice.service_id!)
-    ),
-  ];
+  const serviceIds = [...new Set(invoices.filter((invoice) => invoice.service_id).map((invoice) => invoice.service_id!))];
   const servicePriceMap = new Map<string, number>();
   const serviceTitleMap = new Map<string, string>();
 
@@ -163,16 +167,10 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
       .in('id', serviceIds);
 
     for (const service of services ?? []) {
-      if (service.default_price !== null) servicePriceMap.set(service.id, Number(service.default_price));
       serviceTitleMap.set(service.id, service.title);
-    }
-  }
-
-  const allServiceIds = [...new Set(invoices.filter((invoice) => invoice.service_id).map((invoice) => invoice.service_id!))];
-  if (allServiceIds.length > 0) {
-    const { data: services } = await supabase.from('services').select('id, title').in('id', allServiceIds);
-    for (const service of services ?? []) {
-      serviceTitleMap.set(service.id, service.title);
+      if (service.default_price !== null) {
+        servicePriceMap.set(service.id, Number(service.default_price));
+      }
     }
   }
 
@@ -237,13 +235,13 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         {periodButtons.map((button) => {
           const active = button.key === activePeriod;
           const params = new URLSearchParams();
-          params.set('period', button.key);
+          if (button.key !== 'all') params.set('period', button.key);
           if (search) params.set('q', search);
 
           return (
             <Link
               key={button.key}
-              href={`/invoices?${params.toString()}`}
+              href={`/invoices${params.toString() ? `?${params}` : ''}`}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
               }`}
@@ -254,8 +252,24 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         })}
       </div>
 
+      <PeriodPicker
+        targetPath="/invoices"
+        currentPeriod={activePeriod}
+        currentFrom={activePeriod === 'custom' ? from ?? null : null}
+        currentTo={activePeriod === 'custom' ? to ?? null : null}
+        currentMonth={currentMonth}
+        monthOptions={monthOptions}
+        monthParam="from"
+        persistentParams={{
+          q: search || null,
+        }}
+      />
+
       <form action="/invoices" className="mb-4">
-        <input type="hidden" name="period" value={activePeriod} />
+        {activePeriod !== 'all' && <input type="hidden" name="period" value={activePeriod} />}
+        {activePeriod === 'month' && currentMonth && <input type="hidden" name="from" value={currentMonth} />}
+        {activePeriod === 'custom' && from && <input type="hidden" name="from" value={from} />}
+        {activePeriod === 'custom' && to && <input type="hidden" name="to" value={to} />}
         <input
           type="text"
           name="q"
@@ -362,7 +376,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                             className="ml-2 text-xs text-green-600"
                             title={`${text.sentAt} ${formatDate(invoice.invoice_sent_at)}`}
                           >
-                            ✓
+                            OK
                           </span>
                         )}
                       </div>

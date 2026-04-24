@@ -127,7 +127,8 @@ export async function deletePhotoAction(photoId: string): Promise<{
 
   if (!photo) return { ok: false, error: m.photoNotFound };
 
-  await supabase.storage.from('order-photos').remove([photo.file_path]);
+  const { error: storageError } = await supabase.storage.from('order-photos').remove([photo.file_path]);
+  if (storageError) return { ok: false, error: `${m.uploadError}: ${storageError.message}` };
 
   const { error } = await supabase.from('order_photos').delete().eq('id', photoId).eq('user_id', user.id);
   if (error) return { ok: false, error: error.message };

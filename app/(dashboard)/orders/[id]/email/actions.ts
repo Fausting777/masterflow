@@ -39,18 +39,22 @@ async function getMessages() {
         pdfDownloadFailed: 'PDF konnte nicht geladen werden',
         sendUnknown: 'Unbekannter Fehler beim Versand',
         sentTo: 'Rechnung gesendet an',
+        saveSendMetaFailed: 'E-Mail wurde gesendet, aber der Sendestatus konnte nicht gespeichert werden',
+        auditLogFailed: 'E-Mail wurde gesendet, aber der Audit-Eintrag konnte nicht gespeichert werden',
       }
     : {
         missingOrder: 'Заказ не указан',
         invalidRecipient: 'Некорректный email получателя',
-        emptySubject: 'Тема пуста',
-        emptyBody: 'Текст пуст',
-        unauthorized: 'Нет авторизации',
+        emptySubject: 'Тема письма пустая',
+        emptyBody: 'Текст письма пустой',
+        unauthorized: 'Пользователь не авторизован',
         orderNotFound: 'Заказ не найден',
         pdfMissing: 'PDF еще не создан, сначала сгенерируйте квитанцию',
         pdfDownloadFailed: 'Не удалось загрузить PDF',
-        sendUnknown: 'Неизвестная ошибка отправки',
+        sendUnknown: 'Неизвестная ошибка при отправке',
         sentTo: 'Квитанция отправлена на',
+        saveSendMetaFailed: 'Письмо отправлено, но не удалось сохранить статус отправки',
+        auditLogFailed: 'Письмо отправлено, но не удалось записать событие в аудит',
       };
 }
 
@@ -129,7 +133,7 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
   }
 
   const sentAt = new Date().toISOString();
-  await supabase
+  const { error: updateError } = await supabase
     .from('orders')
     .update({
       invoice_sent_at: sentAt,
@@ -138,12 +142,20 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
     .eq('id', orderId)
     .eq('user_id', user.id);
 
-  await supabase.from('activity_logs').insert({
+  if (updateError) {
+    return { ok: false, error: `${m.saveSendMetaFailed}: ${updateError.message}` };
+  }
+
+  const { error: logError } = await supabase.from('activity_logs').insert({
     order_id: orderId,
     user_id: user.id,
     action_type: 'invoice_sent',
     action_text: `${m.sentTo} ${to}`,
   });
+
+  if (logError) {
+    return { ok: false, error: `${m.auditLogFailed}: ${logError.message}` };
+  }
 
   revalidatePath(`/orders/${orderId}`);
   return { ok: true };

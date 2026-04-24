@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { validateCsrfFormData } from '@/lib/csrf/server';
+import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   normalizeRegisterInput,
@@ -12,6 +13,7 @@ import {
 export type RegisterFormState = {
   errors?: RegisterValidationErrors;
   formError?: string;
+  successMessage?: string;
   values?: {
     email: string;
   };
@@ -21,10 +23,24 @@ export async function registerAction(
   _prevState: RegisterFormState,
   formData: FormData
 ): Promise<RegisterFormState> {
+  const locale = await getLocale();
+  const text =
+    locale === 'de'
+      ? {
+          csrfFailed: 'CSRF-Validierung fehlgeschlagen',
+          confirmEmail:
+            'Konto erstellt. Bitte bestaetige jetzt deine E-Mail-Adresse und melde dich danach an.',
+        }
+      : {
+          csrfFailed: 'Ошибка проверки CSRF',
+          confirmEmail:
+            'Аккаунт создан. Подтверди email и затем войди в систему.',
+        };
+
   try {
     await validateCsrfFormData(formData);
   } catch {
-    return { formError: 'CSRF validation failed' };
+    return { formError: text.csrfFailed };
   }
 
   const raw = {
@@ -46,7 +62,7 @@ export async function registerAction(
   const supabase = await createClient();
   const normalized = normalizeRegisterInput(raw);
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: normalized.email,
     password: normalized.password,
   });
@@ -60,5 +76,14 @@ export async function registerAction(
     };
   }
 
-  redirect('/dashboard');
+  if (data.session) {
+    redirect('/dashboard');
+  }
+
+  return {
+    successMessage: text.confirmEmail,
+    values: {
+      email: raw.email,
+    },
+  };
 }

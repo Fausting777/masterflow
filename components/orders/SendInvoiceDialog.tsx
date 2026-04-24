@@ -26,32 +26,32 @@ export default function SendInvoiceDialog({
     locale === 'de'
       ? {
           title: 'Rechnung per E-Mail senden',
-          close: 'Schließen',
+          close: 'Schliessen',
           success: 'E-Mail wurde gesendet',
-          recipient: 'Empfänger (E-Mail)',
+          recipient: 'Empfaenger (E-Mail)',
           missingClientEmail:
-            'Beim Kunden ist keine E-Mail hinterlegt. Füge sie in der Kundenkarte hinzu oder trage sie hier manuell ein.',
+            'Beim Kunden ist keine E-Mail hinterlegt. Fuege sie in der Kundenkarte hinzu oder trage sie hier manuell ein.',
           subjectLabel: 'Betreff',
           bodyLabel: 'Nachricht',
           attachmentHint:
-            'Die PDF-Rechnung wird automatisch angehängt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
+            'Die PDF-Rechnung wird automatisch angehaengt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
           cancel: 'Abbrechen',
           send: 'Senden',
           sending: 'Wird gesendet...',
           genericError: 'Fehler beim Senden',
           sentTo: 'Gesendet an:',
-          closeIcon: '×',
-          successIcon: '✓',
+          closeIcon: 'x',
+          successIcon: 'OK',
           defaultSubject: invoiceNumber
             ? `Rechnung ${invoiceNumber}`
-            : 'Rechnung für erbrachte Leistung',
+            : 'Rechnung fuer erbrachte Leistung',
           defaultBody: `Sehr geehrte/r ${clientName},
 
-anbei finden Sie die Rechnung für die erbrachte Leistung.
+anbei finden Sie die Rechnung fuer die erbrachte Leistung.
 
 Bei Fragen melden Sie sich bitte gerne bei mir.
 
-Mit freundlichen Grüßen
+Mit freundlichen Gruessen
 ${masterName}`,
         }
       : {
@@ -60,24 +60,24 @@ ${masterName}`,
           success: 'Письмо отправлено',
           recipient: 'Кому (email)',
           missingClientEmail:
-            'У клиента нет email. Добавь его в карточке клиента или укажи здесь вручную.',
+            'У клиента не указан email. Добавь его в карточке клиента или введи здесь вручную.',
           subjectLabel: 'Тема',
           bodyLabel: 'Текст письма',
           attachmentHint:
-            'PDF-квитанция будет вложена автоматически.\nОтветы клиента придут на твой email.',
+            'PDF-квитанция будет приложена автоматически.\nОтветы клиента придут на твой email.',
           cancel: 'Отмена',
           send: 'Отправить',
           sending: 'Отправка...',
           genericError: 'Ошибка отправки',
           sentTo: 'Отправлено на:',
-          closeIcon: '×',
-          successIcon: '✓',
+          closeIcon: 'x',
+          successIcon: 'OK',
           defaultSubject: invoiceNumber
             ? `Квитанция ${invoiceNumber}`
-            : 'Квитанция за выполненные работы',
+            : 'Квитанция за выполненную работу',
           defaultBody: `Здравствуйте, ${clientName}.
 
-Во вложении квитанция за выполненные работы.
+Во вложении квитанция за выполненную работу.
 
 Если появятся вопросы, пожалуйста, свяжитесь со мной.
 
@@ -91,6 +91,11 @@ ${masterName}`,
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    setSubject(text.defaultSubject);
+    setBody(text.defaultBody);
+  }, [text.defaultBody, text.defaultSubject]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

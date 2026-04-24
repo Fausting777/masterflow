@@ -1,27 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/components/i18n/LocaleProvider';
 
 export default function IosInstallHint() {
   const [show, setShow] = useState(false);
+  const { locale } = useI18n();
+
+  const text =
+    locale === 'de'
+      ? {
+          title: 'Zum Home-Bildschirm hinzufuegen',
+          body:
+            'Tippe in Safari auf "Teilen" und waehle dann "Zum Home-Bildschirm", um MasterFlow wie eine App zu installieren.',
+          dismiss: 'Verstanden',
+          icon: 'iOS',
+        }
+      : {
+          title: 'Добавить на главный экран',
+          body:
+            'Нажми в Safari кнопку «Поделиться», затем выбери «На экран Домой», чтобы установить MasterFlow как приложение.',
+          dismiss: 'Понятно',
+          icon: 'iOS',
+        };
 
   useEffect(() => {
-    // Определяем iOS
     const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
-
-    // Если уже в standalone — не показываем
-    // Safari отличается: navigator.standalone === true
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isStandalone = (window.navigator as any).standalone === true;
+    const isStandalone =
+      'standalone' in window.navigator &&
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     if (!isIos || isStandalone) return;
-
-    // Смотрим, не жал ли пользователь "ок, понял"
     if (localStorage.getItem('ios-hint-seen')) return;
 
-    // Показываем через 10 секунд после загрузки (чтобы не душить сразу)
-    const t = setTimeout(() => setShow(true), 10_000);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(() => setShow(true), 10_000);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   function handleDismiss() {
@@ -32,22 +45,20 @@ export default function IosInstallHint() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:max-w-sm bg-white border border-neutral-200 rounded-xl shadow-lg p-4 z-40">
+    <div className="fixed bottom-4 left-4 right-4 z-40 rounded-xl border border-neutral-200 bg-white p-4 shadow-lg sm:left-auto sm:max-w-sm">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-          📱
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white">
+          {text.icon}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">Добавить на главный экран</div>
-          <div className="text-xs text-neutral-500 mt-1 leading-relaxed">
-            Нажми <strong>«Поделиться»</strong> <span className="inline-block">⤴</span> внизу Safari, затем <strong>«На экран &quot;Домой&quot;»</strong>
-          </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">{text.title}</div>
+          <div className="mt-1 text-xs leading-relaxed text-neutral-500">{text.body}</div>
           <button
             type="button"
             onClick={handleDismiss}
             className="mt-3 text-sm text-blue-600 hover:text-blue-700"
           >
-            Понятно
+            {text.dismiss}
           </button>
         </div>
       </div>

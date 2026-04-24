@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import ExportExpensesButton from '@/components/expenses/ExportExpensesButton';
+import PeriodPicker from '@/components/stats/PeriodPicker';
 import { getDictionary } from '@/lib/i18n/server';
 import { getExpensesSummary } from '@/lib/stats/expenses';
 import { createClient } from '@/lib/supabase/server';
-import { getRange, toDateOnly, type PeriodKey } from '@/lib/utils/date-range';
+import { getMonthOptions, getRange, toDateOnly, type PeriodKey } from '@/lib/utils/date-range';
 import {
   EXPENSE_CATEGORY_COLORS,
   formatDate,
@@ -35,9 +36,11 @@ const CATEGORIES: ExpenseCategory[] = [
 export default async function ExpensesPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const { locale, t } = await getDictionary();
-  const activePeriod = (sp.period ?? 'month') as PeriodKey;
+  const activePeriod = (sp.period ?? 'all') as PeriodKey;
   const activeCategory = sp.category ?? 'all';
   const search = (sp.q ?? '').trim();
+  const currentMonth = activePeriod === 'month' ? sp.from ?? null : null;
+  const monthOptions = getMonthOptions(2024, new Date(), locale);
 
   const periodButtons: Array<{ key: PeriodKey; label: string }> = [
     { key: 'month', label: t.expensesPage.month },
@@ -52,7 +55,11 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     rangeOptions.to = new Date(`${sp.to}T23:59:59`);
   }
 
-  const range = getRange(activePeriod, new Date(), rangeOptions);
+  const range = getRange(activePeriod, new Date(), {
+    ...rangeOptions,
+    specificMonth: activePeriod === 'month' ? currentMonth ?? undefined : undefined,
+    locale,
+  });
   const fromDate = toDateOnly(range.from);
   const toDate = toDateOnly(range.to);
 
@@ -93,12 +100,24 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
     );
   }
 
-  function buildHref(params: { period?: string; category?: string }) {
+  function buildHref(params: {
+    period?: string;
+    category?: string;
+    from?: string | null;
+    to?: string | null;
+  }) {
     const next = new URLSearchParams();
     const period = params.period ?? activePeriod;
     const category = params.category ?? activeCategory;
-    if (period !== 'month') next.set('period', period);
+    const nextFrom = params.from === undefined ? sp.from ?? null : params.from;
+    const nextTo = params.to === undefined ? sp.to ?? null : params.to;
+    if (period !== 'all') next.set('period', period);
     if (category !== 'all') next.set('category', category);
+    if (period === 'month' && nextFrom) next.set('from', nextFrom);
+    if (period === 'custom' && nextFrom && nextTo) {
+      next.set('from', nextFrom);
+      next.set('to', nextTo);
+    }
     if (search) next.set('q', search);
     return `/expenses${next.toString() ? `?${next}` : ''}`;
   }
@@ -146,6 +165,20 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         })}
       </div>
 
+      <PeriodPicker
+        targetPath="/expenses"
+        currentPeriod={activePeriod}
+        currentFrom={activePeriod === 'custom' ? sp.from ?? null : null}
+        currentTo={activePeriod === 'custom' ? sp.to ?? null : null}
+        currentMonth={currentMonth}
+        monthOptions={monthOptions}
+        monthParam="from"
+        persistentParams={{
+          category: activeCategory !== 'all' ? activeCategory : null,
+          q: search || null,
+        }}
+      />
+
       <div className="mb-4 flex flex-wrap gap-2">
         <Link
           href={buildHref({ category: 'all' })}
@@ -172,7 +205,10 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       </div>
 
       <form action="/expenses" className="mb-4">
-        {activePeriod !== 'month' && <input type="hidden" name="period" value={activePeriod} />}
+        {activePeriod !== 'all' && <input type="hidden" name="period" value={activePeriod} />}
+        {activePeriod === 'month' && currentMonth && <input type="hidden" name="from" value={currentMonth} />}
+        {activePeriod === 'custom' && sp.from && <input type="hidden" name="from" value={sp.from} />}
+        {activePeriod === 'custom' && sp.to && <input type="hidden" name="to" value={sp.to} />}
         {activeCategory !== 'all' && <input type="hidden" name="category" value={activeCategory} />}
         <input
           type="text"
@@ -226,7 +262,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
             <>
               {t.expensesPage.emptySearch} &quot;{search}&quot;
             </>
-          ) : activeCategory !== 'all' || activePeriod !== 'month' ? (
+          ) : activeCategory !== 'all' || activePeriod !== 'all' ? (
             t.expensesPage.emptyFilter
           ) : (
             <>

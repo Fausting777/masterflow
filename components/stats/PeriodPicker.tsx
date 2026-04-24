@@ -5,24 +5,30 @@ import { useState } from 'react';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 
 type Props = {
+  targetPath?: string;
   currentPeriod: string;
   currentFrom: string | null;
   currentTo: string | null;
   currentMonth: string | null;
   monthOptions: Array<{ value: string; label: string }>;
+  monthParam?: string;
+  persistentParams?: Record<string, string | null | undefined>;
 };
 
 export default function PeriodPicker({
+  targetPath = '/stats',
   currentPeriod,
   currentFrom,
   currentTo,
   currentMonth,
   monthOptions,
+  monthParam = 'm',
+  persistentParams,
 }: Props) {
   const { locale } = useI18n();
   const router = useRouter();
-  const [customFrom, setCustomFrom] = useState(currentFrom ?? '');
-  const [customTo, setCustomTo] = useState(currentTo ?? '');
+  const [customFrom, setCustomFrom] = useState(currentPeriod === 'custom' ? currentFrom ?? '' : '');
+  const [customTo, setCustomTo] = useState(currentPeriod === 'custom' ? currentTo ?? '' : '');
 
   const text =
     locale === 'de'
@@ -38,7 +44,7 @@ export default function PeriodPicker({
           applied: 'Aktiv',
         }
       : {
-          month: 'Этот месяц',
+          month: 'Месяц',
           quarter: 'Квартал',
           year: 'Год',
           all: 'Все',
@@ -46,7 +52,7 @@ export default function PeriodPicker({
           select: 'выбрать',
           period: 'Период:',
           apply: 'Применить',
-          applied: 'Применено',
+          applied: 'Активно',
         };
 
   const presets = [
@@ -56,28 +62,65 @@ export default function PeriodPicker({
     { key: 'all', label: text.all },
   ];
 
+  function buildBaseParams() {
+    const params = new URLSearchParams();
+
+    for (const [key, value] of Object.entries(persistentParams ?? {})) {
+      if (value) {
+        params.set(key, value);
+      }
+    }
+
+    return params;
+  }
+
+  function pushParams(params: URLSearchParams) {
+    const query = params.toString();
+    router.push(`${targetPath}${query ? `?${query}` : ''}`);
+  }
+
   function goPreset(key: string) {
-    router.push(`/stats?period=${key}`);
+    const params = buildBaseParams();
+    params.set('period', key);
+    params.delete('from');
+    params.delete('to');
+    params.delete(monthParam);
+    pushParams(params);
   }
 
   function goMonth(value: string) {
-    if (!value) {
-      router.push('/stats?period=month');
-      return;
+    const params = buildBaseParams();
+    params.set('period', 'month');
+    params.delete('from');
+    params.delete('to');
+    params.delete(monthParam);
+
+    if (value) {
+      params.set(monthParam, value);
     }
-    router.push(`/stats?period=month&m=${value}`);
+
+    pushParams(params);
   }
 
   function applyCustom() {
     if (!customFrom || !customTo) return;
-    router.push(`/stats?period=custom&from=${customFrom}&to=${customTo}`);
+
+    const params = buildBaseParams();
+    params.set('period', 'custom');
+    params.set('from', customFrom);
+    params.set('to', customTo);
+    if (monthParam !== 'from') {
+      params.delete(monthParam);
+    }
+
+    pushParams(params);
   }
 
   const isCustomActive = currentPeriod === 'custom';
   const isSpecificMonth = currentPeriod === 'month' && currentMonth;
 
   return (
-    <div className="mb-6 space-y-3">
+    <div className="mb-6 space-y-3 rounded-xl border border-neutral-200 bg-white p-4">
       <div className="flex flex-wrap gap-2">
         {presets.map((preset) => {
           const active =

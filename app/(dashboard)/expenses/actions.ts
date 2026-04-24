@@ -216,15 +216,16 @@ export async function createExpenseAction(
     });
 
     if (uploadError) {
-      console.error(m.uploadLog, uploadError);
-    } else {
-      const receiptSha256 = sha256Hex(await receiptFile.arrayBuffer());
-      await supabase
-        .from('expenses')
-        .update({ receipt_file_path: path, receipt_sha256: receiptSha256 })
-        .eq('id', expense.id)
-        .eq('user_id', user.id);
+      await supabase.from('expenses').delete().eq('id', expense.id).eq('user_id', user.id);
+      return { formError: `${m.uploadLog} ${uploadError.message}`, values: raw };
     }
+
+    const receiptSha256 = sha256Hex(await receiptFile.arrayBuffer());
+    await supabase
+      .from('expenses')
+      .update({ receipt_file_path: path, receipt_sha256: receiptSha256 })
+      .eq('id', expense.id)
+      .eq('user_id', user.id);
   }
 
   revalidatePath('/expenses');
@@ -299,14 +300,16 @@ export async function updateExpenseAction(
       upsert: true,
     });
 
-    if (!uploadError) {
-      const receiptSha256 = sha256Hex(await receiptFile.arrayBuffer());
-      await supabase
-        .from('expenses')
-        .update({ receipt_file_path: path, receipt_sha256: receiptSha256 })
-        .eq('id', id)
-        .eq('user_id', user.id);
+    if (uploadError) {
+      return { formError: `${m.uploadLog} ${uploadError.message}`, values: raw };
     }
+
+    const receiptSha256 = sha256Hex(await receiptFile.arrayBuffer());
+    await supabase
+      .from('expenses')
+      .update({ receipt_file_path: path, receipt_sha256: receiptSha256 })
+      .eq('id', id)
+      .eq('user_id', user.id);
   }
 
   revalidatePath('/expenses');

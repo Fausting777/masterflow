@@ -341,18 +341,13 @@ export async function updateOrderAction(
 
   const normalized = normalizeOrderInput(raw);
   const {
-    client_quick_name,
-    client_quick_phone,
-    client_quick_address,
-    client_quick_postal_code,
-    client_quick_city,
+    client_quick_name: _cqn,
+    client_quick_phone: _cqp,
+    client_quick_address: _cqa,
+    client_quick_postal_code: _cqpc,
+    client_quick_city: _cqc,
     ...updateData
   } = normalized;
-  void client_quick_name;
-  void client_quick_phone;
-  void client_quick_address;
-  void client_quick_postal_code;
-  void client_quick_city;
 
   if (!updateData.client_id) {
     return { formError: m.chooseClient, values: raw };

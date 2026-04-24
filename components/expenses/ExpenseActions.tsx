@@ -23,32 +23,20 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
       ? 'Loescht die Ausgabe sofort inklusive gespeichertem Beleg.'
       : 'Удаляет расход сразу, вместе с сохраненным чеком.';
 
-  function isRouterError(e: unknown): boolean {
-    return e instanceof Error && 'digest' in e;
-  }
-
   function handleSoftDelete() {
     if (!confirm(t.expenseActions.confirmTrash)) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await softDeleteExpenseAction(expenseId);
-      } catch (e) {
-        if (isRouterError(e)) throw e;
-        setError(e instanceof Error ? e.message : t.expenseActions.genericError);
-      }
+      const result = await softDeleteExpenseAction(expenseId);
+      if (result?.error) setError(result.error);
     });
   }
 
   function handleRestore() {
     setError(null);
     startTransition(async () => {
-      try {
-        await restoreExpenseAction(expenseId);
-      } catch (e) {
-        if (isRouterError(e)) throw e;
-        setError(e instanceof Error ? e.message : t.expenseActions.genericError);
-      }
+      const result = await restoreExpenseAction(expenseId);
+      if (result?.error) setError(result.error);
     });
   }
 
@@ -56,12 +44,8 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
     if (!confirm(confirmDeleteForever)) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await permanentDeleteExpenseAction(expenseId);
-      } catch (e) {
-        if (isRouterError(e)) throw e;
-        setError(e instanceof Error ? e.message : t.expenseActions.genericError);
-      }
+      const result = await permanentDeleteExpenseAction(expenseId);
+      if (result?.error) setError(result.error);
     });
   }
 

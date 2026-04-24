@@ -317,14 +317,14 @@ export async function updateExpenseAction(
   redirect('/expenses');
 }
 
-export async function softDeleteExpenseAction(id: string): Promise<void> {
+export async function softDeleteExpenseAction(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error(m.unauthorized);
+  if (!user) return { error: m.unauthorized };
 
   const { error } = await supabase
     .from('expenses')
@@ -332,21 +332,21 @@ export async function softDeleteExpenseAction(id: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath('/expenses');
   revalidatePath('/expenses/trash');
   redirect('/expenses');
 }
 
-export async function restoreExpenseAction(id: string): Promise<void> {
+export async function restoreExpenseAction(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error(m.unauthorized);
+  if (!user) return { error: m.unauthorized };
 
   const { error } = await supabase
     .from('expenses')
@@ -354,21 +354,21 @@ export async function restoreExpenseAction(id: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath('/expenses');
   revalidatePath('/expenses/trash');
   redirect('/expenses');
 }
 
-export async function permanentDeleteExpenseAction(id: string): Promise<void> {
+export async function permanentDeleteExpenseAction(id: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error(m.unauthorized);
+  if (!user) return { error: m.unauthorized };
 
   const { data: expense } = await supabase
     .from('expenses')
@@ -377,11 +377,13 @@ export async function permanentDeleteExpenseAction(id: string): Promise<void> {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!expense) throw new Error(m.updateError);
+  if (!expense) return { error: m.updateError };
 
   if (expense.receipt_file_path) {
-    const { error: storageError } = await supabase.storage.from('receipts').remove([expense.receipt_file_path]);
-    if (storageError) throw new Error(storageError.message);
+    const { error: storageError } = await supabase.storage
+      .from('receipts')
+      .remove([expense.receipt_file_path]);
+    if (storageError) return { error: storageError.message };
   }
 
   const { error } = await supabase
@@ -390,7 +392,7 @@ export async function permanentDeleteExpenseAction(id: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath('/expenses');
   revalidatePath('/expenses/trash');

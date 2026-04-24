@@ -552,7 +552,7 @@ export async function softDeleteOrderAction(id: string): Promise<void> {
   redirect('/orders');
 }
 
-export async function restoreOrderAction(id: string): Promise<void> {
+export async function restoreOrderAction(id: string): Promise<{ error: string } | void> {
   const locale = await getLocale();
   const m = getMessages(locale);
   const supabase = await createClient();
@@ -560,7 +560,7 @@ export async function restoreOrderAction(id: string): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error(m.unauthorized);
+  if (!user) return { error: m.unauthorized };
 
   const { error } = await supabase
     .from('orders')
@@ -568,7 +568,7 @@ export async function restoreOrderAction(id: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   await supabase.from('activity_logs').insert({
     order_id: id,
@@ -583,7 +583,7 @@ export async function restoreOrderAction(id: string): Promise<void> {
   redirect(`/orders/${id}`);
 }
 
-export async function permanentDeleteOrderAction(id: string): Promise<void> {
+export async function permanentDeleteOrderAction(id: string): Promise<{ error: string } | void> {
   const locale = await getLocale();
   const m = getMessages(locale);
   const supabase = await createClient();
@@ -591,7 +591,7 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error(m.unauthorized);
+  if (!user) return { error: m.unauthorized };
 
   const { data: order } = await supabase
     .from('orders')
@@ -600,9 +600,9 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!order) throw new Error(m.orderNotFound);
-  if (order.invoice_number) throw new Error(m.cannotDeleteInvoice);
-  if (!order.deleted_at) throw new Error(m.moveToTrashFirst);
+  if (!order) return { error: m.orderNotFound };
+  if (order.invoice_number) return { error: m.cannotDeleteInvoice };
+  if (!order.deleted_at) return { error: m.moveToTrashFirst };
 
   const { data: photos } = await supabase.from('order_photos').select('file_path').eq('order_id', id);
 
@@ -610,7 +610,7 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
     const { error: photosStorageError } = await supabase.storage
       .from('order-photos')
       .remove(photos.map((p) => p.file_path));
-    if (photosStorageError) throw new Error(photosStorageError.message);
+    if (photosStorageError) return { error: photosStorageError.message };
   }
 
   const { data: fullOrder } = await supabase
@@ -624,16 +624,18 @@ export async function permanentDeleteOrderAction(id: string): Promise<void> {
     const { error: signatureStorageError } = await supabase.storage
       .from('order-signatures')
       .remove([fullOrder.signature_file_path]);
-    if (signatureStorageError) throw new Error(signatureStorageError.message);
+    if (signatureStorageError) return { error: signatureStorageError.message };
   }
   if (fullOrder?.pdf_file_path) {
-    const { error: pdfStorageError } = await supabase.storage.from('order-pdfs').remove([fullOrder.pdf_file_path]);
-    if (pdfStorageError) throw new Error(pdfStorageError.message);
+    const { error: pdfStorageError } = await supabase.storage
+      .from('order-pdfs')
+      .remove([fullOrder.pdf_file_path]);
+    if (pdfStorageError) return { error: pdfStorageError.message };
   }
 
   const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', user.id);
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath('/orders');
   revalidatePath('/orders/trash');

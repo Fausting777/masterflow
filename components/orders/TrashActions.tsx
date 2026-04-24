@@ -48,20 +48,12 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
             'Удалить заказ со всеми фото и файлами навсегда?\n\nЭто действие нельзя отменить.',
         };
 
-  function isRouterError(e: unknown): boolean {
-    return e instanceof Error && 'digest' in e;
-  }
-
   function handleRestore() {
     if (!window.confirm(text.restoreConfirm)) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await restoreOrderAction(orderId);
-      } catch (e) {
-        if (isRouterError(e)) throw e;
-        setError(e instanceof Error ? e.message : text.genericError);
-      }
+      const result = await restoreOrderAction(orderId);
+      if (result?.error) setError(result.error);
     });
   }
 
@@ -70,17 +62,11 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
       setError(text.invoiceLocked);
       return;
     }
-
     if (!window.confirm(text.permanentDeleteConfirm)) return;
-
     setError(null);
     startTransition(async () => {
-      try {
-        await permanentDeleteOrderAction(orderId);
-      } catch (e) {
-        if (isRouterError(e)) throw e;
-        setError(e instanceof Error ? e.message : text.genericError);
-      }
+      const result = await permanentDeleteOrderAction(orderId);
+      if (result?.error) setError(result.error);
     });
   }
 

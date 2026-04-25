@@ -108,7 +108,8 @@ function buildSepaQrPayload(data: InvoiceData): string | null {
     recipient,
     iban,
     amount,
-    '',
+    '', // Purpose code: unused for normal invoice payments.
+    '', // Structured creditor reference: must stay empty when free text is used.
     remittance,
   ].join('\n');
 }

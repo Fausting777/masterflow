@@ -266,6 +266,7 @@ async function buildLiveInvoiceSnapshot(
       client: {
         full_name: client.full_name,
         phone: client.phone,
+        email: client.email,
         address: client.address,
         postal_code: client.postal_code,
         city: client.city,

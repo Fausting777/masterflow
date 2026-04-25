@@ -1,6 +1,7 @@
 // lib/pdf/invoice.ts
 import { PDFDocument, rgb, PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+import QRCode from 'qrcode';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -80,6 +81,49 @@ function addDays(iso: string, days: number): string | null {
   if (Number.isNaN(date.getTime())) return null;
   date.setDate(date.getDate() + days);
   return date.toISOString();
+}
+
+function cleanEpcField(value: string | null | undefined, maxLength: number): string {
+  return (value ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, maxLength);
+}
+
+function buildSepaQrPayload(data: InvoiceData): string | null {
+  if (data.order.payment_method !== 'transfer' || data.order.price === null || !data.master.iban) {
+    return null;
+  }
+
+  const recipient = cleanEpcField(data.master.company_name || data.master.full_name, 70);
+  const iban = data.master.iban.replace(/\s+/g, '').toUpperCase();
+  if (!recipient || !iban) return null;
+
+  const amount = `EUR${data.order.price.toFixed(2)}`;
+  const remittance = cleanEpcField(`Rechnung ${data.order.invoice_number}`, 140);
+
+  return [
+    'BCD',
+    '002',
+    '1',
+    'SCT',
+    cleanEpcField(data.master.bic, 11),
+    recipient,
+    iban,
+    amount,
+    '',
+    '',
+    remittance,
+    '',
+  ].join('\n');
+}
+
+async function createQrPngBytes(payload: string): Promise<Uint8Array> {
+  const dataUrl = await QRCode.toDataURL(payload, {
+    errorCorrectionLevel: 'M',
+    margin: 1,
+    type: 'image/png',
+    width: 256,
+  });
+  const base64 = dataUrl.split(',')[1] ?? '';
+  return new Uint8Array(Buffer.from(base64, 'base64'));
 }
 
 function detectImageType(bytes: Uint8Array): 'png' | 'jpg' | null {
@@ -363,8 +407,10 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   const providerLabel = data.order.payment_provider === 'sumup' || data.order.sumup ? 'SumUp' : null;
   const isOpenTransferInvoice = data.order.payment_method === 'transfer' && !data.order.paid_at;
   const dueDate = isOpenTransferInvoice ? addDays(data.order.invoice_date, 14) : null;
+  const sepaQrPayload = buildSepaQrPayload(data);
+  const sepaQrPng = sepaQrPayload ? await createQrPngBytes(sepaQrPayload) : null;
 
-  ensureSpace(isOpenTransferInvoice ? 160 : data.order.sumup ? 142 : 72);
+  ensureSpace(isOpenTransferInvoice ? (sepaQrPng ? 290 : 160) : data.order.sumup ? 142 : 72);
   drawText('Zahlung', margin, bold, 10);
   y -= 14;
   if (isOpenTransferInvoice) {
@@ -404,6 +450,46 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
       COLORS.muted
     );
     y -= 4;
+    if (sepaQrPng) {
+      const qrImage = await doc.embedPng(sepaQrPng);
+      const qrSize = 104;
+      const qrTop = y - 8;
+      const qrY = qrTop - qrSize;
+      const detailsX = margin + qrSize + 18;
+
+      drawText('QR-Code fuer Banking-App:', margin, bold, 10, COLORS.text);
+      y -= 14;
+      page.drawImage(qrImage, { x: margin, y: qrY, width: qrSize, height: qrSize });
+
+      let detailsY = qrTop - 18;
+      const paymentDetails = [
+        `Empfaenger: ${data.master.company_name || data.master.full_name || '-'}`,
+        `IBAN: ${data.master.iban}`,
+        data.master.bic ? `BIC: ${data.master.bic}` : null,
+        `Betrag: ${formatEUR(data.order.price)}`,
+        `Verwendungszweck: Rechnung ${data.order.invoice_number}`,
+      ].filter(Boolean);
+
+      for (const line of paymentDetails) {
+        page.drawText(String(line), {
+          x: detailsX,
+          y: detailsY,
+          font: regular,
+          size: 9,
+          color: COLORS.text,
+        });
+        detailsY -= 12;
+      }
+
+      y = qrY - 14;
+    } else if (data.master.iban) {
+      drawText(`IBAN: ${data.master.iban}`, margin, regular, 10, COLORS.text);
+      y -= 14;
+      if (data.master.bic) {
+        drawText(`BIC: ${data.master.bic}`, margin, regular, 10, COLORS.text);
+        y -= 14;
+      }
+    }
   }
   if (data.order.sumup) {
     const sumup = data.order.sumup;

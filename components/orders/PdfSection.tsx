@@ -52,7 +52,6 @@ export default function PdfSection({
           ready: 'PDF-Rechnung ist bereit',
           openPdf: 'PDF oeffnen',
           savePdf: 'PDF teilen / speichern',
-          regeneratePdf: 'PDF neu erzeugen',
           sendByEmail: 'An Kunden per E-Mail senden',
           lastSent: 'Zuletzt gesendet',
           draftLocked:
@@ -65,7 +64,6 @@ export default function PdfSection({
           saving: 'PDF wird vorbereitet...',
           sentTo: 'an',
           readyIcon: 'OK',
-          regenerateIcon: 'Neu',
         }
       : {
           genericError: 'Ошибка',
@@ -184,15 +182,6 @@ export default function PdfSection({
               className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
             >
               {isSavingPdf ? text.saving : text.savePdf}
-            </button>
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={isPending}
-              title={text.regeneratePdf}
-              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
-            >
-              {isPending ? '...' : text.regenerateIcon}
             </button>
           </div>
 

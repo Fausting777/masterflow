@@ -47,11 +47,15 @@ export async function getExpensesSummary(
     byCategory[e.category as ExpenseCategory] += amt;
   }
 
+  const roundedByCategory = Object.fromEntries(
+    Object.entries(byCategory).map(([cat, amt]) => [cat, Math.round(amt * 100) / 100])
+  ) as Record<ExpenseCategory, number>;
+
   return {
     total: Math.round(total * 100) / 100,
     taxDeductible: Math.round(taxDeductible * 100) / 100,
     count: data.length,
-    byCategory,
+    byCategory: roundedByCategory,
   };
 }
 // Разбивка расходов по месяцам (для графика)

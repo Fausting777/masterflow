@@ -1,14 +1,11 @@
 // lib/stats/calculate.ts
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
 
 // ==================================================================
 // ВЫБОР ДАТЫ ДЛЯ АГРЕГАЦИИ
 // Приоритет: service_date → completed_at → created_at
 // ==================================================================
-// Это "эффективная дата услуги" — то, по чему считаем статистику.
-
-// Postgres COALESCE через raw-SQL не получится в supabase-js фильтре,
-// поэтому мы тянем нужные поля и фильтруем на клиенте (Node).
 
 function effectiveDate(o: {
   service_date: string | null;
@@ -23,9 +20,80 @@ function inRange(d: Date, from: Date, to: Date): boolean {
   return t >= from.getTime() && t <= to.getTime();
 }
 
+// Единый приоритет цены заказа:
+// 1. snapshot.order.items[] (сумма позиций)
+// 2. snapshot.order.price
+// 3. order_items сумма (передаётся извне)
+// 4. custom_price
+// 5. service default_price
+function resolvePrice(
+  o: {
+    id: string;
+    custom_price: number | null;
+    service_id: string | null;
+    invoice_snapshot_json: unknown;
+  },
+  servicePrices: Map<string, number>,
+  orderItemsTotals: Map<string, number>
+): number | null {
+  const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
+
+  if (snap?.order.items && snap.order.items.length > 0) {
+    return snap.order.items.reduce((sum, item) => sum + Number(item.price), 0);
+  }
+  if (snap?.order.price != null) {
+    return Number(snap.order.price);
+  }
+
+  const itemsTotal = orderItemsTotals.get(o.id);
+  if (itemsTotal !== undefined && itemsTotal > 0) {
+    return itemsTotal;
+  }
+
+  if (o.custom_price !== null) {
+    return Number(o.custom_price);
+  }
+
+  if (o.service_id) {
+    return servicePrices.get(o.service_id) ?? null;
+  }
+
+  return null;
+}
+
+// Загружает order_items суммы для заказов без snapshot-цены
+async function fetchOrderItemsTotals(
+  supabase: SupabaseClient,
+  orders: Array<{ id: string; custom_price: number | null; invoice_snapshot_json: unknown }>
+): Promise<Map<string, number>> {
+  const needIds = orders
+    .filter(o => {
+      const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
+      if (snap?.order.items && snap.order.items.length > 0) return false;
+      if (snap?.order.price != null) return false;
+      if (o.custom_price !== null) return false;
+      return true;
+    })
+    .map(o => o.id);
+
+  const totals = new Map<string, number>();
+  if (needIds.length === 0) return totals;
+
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('order_id, price')
+    .in('order_id', needIds);
+
+  for (const item of items ?? []) {
+    const prev = totals.get(item.order_id) ?? 0;
+    totals.set(item.order_id, prev + Number(item.price));
+  }
+
+  return totals;
+}
+
 // ======================================================
 // ИТОГОВАЯ СУММА ВЫСТАВЛЕННЫХ СЧЕТОВ ЗА ПЕРИОД
-// считаем по service_date (fallback completed_at → created_at)
 // ======================================================
 export async function getRevenueStats(
   supabase: SupabaseClient,
@@ -37,15 +105,12 @@ export async function getRevenueStats(
   invoicesCount: number;
   avgCheck: number;
 }> {
-  // Важно: мы НЕ фильтруем по service_date в SQL (не факт что оно есть у всех),
-  // а тянем всё за широкий диапазон и фильтруем на стороне Node.
-  // Чтобы не вытягивать мильон — берём за год в обе стороны от диапазона.
   const wideFrom = new Date(from.getTime() - 365 * 24 * 60 * 60 * 1000);
   const wideTo = new Date(to.getTime() + 365 * 24 * 60 * 60 * 1000);
 
   const { data, error } = await supabase
     .from('orders')
-    .select('custom_price, service_id, service_date, completed_at, created_at')
+    .select('id, custom_price, service_id, service_date, completed_at, created_at, invoice_snapshot_json')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .not('invoice_number', 'is', null)
@@ -56,39 +121,38 @@ export async function getRevenueStats(
     return { total: 0, invoicesCount: 0, avgCheck: 0 };
   }
 
-  // Фильтруем по эффективной дате
   const inPeriod = data.filter(o => inRange(effectiveDate(o), from, to));
   if (inPeriod.length === 0) {
     return { total: 0, invoicesCount: 0, avgCheck: 0 };
   }
 
-  // Подтягиваем service prices где custom_price null
-  const needServiceIds: string[] = [];
-  for (const o of inPeriod) {
-    if ((o.custom_price === null || o.custom_price === undefined) && o.service_id) {
-      needServiceIds.push(o.service_id);
-    }
-  }
+  // Цены услуг
+  const needServiceIds = [...new Set(
+    inPeriod
+      .filter(o => {
+        const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
+        return !snap?.order.price && !(snap?.order.items?.length) && o.custom_price === null && o.service_id;
+      })
+      .map(o => o.service_id!)
+  )];
 
   const servicePrices = new Map<string, number>();
   if (needServiceIds.length > 0) {
-    const uniq = [...new Set(needServiceIds)];
     const { data: services } = await supabase
       .from('services')
       .select('id, default_price')
-      .in('id', uniq);
+      .in('id', needServiceIds);
     for (const s of services ?? []) {
       if (s.default_price !== null) servicePrices.set(s.id, Number(s.default_price));
     }
   }
 
+  const orderItemsTotals = await fetchOrderItemsTotals(supabase, inPeriod);
+
   let total = 0;
   let counted = 0;
   for (const o of inPeriod) {
-    let price = o.custom_price !== null ? Number(o.custom_price) : null;
-    if (price === null && o.service_id) {
-      price = servicePrices.get(o.service_id) ?? null;
-    }
+    const price = resolvePrice(o, servicePrices, orderItemsTotals);
     if (price !== null) {
       total += price;
       counted++;
@@ -104,7 +168,6 @@ export async function getRevenueStats(
 
 // ======================================================
 // РАСПРЕДЕЛЕНИЕ ЗАКАЗОВ ПО СТАТУСАМ ЗА ПЕРИОД
-// Теперь тоже по service_date (fallback → completed_at → created_at)
 // ======================================================
 export async function getStatusBreakdown(
   supabase: SupabaseClient,
@@ -134,7 +197,6 @@ export async function getStatusBreakdown(
 
 // ======================================================
 // ВЫРУЧКА ПО МЕСЯЦАМ ДЛЯ ГРАФИКА
-// По service_date (fallback...)
 // ======================================================
 export async function getMonthlyRevenue(
   supabase: SupabaseClient,
@@ -148,7 +210,7 @@ export async function getMonthlyRevenue(
 
   const { data } = await supabase
     .from('orders')
-    .select('custom_price, service_id, service_date, completed_at, created_at')
+    .select('id, custom_price, service_id, service_date, completed_at, created_at, invoice_snapshot_json')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .not('invoice_number', 'is', null)
@@ -157,10 +219,15 @@ export async function getMonthlyRevenue(
 
   if (!data || data.length === 0) return months.map(() => 0);
 
-  // Цены услуг
   const needIds = [...new Set(
-    data.filter(o => o.custom_price === null && o.service_id).map(o => o.service_id!)
+    data
+      .filter(o => {
+        const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
+        return !snap?.order.price && !(snap?.order.items?.length) && o.custom_price === null && o.service_id;
+      })
+      .map(o => o.service_id!)
   )];
+
   const priceMap = new Map<string, number>();
   if (needIds.length > 0) {
     const { data: services } = await supabase
@@ -172,13 +239,13 @@ export async function getMonthlyRevenue(
     }
   }
 
+  const orderItemsTotals = await fetchOrderItemsTotals(supabase, data);
+
   const result = months.map(() => 0);
   for (const o of data) {
     const eff = effectiveDate(o);
     const effT = eff.getTime();
-
-    let price = o.custom_price !== null ? Number(o.custom_price) : null;
-    if (price === null && o.service_id) price = priceMap.get(o.service_id) ?? null;
+    const price = resolvePrice(o, priceMap, orderItemsTotals);
     if (price === null) continue;
 
     for (let i = 0; i < months.length; i++) {
@@ -193,7 +260,7 @@ export async function getMonthlyRevenue(
 }
 
 // ======================================================
-// ТОП-КЛИЕНТЫ ПО СУММЕ СЧЕТОВ — по service_date
+// ТОП-КЛИЕНТЫ ПО СУММЕ СЧЕТОВ
 // ======================================================
 export async function getTopClients(
   supabase: SupabaseClient,
@@ -207,7 +274,7 @@ export async function getTopClients(
 
   const { data } = await supabase
     .from('orders')
-    .select('client_id, custom_price, service_id, service_date, completed_at, created_at')
+    .select('id, client_id, custom_price, service_id, service_date, completed_at, created_at, invoice_snapshot_json')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .not('invoice_number', 'is', null)
@@ -220,8 +287,14 @@ export async function getTopClients(
   if (inPeriod.length === 0) return [];
 
   const needIds = [...new Set(
-    inPeriod.filter(o => o.custom_price === null && o.service_id).map(o => o.service_id!)
+    inPeriod
+      .filter(o => {
+        const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
+        return !snap?.order.price && !(snap?.order.items?.length) && o.custom_price === null && o.service_id;
+      })
+      .map(o => o.service_id!)
   )];
+
   const priceMap = new Map<string, number>();
   if (needIds.length > 0) {
     const { data: services } = await supabase
@@ -233,10 +306,11 @@ export async function getTopClients(
     }
   }
 
+  const orderItemsTotals = await fetchOrderItemsTotals(supabase, inPeriod);
+
   const byClient = new Map<string, { total: number; count: number }>();
   for (const o of inPeriod) {
-    let price = o.custom_price !== null ? Number(o.custom_price) : null;
-    if (price === null && o.service_id) price = priceMap.get(o.service_id) ?? null;
+    const price = resolvePrice(o, priceMap, orderItemsTotals);
     if (price === null) continue;
 
     const prev = byClient.get(o.client_id) ?? { total: 0, count: 0 };
@@ -258,7 +332,7 @@ export async function getTopClients(
   return [...byClient.entries()]
     .map(([id, v]) => ({
       clientId: id,
-      name: nameMap.get(id) ?? 'Неизвестно',
+      name: nameMap.get(id) ?? '—',
       total: Math.round(v.total * 100) / 100,
       count: v.count,
     }))
@@ -267,7 +341,7 @@ export async function getTopClients(
 }
 
 // ======================================================
-// ТОП-УСЛУГИ ПО ЧАСТОТЕ — по service_date
+// ТОП-УСЛУГИ ПО ЧАСТОТЕ
 // ======================================================
 export async function getTopServices(
   supabase: SupabaseClient,
@@ -321,7 +395,7 @@ export async function getTopServices(
 }
 
 // ======================================================
-// ЗАКАЗЫ БЕЗ СЧЁТА ЗА ПЕРИОД — по service_date (fallback)
+// ЗАКАЗЫ БЕЗ СЧЁТА ЗА ПЕРИОД
 // ======================================================
 export async function getOrdersWithoutInvoice(
   supabase: SupabaseClient,
@@ -355,7 +429,6 @@ export async function getOrdersWithoutInvoice(
   const inPeriod = data.filter(o => inRange(effectiveDate(o), from, to));
   if (inPeriod.length === 0) return [];
 
-  // Клиенты
   const clientIds = [...new Set(inPeriod.map(o => o.client_id))];
   const { data: clients } = await supabase
     .from('clients')
@@ -363,7 +436,6 @@ export async function getOrdersWithoutInvoice(
     .in('id', clientIds);
   const clientNames = new Map((clients ?? []).map(c => [c.id, c.full_name]));
 
-  // Услуги
   const serviceIds = [...new Set(inPeriod.filter(o => o.service_id).map(o => o.service_id!))];
   const serviceMap = new Map<string, { title: string; price: number | null }>();
   if (serviceIds.length > 0) {
@@ -379,13 +451,40 @@ export async function getOrdersWithoutInvoice(
     }
   }
 
+  // Fetch order_items for orders without custom_price
+  const needItemIds = inPeriod
+    .filter(o => o.custom_price === null)
+    .map(o => o.id);
+  const orderItemsTotals = new Map<string, number>();
+  if (needItemIds.length > 0) {
+    const { data: items } = await supabase
+      .from('order_items')
+      .select('order_id, price')
+      .in('order_id', needItemIds);
+    for (const item of items ?? []) {
+      const prev = orderItemsTotals.get(item.order_id) ?? 0;
+      orderItemsTotals.set(item.order_id, prev + Number(item.price));
+    }
+  }
+
   return inPeriod.map(o => {
     const service = o.service_id ? serviceMap.get(o.service_id) : null;
+    let price: number | null = null;
+    if (o.custom_price !== null) {
+      price = Number(o.custom_price);
+    } else {
+      const itemsTotal = orderItemsTotals.get(o.id);
+      if (itemsTotal !== undefined && itemsTotal > 0) {
+        price = itemsTotal;
+      } else {
+        price = service?.price ?? null;
+      }
+    }
     return {
       id: o.id,
       client_name: clientNames.get(o.client_id) ?? '—',
       service_title: service?.title ?? o.custom_service_title ?? '—',
-      price: o.custom_price !== null ? Number(o.custom_price) : service?.price ?? null,
+      price,
       created_at: o.created_at,
       effective_date: effectiveDate(o).toISOString(),
       status: o.status,

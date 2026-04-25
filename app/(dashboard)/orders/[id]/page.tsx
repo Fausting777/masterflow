@@ -420,6 +420,7 @@ export default async function OrderPage({
           <SumupPaymentLinker
             orderId={o.id}
             orderAmount={priceToShow !== null ? Number(priceToShow) : null}
+            orderPaymentMethod={o.payment_method}
             linkedTransaction={linkedSumupTransaction}
             candidates={sumupCandidates}
             locale={locale}

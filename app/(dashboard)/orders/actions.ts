@@ -375,7 +375,8 @@ export async function updateOrderAction(
 
 export async function linkSumupTransactionAction(
   orderId: string,
-  sumupTransactionId: string
+  sumupTransactionId: string,
+  paymentMethodOverride?: 'cash' | 'ec_card'
 ): Promise<{ ok: boolean; error?: string }> {
   const locale = await getLocale();
   const m = getMessages(locale);
@@ -417,7 +418,7 @@ export async function linkSumupTransactionAction(
   if (updateTransactionError) return { ok: false, error: updateTransactionError.message };
 
   if (!order.invoice_number && !order.invoice_locked_at) {
-    const paymentMethod = order.payment_method === 'cash' ? 'cash' : 'ec_card';
+    const paymentMethod = paymentMethodOverride ?? (order.payment_method === 'cash' ? 'cash' : 'ec_card');
     const { error: updateOrderError } = await supabase
       .from('orders')
       .update({
@@ -444,6 +445,52 @@ export async function linkSumupTransactionAction(
 
   revalidatePath(`/orders/${orderId}`);
   revalidatePath('/settings/sumup');
+  return { ok: true };
+}
+
+export async function updateLinkedSumupPaymentMethodAction(
+  orderId: string,
+  paymentMethod: 'cash' | 'ec_card'
+): Promise<{ ok: boolean; error?: string }> {
+  const locale = await getLocale();
+  const m = getMessages(locale);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, error: m.unauthorized };
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, invoice_number, invoice_locked_at, sumup_transaction_id')
+    .eq('id', orderId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!order) return { ok: false, error: m.orderNotFound };
+  if (order.invoice_number || order.invoice_locked_at) return { ok: false, error: m.invoiceEditBlocked };
+  if (!order.sumup_transaction_id) return { ok: false, error: m.sumupTransactionMissing };
+
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      payment_method: paymentMethod,
+      payment_provider: 'sumup',
+    })
+    .eq('id', orderId)
+    .eq('user_id', user.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  await supabase.from('activity_logs').insert({
+    order_id: orderId,
+    user_id: user.id,
+    action_type: 'sumup_payment_method_updated',
+    action_text: `${m.sumupLinkLogPrefix}: ${paymentMethod}`,
+  });
+
+  revalidatePath(`/orders/${orderId}`);
   return { ok: true };
 }
 

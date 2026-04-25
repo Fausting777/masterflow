@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useCallback, useEffect, useId, useState } from 'react';
+import { useActionState, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Trash2 } from 'lucide-react';
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
@@ -74,7 +74,6 @@ export default function OrderForm({
 }: Props) {
   const [state, formAction, isPending] = useActionState<OrderFormState, FormData>(action, {});
   const { t, locale } = useI18n();
-  const servicesListId = useId();
 
   const [items, setItems] = useState<OrderItemFormValue[]>(() => {
     if (initial?.items && initial.items.length > 0) {
@@ -101,6 +100,7 @@ export default function OrderForm({
   const [paymentMethod, setPaymentMethod] = useState(initial?.payment_method ?? '');
   const [paymentProvider, setPaymentProvider] = useState(initial?.payment_provider ?? '');
   const [paidAt, setPaidAt] = useState(toDateLocal(initial?.paid_at));
+  const [activeServiceIndex, setActiveServiceIndex] = useState<number | null>(null);
 
   const inputCls =
     'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900';
@@ -133,6 +133,34 @@ export default function OrderForm({
       description: items[index]?.description || (suggestedService?.score ? suggestedService.service.description ?? '' : ''),
       save_to_catalog: true,
     });
+  };
+
+  const selectService = (index: number, service: Service) => {
+    updateItem(index, {
+      service_id: service.id,
+      title: service.title,
+      description: service.description ?? '',
+      price: service.default_price !== null ? String(service.default_price) : '',
+      save_to_catalog: false,
+    });
+    setActiveServiceIndex(null);
+  };
+
+  const getServiceSuggestions = (query: string) => {
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery) return services.slice(0, 8);
+
+    return services
+      .map((service) => ({
+        service,
+        score:
+          (service.title.toLowerCase().includes(cleanQuery) ? 10 : 0) +
+          scoreServiceMatch(service, cleanQuery),
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score || a.service.title.localeCompare(b.service.title))
+      .slice(0, 8)
+      .map((entry) => entry.service);
   };
 
   const addItem = () => {
@@ -214,11 +242,6 @@ export default function OrderForm({
 
       <div className="space-y-3">
         <label className="text-sm font-semibold">{locale === 'de' ? 'Leistungen' : '\u0423\u0441\u043b\u0443\u0433\u0438'} *</label>
-        <datalist id={servicesListId}>
-          {services.map((service) => (
-            <option key={service.id} value={service.title} />
-          ))}
-        </datalist>
 
         <div className="space-y-4">
           {items.map((item, index) => (
@@ -236,11 +259,40 @@ export default function OrderForm({
                 name={`items[${index}].title`}
                 value={item.title}
                 onChange={(e) => updateItemTitle(index, e.target.value)}
-                list={servicesListId}
+                onFocus={() => setActiveServiceIndex(index)}
                 placeholder={t.orderForm.customServicePlaceholder}
                 className={inputCls}
+                autoComplete="off"
                 required
               />
+
+              {activeServiceIndex === index && services.length > 0 && (
+                <div className="rounded-xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
+                  <div className="max-h-72 overflow-y-auto py-1">
+                    {getServiceSuggestions(item.title).length > 0 ? (
+                      getServiceSuggestions(item.title).map((service) => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => selectService(index, service)}
+                          className="block w-full px-3 py-3 text-left text-sm hover:bg-blue-50 active:bg-blue-100 dark:hover:bg-neutral-800"
+                        >
+                          <span className="block font-medium text-neutral-900 dark:text-neutral-100">{service.title}</span>
+                          <span className="mt-0.5 block text-xs text-neutral-500">
+                            {service.default_price !== null ? `${service.default_price} EUR` : locale === 'de' ? 'Preis offen' : '\u0426\u0435\u043d\u0430 \u043d\u0435 \u0443\u043a\u0430\u0437\u0430\u043d\u0430'}
+                            {service.description ? ` · ${service.description}` : ''}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-3 text-sm text-neutral-500">
+                        {locale === 'de' ? 'Keine passende Leistung. Eigene Leistung wird gespeichert.' : '\u041d\u0435\u0442 \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0435\u0439 \u0443\u0441\u043b\u0443\u0433\u0438. \u0411\u0443\u0434\u0435\u0442 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0430 \u0441\u0432\u043e\u044f.'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <input
                 name={`items[${index}].price`}

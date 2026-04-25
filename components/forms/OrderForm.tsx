@@ -1,7 +1,8 @@
 'use client';
 
-import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
+import { useActionState, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Plus, Trash2 } from 'lucide-react';
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 import type { OrderFormState } from '@/app/(dashboard)/orders/actions';
@@ -16,9 +17,6 @@ type Props = {
     correction_of_order_id?: string | null;
     correction_reason?: string | null;
     client_id?: string;
-    service_id?: string | null;
-    custom_service_title?: string | null;
-    custom_price?: number | null;
     description?: string | null;
     order_address?: string | null;
     scheduled_at?: string | null;
@@ -26,6 +24,11 @@ type Props = {
     payment_method?: string | null;
     payment_provider?: string | null;
     paid_at?: string | null;
+    items?: {
+      service_id: string | null;
+      title: string;
+      price: number;
+    }[];
   };
   cancelHref: string;
   submitLabel: string;
@@ -50,56 +53,61 @@ export default function OrderForm({
   const [state, formAction, isPending] = useActionState<OrderFormState, FormData>(action, {});
   const { t, locale } = useI18n();
 
-  const values = state.values ?? {
-    client_id: initial?.client_id ?? '',
-    client_quick_name: '',
-    client_quick_phone: '',
-    client_quick_address: '',
-    client_quick_postal_code: '',
-    client_quick_city: '',
-    correction_reason: initial?.correction_reason ?? '',
-    service_id: initial?.service_id ?? '',
-    custom_service_title: initial?.custom_service_title ?? '',
-    custom_price:
-      initial?.custom_price !== null && initial?.custom_price !== undefined
-        ? String(initial.custom_price)
-        : '',
-    description: initial?.description ?? '',
-    order_address: initial?.order_address ?? '',
-    scheduled_at: '',
-    service_date: toDateLocal(initial?.service_date),
-    payment_method: initial?.payment_method ?? '',
-    payment_provider: initial?.payment_provider ?? '',
-    paid_at: toDateLocal(initial?.paid_at),
-  };
-
-  const [useCustom, setUseCustom] = useState(
-    !values.service_id && (values.custom_service_title.length > 0 || services.length === 0)
-  );
+  const [items, setItems] = useState(() => {
+    if (initial?.items && initial.items.length > 0) {
+      return initial.items.map(it => ({
+        service_id: it.service_id ?? 'custom',
+        title: it.title,
+        price: String(it.price),
+        save_to_catalog: false
+      }));
+    }
+    return [{ service_id: '', title: '', price: '', save_to_catalog: false }];
+  });
 
   const isEditing = Boolean(initial?.client_id);
-  const [useQuickClient, setUseQuickClient] = useState(
-    !isEditing && !values.client_id && (values.client_quick_name.length > 0 || clients.length === 0)
-  );
-  const [selectedClientId, setSelectedClientId] = useState(values.client_id ?? '');
-  const [quickAddress, setQuickAddress] = useState(values.client_quick_address ?? '');
-  const [quickPostalCode, setQuickPostalCode] = useState(values.client_quick_postal_code ?? '');
-  const [quickCity, setQuickCity] = useState(values.client_quick_city ?? '');
-  const [orderAddress, setOrderAddress] = useState(values.order_address ?? '');
-  const [orderAddressTouched, setOrderAddressTouched] = useState(Boolean(values.order_address));
-  const isCorrection = Boolean(initial?.correction_of_order_id);
-  const [paymentMethod, setPaymentMethod] = useState(values.payment_method);
-  const [paymentProvider, setPaymentProvider] = useState(values.payment_provider);
-  const [paidAt, setPaidAt] = useState(values.paid_at);
-  const [selectedServiceId, setSelectedServiceId] = useState(values.service_id ?? '');
-  const [description, setDescription] = useState(values.description ?? '');
-  const previousServiceDescriptionRef = useRef(
-    services.find((service) => service.id === values.service_id)?.description?.trim() ?? ''
-  );
+  const [useQuickClient, setUseQuickClient] = useState(!isEditing && clients.length === 0);
+  const [selectedClientId, setSelectedClientId] = useState(initial?.client_id ?? '');
+  const [quickAddress, setQuickAddress] = useState('');
+  const [quickPostalCode, setQuickPostalCode] = useState('');
+  const [quickCity, setQuickCity] = useState('');
+  const [orderAddress, setOrderAddress] = useState(initial?.order_address ?? '');
+  const [orderAddressTouched, setOrderAddressTouched] = useState(Boolean(initial?.order_address));
+  const [paymentMethod, setPaymentMethod] = useState(initial?.payment_method ?? '');
+  const [paymentProvider, setPaymentProvider] = useState(initial?.payment_provider ?? '');
+  const [paidAt, setPaidAt] = useState(toDateLocal(initial?.paid_at));
+
+  const addItem = () => {
+    setItems([...items, { service_id: '', title: '', price: '', save_to_catalog: false }]);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length <= 1) return;
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, patch: Partial<typeof items[0]>) => {
+    const newItems = [...items];
+    const item = { ...newItems[index], ...patch };
+    
+    // Если выбрали услугу из каталога, заполняем заголовок и цену
+    if (patch.service_id && patch.service_id !== 'custom' && patch.service_id !== '') {
+      const s = services.find(s => s.id === patch.service_id);
+      if (s) {
+        item.title = s.title;
+        item.price = s.default_price !== null ? String(s.default_price) : '';
+      }
+    } else if (patch.service_id === 'custom') {
+      item.title = '';
+      item.price = '';
+    }
+
+    newItems[index] = item;
+    setItems(newItems);
+  };
 
   useEffect(() => {
     if (!useQuickClient || orderAddressTouched) return;
-
     const cityLine = [quickPostalCode.trim(), quickCity.trim()].filter(Boolean).join(' ');
     const nextOrderAddress = [quickAddress.trim(), cityLine].filter(Boolean).join(', ');
     setOrderAddress(nextOrderAddress);
@@ -107,433 +115,165 @@ export default function OrderForm({
 
   useEffect(() => {
     if (useQuickClient || orderAddressTouched || !selectedClientId) return;
-
     const selectedClient = clients.find((client) => client.id === selectedClientId);
     if (!selectedClient) return;
-
-    const cityLine = [selectedClient.postal_code?.trim(), selectedClient.city?.trim()]
-      .filter(Boolean)
-      .join(' ');
+    const cityLine = [selectedClient.postal_code?.trim(), selectedClient.city?.trim()].filter(Boolean).join(' ');
     const nextOrderAddress = [selectedClient.address?.trim(), cityLine].filter(Boolean).join(', ');
     setOrderAddress(nextOrderAddress);
   }, [clients, orderAddressTouched, selectedClientId, useQuickClient]);
 
-  useEffect(() => {
-    if (useCustom) {
-      previousServiceDescriptionRef.current = '';
-      return;
+  const handlePaymentMethodChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextMethod = e.target.value;
+    setPaymentMethod(nextMethod);
+    if (!['cash', 'ec_card'].includes(nextMethod)) {
+      setPaymentProvider('');
+    } else if (nextMethod === 'ec_card' && !paymentProvider) {
+      setPaymentProvider('sumup');
     }
-
-    const selectedService = services.find((service) => service.id === selectedServiceId);
-    const nextServiceDescription = selectedService?.description?.trim() ?? '';
-    const previousServiceDescription = previousServiceDescriptionRef.current;
-    const currentDescription = description.trim();
-
-    if (!currentDescription || currentDescription === previousServiceDescription) {
-      setDescription(nextServiceDescription);
+    if (!paidAt && ['cash', 'ec_card', 'paypal'].includes(nextMethod)) {
+      setPaidAt(toDateLocal(new Date().toISOString()));
     }
+  }, [paymentProvider, paidAt]);
 
-    previousServiceDescriptionRef.current = nextServiceDescription;
-  }, [description, selectedServiceId, services, useCustom]);
-
-  const handlePaymentMethodChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextMethod = e.target.value;
-      setPaymentMethod(nextMethod);
-      if (!['cash', 'ec_card'].includes(nextMethod)) {
-        setPaymentProvider('');
-      } else if (nextMethod === 'ec_card' && !paymentProvider) {
-        setPaymentProvider('sumup');
-      }
-      if (!paidAt && ['cash', 'ec_card', 'paypal'].includes(nextMethod)) {
-        setPaidAt(toDateLocal(new Date().toISOString()));
-      }
-    },
-    [paymentProvider, paidAt]
-  );
-
-  const handleCityDetected = useCallback(
-    (city: string) => setQuickCity((prev) => prev.trim() || city),
-    []
-  );
-
-  const paymentMetaText =
-    locale === 'de'
-      ? {
-          paymentProvider: 'Zahlungsanbieter',
-          paymentProviderEmpty: '— nicht ausgewaehlt —',
-          paidAt: 'Bezahlt am',
-          paidAtHint: 'Leer lassen, wenn die Zahlung noch nicht erfolgt ist.',
-        }
-      : {
-          paymentProvider: 'Платежный провайдер',
-          paymentProviderEmpty: '— не выбрано —',
-          paidAt: 'Оплачено',
-          paidAtHint: 'Оставьте пустым, если клиент еще не оплатил.',
-        };
-
-  const inputCls =
-    'w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+  const inputCls = 'w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-6">
       <CsrfTokenInput />
-      <div className="space-y-2">
-        {isCorrection && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            {t.orderForm.correctionBanner}
-          </div>
-        )}
-
+      
+      {/* КЛИЕНТ */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="block text-sm font-medium">
-            {t.orderForm.client} <span className="text-red-500">*</span>
-          </label>
+          <label className="text-sm font-semibold">{t.orderForm.client} *</label>
           {!isEditing && (
-            <button
-              type="button"
-              onClick={() => setUseQuickClient(!useQuickClient)}
-              className="text-xs text-blue-600 hover:underline"
-            >
+            <button type="button" onClick={() => setUseQuickClient(!useQuickClient)} className="text-xs text-blue-600">
               {useQuickClient ? t.orderForm.fromDatabase : t.orderForm.quickName}
             </button>
           )}
         </div>
 
         {useQuickClient ? (
-          <div key="quick-client-fields" className="space-y-2">
-            <input type="hidden" name="client_id" defaultValue="" />
-            <input
-              name="client_quick_name"
-              type="text"
-              defaultValue={values.client_quick_name}
-              placeholder={t.orderForm.quickNamePlaceholder}
-              className={inputCls}
-            />
-            <input
-              name="client_quick_phone"
-              type="tel"
-              defaultValue={values.client_quick_phone}
-              placeholder={t.orderForm.quickPhonePlaceholder}
-              className={inputCls}
-            />
-            <input
-              name="client_quick_address"
-              type="text"
-              value={quickAddress}
-              onChange={(e) => {
-                setQuickAddress(e.target.value);
-              }}
-              placeholder={t.orderForm.quickAddressPlaceholder}
-              className={inputCls}
-            />
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <input
-                  name="client_quick_postal_code"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={5}
-                  value={quickPostalCode}
-                  onChange={(e) => setQuickPostalCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="PLZ"
+          <div className="space-y-2">
+            <input name="client_quick_name" placeholder={t.orderForm.quickNamePlaceholder} className={inputCls} required />
+            <input name="client_quick_phone" type="tel" placeholder={t.orderForm.quickPhonePlaceholder} className={inputCls} />
+            <input value={quickAddress} onChange={e => setQuickAddress(e.target.value)} name="client_quick_address" placeholder={t.orderForm.quickAddressPlaceholder} className={inputCls} />
+            <div className="grid grid-cols-3 gap-2">
+              <input value={quickPostalCode} onChange={e => setQuickPostalCode(e.target.value.replace(/\D/g, ''))} name="client_quick_postal_code" maxLength={5} placeholder="PLZ" className={inputCls} />
+              <input value={quickCity} onChange={e => setQuickCity(e.target.value)} name="client_quick_city" placeholder={t.orderForm.quickCityPlaceholder} className="col-span-2 w-full rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm" />
+            </div>
+            <PostalCodeLookup postalCode={quickPostalCode} onCityDetected={c => setQuickCity(prev => prev || c)} />
+          </div>
+        ) : (
+          <select name="client_id" value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className={inputCls}>
+            <option value="">{t.orderForm.selectClient}</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.full_name} {c.phone && `(${c.phone})`}</option>)}
+          </select>
+        )}
+      </div>
+
+      {/* УСЛУГИ */}
+      <div className="space-y-3">
+        <label className="text-sm font-semibold">{locale === 'de' ? 'Leistungen' : 'Услуги'} *</label>
+        <div className="space-y-4">
+          {items.map((item, index) => (
+            <div key={index} className="relative space-y-2 rounded-xl border border-neutral-200 p-3 shadow-sm dark:border-neutral-800">
+              {items.length > 1 && (
+                <button type="button" onClick={() => removeItem(index)} className="absolute -right-2 -top-2 rounded-full bg-red-100 p-1 text-red-600 hover:bg-red-200 dark:bg-red-900/30">
+                  <Trash2 size={16} />
+                </button>
+              )}
+              
+              <div className="grid gap-2">
+                <select 
+                  name={`items[${index}].service_id`} 
+                  value={item.service_id} 
+                  onChange={e => updateItem(index, { service_id: e.target.value })} 
                   className={inputCls}
+                >
+                  <option value="">{t.orderForm.selectService}</option>
+                  <option value="custom">{locale === 'de' ? '— Eigene Leistung —' : '— Своя услуга —'}</option>
+                  {services.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                </select>
+
+                <input 
+                  name={`items[${index}].title`} 
+                  value={item.title} 
+                  onChange={e => updateItem(index, { title: e.target.value })} 
+                  placeholder={t.orderForm.customServicePlaceholder} 
+                  className={inputCls} 
+                  required 
                 />
-              </div>
-              <div className="col-span-2">
-                <input
-                  name="client_quick_city"
-                  type="text"
-                  value={quickCity}
-                  onChange={(e) => setQuickCity(e.target.value)}
-                  placeholder={t.orderForm.quickCityPlaceholder}
-                  className={inputCls}
-                />
+
+                <div className="flex gap-2">
+                  <input 
+                    name={`items[${index}].price`} 
+                    value={item.price} 
+                    onChange={e => updateItem(index, { price: e.target.value })} 
+                    placeholder="0,00 €" 
+                    className={inputCls} 
+                    inputMode="decimal"
+                    required 
+                  />
+                  {item.service_id === 'custom' && (
+                    <label className="flex items-center gap-2 whitespace-nowrap text-xs">
+                      <input 
+                        type="checkbox" 
+                        name={`items[${index}].save_to_catalog`} 
+                        value="true"
+                        checked={item.save_to_catalog} 
+                        onChange={e => updateItem(index, { save_to_catalog: e.target.checked })} 
+                      />
+                      {locale === 'de' ? 'Speichern' : 'В каталог'}
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
-            <PostalCodeLookup
-              postalCode={quickPostalCode}
-              onCityDetected={handleCityDetected}
-            />
-            <p className="text-xs text-neutral-500">{t.orderForm.quickClientHelp}</p>
-            {state.errors?.client_quick_name && (
-              <p className="text-xs text-red-600">{state.errors.client_quick_name}</p>
-            )}
-            {state.errors?.client_quick_phone && (
-              <p className="text-xs text-red-600">{state.errors.client_quick_phone}</p>
-            )}
-            {state.errors?.client_quick_address && (
-              <p className="text-xs text-red-600">{state.errors.client_quick_address}</p>
-            )}
-            {state.errors?.client_quick_postal_code && (
-              <p className="text-xs text-red-600">{state.errors.client_quick_postal_code}</p>
-            )}
-            {state.errors?.client_quick_city && (
-              <p className="text-xs text-red-600">{state.errors.client_quick_city}</p>
-            )}
-          </div>
-        ) : (
-          <div key="existing-client-fields" className="space-y-2">
-            <input type="hidden" name="client_quick_name" defaultValue="" />
-            <input type="hidden" name="client_quick_phone" defaultValue="" />
-            <input type="hidden" name="client_quick_address" defaultValue="" />
-            <input type="hidden" name="client_quick_postal_code" defaultValue="" />
-            <input type="hidden" name="client_quick_city" defaultValue="" />
-            <select
-              name="client_id"
-              value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-              className={inputCls}
-            >
-              <option value="">{t.orderForm.selectClient}</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.full_name}
-                  {client.phone ? ` (${client.phone})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {state.errors?.client_id && <p className="text-xs text-red-600">{state.errors.client_id}</p>}
+          ))}
+        </div>
+        <button type="button" onClick={addItem} className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 py-3 text-sm font-medium text-neutral-600 hover:border-blue-500 hover:text-blue-600 dark:border-neutral-700">
+          <Plus size={18} />
+          {locale === 'de' ? 'Leistung hinzufügen' : 'Добавить услугу'}
+        </button>
+        {state.errors?.items && <p className="text-xs text-red-600">{state.errors.items}</p>}
       </div>
 
-      {isCorrection && (
-        <div>
-          <label htmlFor="correction_reason" className="mb-1 block text-sm font-medium">
-            {t.orderForm.correctionReason}
-          </label>
-          <textarea
-            id="correction_reason"
-            name="correction_reason"
-            rows={3}
-            defaultValue={values.correction_reason}
-            placeholder={t.orderForm.correctionReasonPlaceholder}
-            className={`${inputCls} resize-y`}
-          />
-          {state.errors?.correction_reason && (
-            <p className="mt-1 text-xs text-red-600">{state.errors.correction_reason}</p>
-          )}
+      {/* ОСТАЛЬНЫЕ ПОЛЯ */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-xs font-semibold uppercase text-neutral-500">{t.orderForm.orderAddress}</label>
+          <input name="order_address" value={orderAddress} onChange={e => { setOrderAddressTouched(true); setOrderAddress(e.target.value); }} className={inputCls} />
         </div>
-      )}
-      {!isCorrection && <input type="hidden" name="correction_reason" defaultValue="" />}
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="block text-sm font-medium">
-            {t.orderForm.service} <span className="text-red-500">*</span>
-          </label>
-          <button
-            type="button"
-            onClick={() => {
-              const nextUseCustom = !useCustom;
-              setUseCustom(nextUseCustom);
-              if (nextUseCustom) {
-                previousServiceDescriptionRef.current = '';
-              }
-            }}
-            className="text-xs text-blue-600 hover:underline"
-          >
-            {useCustom ? t.orderForm.fromCatalog : t.orderForm.customTitle}
-          </button>
+        
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase text-neutral-500">{t.orderForm.serviceDate}</label>
+          <input name="service_date" type="date" defaultValue={toDateLocal(initial?.service_date || new Date().toISOString())} className={inputCls} />
         </div>
 
-        {useCustom ? (
-          <>
-            <input type="hidden" name="service_id" defaultValue="" />
-            <input
-              name="custom_service_title"
-              type="text"
-              defaultValue={values.custom_service_title}
-              placeholder={t.orderForm.customServicePlaceholder}
-              className={inputCls}
-            />
-          </>
-        ) : (
-          <>
-            <input type="hidden" name="custom_service_title" defaultValue="" />
-            <select
-              name="service_id"
-              value={selectedServiceId}
-              onChange={(e) => setSelectedServiceId(e.target.value)}
-              className={inputCls}
-            >
-              <option value="">{t.orderForm.selectService}</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.title}
-                  {service.default_price !== null ? ` — €${service.default_price}` : ''}
-                </option>
-              ))}
-            </select>
-            {services.length === 0 && (
-              <p className="mt-1 text-xs text-amber-600">
-                {t.orderForm.noServices}{' '}
-                <Link href="/services/new" className="underline">
-                  {t.orderForm.add}
-                </Link>{' '}
-                {t.orderForm.orChooseCustom}
-              </p>
-            )}
-          </>
-        )}
-        {state.errors?.service_id && <p className="mt-1 text-xs text-red-600">{state.errors.service_id}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="custom_price" className="mb-1 block text-sm font-medium">
-          {t.orderForm.price}
-        </label>
-        <input
-          id="custom_price"
-          name="custom_price"
-          type="text"
-          inputMode="decimal"
-          defaultValue={values.custom_price}
-          placeholder={t.orderForm.pricePlaceholder}
-          className={inputCls}
-        />
-        {state.errors?.custom_price && <p className="mt-1 text-xs text-red-600">{state.errors.custom_price}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="order_address" className="mb-1 block text-sm font-medium">
-          {t.orderForm.orderAddress}
-        </label>
-        <input
-          id="order_address"
-          name="order_address"
-          type="text"
-          value={orderAddress}
-          onChange={(e) => {
-            setOrderAddressTouched(true);
-            setOrderAddress(e.target.value);
-          }}
-          className={inputCls}
-        />
-      </div>
-
-      <input type="hidden" name="scheduled_at" value="" />
-
-      <div>
-        <label htmlFor="service_date" className="mb-1 block text-sm font-medium">
-          {t.orderForm.serviceDate}
-        </label>
-        <input
-          id="service_date"
-          name="service_date"
-          type="date"
-          defaultValue={values.service_date}
-          className={inputCls}
-        />
-        {state.errors?.service_date && <p className="mt-1 text-xs text-red-600">{state.errors.service_date}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="payment_method" className="mb-1 block text-sm font-medium">
-          {t.orderForm.paymentMethod}
-        </label>
-        <select
-          id="payment_method"
-          name="payment_method"
-          value={paymentMethod}
-          onChange={handlePaymentMethodChange}
-          className={inputCls}
-        >
-          <option value="">{t.orderForm.paymentMethodEmpty}</option>
-          <option value="cash">{t.orderForm.paymentCash}</option>
-          <option value="transfer">{t.orderForm.paymentTransfer}</option>
-          <option value="ec_card">{t.orderForm.paymentCard}</option>
-          <option value="paypal">PayPal</option>
-        </select>
-        {state.errors?.payment_method && (
-          <p className="mt-1 text-xs text-red-600">{state.errors.payment_method}</p>
-        )}
-      </div>
-
-      {['cash', 'ec_card'].includes(paymentMethod) ? (
         <div>
-          <label htmlFor="payment_provider" className="mb-1 block text-sm font-medium">
-            {paymentMetaText.paymentProvider}
-          </label>
-          <select
-            id="payment_provider"
-            name="payment_provider"
-            value={paymentProvider}
-            onChange={(e) => setPaymentProvider(e.target.value)}
-            className={inputCls}
-          >
-            <option value="">{paymentMetaText.paymentProviderEmpty}</option>
-            <option value="sumup">SumUp</option>
+          <label className="mb-1 block text-xs font-semibold uppercase text-neutral-500">{t.orderForm.paymentMethod}</label>
+          <select name="payment_method" value={paymentMethod} onChange={handlePaymentMethodChange} className={inputCls}>
+            <option value="">{t.orderForm.paymentMethodEmpty}</option>
+            <option value="cash">{t.orderForm.paymentCash}</option>
+            <option value="transfer">{t.orderForm.paymentTransfer}</option>
+            <option value="ec_card">{t.orderForm.paymentCard}</option>
+            <option value="paypal">PayPal</option>
           </select>
-          {state.errors?.payment_provider && (
-            <p className="mt-1 text-xs text-red-600">{state.errors.payment_provider}</p>
-          )}
         </div>
-      ) : (
-        <input type="hidden" name="payment_provider" value="" />
-      )}
-
-      <div>
-        <div className="mb-1 flex items-center justify-between gap-3">
-          <label htmlFor="paid_at" className="block text-sm font-medium">
-            {paymentMetaText.paidAt}
-          </label>
-          {paidAt && (
-            <button
-              type="button"
-              onClick={() => setPaidAt('')}
-              className="text-xs font-medium text-blue-600 hover:underline"
-            >
-              {locale === 'de' ? 'Noch nicht bezahlt' : 'Еще не оплачено'}
-            </button>
-          )}
-        </div>
-        <input
-          id="paid_at"
-          name="paid_at"
-          type="date"
-          value={paidAt}
-          onChange={(e) => setPaidAt(e.target.value)}
-          className={inputCls}
-        />
-        <p className="mt-1 text-xs text-neutral-500">{paymentMetaText.paidAtHint}</p>
-        {state.errors?.paid_at && <p className="mt-1 text-xs text-red-600">{state.errors.paid_at}</p>}
       </div>
 
-      <div>
-        <label htmlFor="description" className="mb-1 block text-sm font-medium">
-          {t.orderForm.description}
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          rows={4}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className={`${inputCls} resize-y`}
-        />
+      <div className="space-y-1">
+        <label className="block text-xs font-semibold uppercase text-neutral-500">{t.orderForm.description}</label>
+        <textarea name="description" rows={3} defaultValue={initial?.description || ''} className={`${inputCls} resize-none`} />
       </div>
 
-      {state.formError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-          {state.formError}
-        </div>
-      )}
+      {state.formError && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">{state.formError}</div>}
 
-      <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
-        >
+      <div className="flex gap-3 pt-4">
+        <button type="submit" disabled={isPending} className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white shadow-lg shadow-blue-200 transition-transform active:scale-95 disabled:bg-blue-400 dark:shadow-none">
           {isPending ? t.orderForm.saving : submitLabel}
         </button>
-        <Link
-          href={cancelHref}
-          className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-        >
+        <Link href={cancelHref} className="flex items-center justify-center rounded-xl border border-neutral-300 px-6 font-semibold hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
           {t.orderForm.cancel}
         </Link>
       </div>

@@ -1,5 +1,12 @@
 import { parsePriceInput } from '@/lib/utils/format';
 
+export type OrderItemInput = {
+  service_id: string; // uuid или 'custom'
+  title: string;
+  price: string;
+  save_to_catalog: boolean;
+};
+
 export type OrderInput = {
   client_id: string;
   client_quick_name: string;
@@ -8,9 +15,7 @@ export type OrderInput = {
   client_quick_postal_code: string;
   client_quick_city: string;
   correction_reason: string;
-  service_id: string;
-  custom_service_title: string;
-  custom_price: string;
+  items: OrderItemInput[];
   description: string;
   order_address: string;
   scheduled_at: string;
@@ -20,7 +25,9 @@ export type OrderInput = {
   paid_at: string;
 };
 
-export type OrderValidationErrors = Partial<Record<keyof OrderInput, string>>;
+export type OrderValidationErrors = Partial<Record<keyof OrderInput, string>> & {
+  items?: string;
+};
 
 export function validateOrder(data: OrderInput): OrderValidationErrors {
   const errors: OrderValidationErrors = {};
@@ -35,16 +42,20 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
     errors.client_quick_name = 'Kundenname ist zu lang';
   }
 
-  const hasService = data.service_id.trim().length > 0;
-  const hasCustom = data.custom_service_title.trim().length > 0;
-
-  if (!hasService && !hasCustom) {
-    errors.service_id = 'Bitte Service auswaehlen oder eigenen Titel eingeben';
-  }
-
-  if (data.custom_price.trim() !== '') {
-    const price = parsePriceInput(data.custom_price);
-    if (price === null) errors.custom_price = 'Ungueltiger Preis';
+  if (data.items.length === 0) {
+    errors.items = 'Mindestens eine Leistung ist erforderlich';
+  } else {
+    for (const item of data.items) {
+      if (!item.title.trim()) {
+        errors.items = 'Titel der Leistung darf nicht leer sein';
+        break;
+      }
+      const price = parsePriceInput(item.price);
+      if (price === null) {
+        errors.items = 'Ungueltiger Preis fuer eine Leistung';
+        break;
+      }
+    }
   }
 
   if (data.correction_reason.length > 1000) {
@@ -76,7 +87,7 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
   }
 
   if (data.payment_provider && !['cash', 'ec_card'].includes(data.payment_method)) {
-    errors.payment_provider = 'Zahlungsanbieter ist nur fuer Bar- oder Kartenzahlung erlaubt';
+    errors.payment_provider = 'Zahlungsanbieter ist только для Bar- или Kartenzahlung';
   }
 
   if (data.paid_at && Number.isNaN(Date.parse(data.paid_at))) {
@@ -117,7 +128,12 @@ export function normalizeOrderInput(data: OrderInput) {
     return new Date(dateOnly ? `${value}T12:00:00` : value).toISOString();
   };
 
-  const hasService = data.service_id.trim().length > 0;
+  const normalizedItems = data.items.map(item => ({
+    service_id: item.service_id === 'custom' ? null : item.service_id,
+    title: item.title.trim(),
+    price: parsePriceInput(item.price) || 0,
+    save_to_catalog: item.save_to_catalog
+  }));
 
   return {
     client_id: data.client_id.trim() || null,
@@ -127,9 +143,7 @@ export function normalizeOrderInput(data: OrderInput) {
     client_quick_postal_code: clean(data.client_quick_postal_code),
     client_quick_city: clean(data.client_quick_city),
     correction_reason: clean(data.correction_reason),
-    service_id: hasService ? data.service_id : null,
-    custom_service_title: hasService ? null : clean(data.custom_service_title),
-    custom_price: parsePriceInput(data.custom_price),
+    items: normalizedItems,
     description: clean(data.description),
     order_address: clean(data.order_address),
     scheduled_at: toIsoDate(data.scheduled_at),

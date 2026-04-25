@@ -31,11 +31,15 @@ export type InvoiceData = {
   };
   order: {
     id: string;
-    invoice_number: string;        // "2026-0001"
-    invoice_date: string;          // ISO Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В° Р В Р’В Р В РІР‚В Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В Р РЏ Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљР Р‹Р В Р Р‹Р Р†Р вЂљР’ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°
-    service_date: string;          // ISO Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Leistungsdatum
+    invoice_number: string;
+    invoice_date: string;
+    service_date: string;
     service_title: string;
     price: number | null;
+    items?: {
+      title: string;
+      price: number;
+    }[];
     correction_of_invoice_number?: string | null;
     description: string | null;
     order_address: string | null;
@@ -106,7 +110,11 @@ function isValidIban(iban: string): boolean {
 }
 
 function buildSepaQrPayload(data: InvoiceData): string | null {
-  if (data.order.payment_method !== 'transfer' || data.order.price === null || !data.master.iban || !data.master.bic) {
+  const total = (data.order.items && data.order.items.length > 0)
+    ? data.order.items.reduce((sum, item) => sum + item.price, 0)
+    : (data.order.price ?? 0);
+
+  if (data.order.payment_method !== 'transfer' || total <= 0 || !data.master.iban || !data.master.bic) {
     return null;
   }
 
@@ -115,7 +123,7 @@ function buildSepaQrPayload(data: InvoiceData): string | null {
   const bic = data.master.bic.replace(/\s+/g, '').toUpperCase();
   if (!recipient || !iban || !bic || !isValidIban(iban)) return null;
 
-  const amount = `EUR${data.order.price.toFixed(2)}`;
+  const amount = `EUR${total.toFixed(2)}`;
   const remittance = cleanEpcField(`Rechnung ${data.order.invoice_number}`, 140);
 
   return [
@@ -127,8 +135,8 @@ function buildSepaQrPayload(data: InvoiceData): string | null {
     recipient,
     iban,
     amount,
-    '', // Purpose code: unused for normal invoice payments.
-    '', // Structured creditor reference: must stay empty when free text is used.
+    '', 
+    '', 
     remittance,
   ].join('\r\n');
 }
@@ -221,14 +229,11 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     }
   }
 
-  // ===================== Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р СћРЎвЂ™ Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В Р’В Р РЋРІР‚в„ўР В Р’В Р РЋРЎС™Р В Р’В Р вЂ™Р’ВР В Р’В Р вЂ™Р’В¦Р В Р’В Р вЂ™Р’В«: Р В Р’В Р РЋРІР‚С”Р В Р’В Р РЋРЎвЂєР В Р’В Р РЋРЎСџР В Р’В Р вЂ™Р’В Р В Р’В Р РЋРІР‚в„ўР В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р вЂ™Р’ВР В Р’В Р РЋРЎвЂєР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р вЂ™Р’В¬ + Р В Р’В Р РЋРІвЂћСћР В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р вЂ™Р’ВР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р РЋРЎС™Р В Р’В Р РЋРЎвЂє =====================
-
-  // Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚ВР В Р’В Р РЋР’В Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎвЂєР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р’В Р РЋР’В "Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°" Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р СћРІР‚В Р В Р’В Р вЂ™Р’В°Р В Р’В Р СћРІР‚ВР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СћР В Р’В Р РЋР’В Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В° (Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚Сњ Р В Р’В Р В РІР‚В  DIN 5008)
   const senderLine = [
     data.master.company_name ?? data.master.full_name ?? '',
     data.master.address ?? '',
     [data.master.postal_code, data.master.city].filter(Boolean).join(' '),
-  ].filter(Boolean).join(' В· ');
+  ].filter(Boolean).join(' · ');
 
   if (senderLine) {
     drawText(senderLine, margin, regular, 8, COLORS.muted);
@@ -242,7 +247,6 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
     y -= 10;
   }
 
- // Р В Р’В Р РЋРІР‚в„ўР В Р’В Р СћРІР‚ВР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РЎвЂњ Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В° Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В° Р В Р’В Р В РІР‚В  "Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°" (Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљРЎв„ў DIN 5008)
 const clientTop = y;
 drawText(data.client.full_name, margin, bold, 11);
 y -= 14;
@@ -256,7 +260,6 @@ if (data.client.phone) {
   y -= 11;
 }
 
-  // Р В Р’В Р вЂ™Р’В Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В·Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“ Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°: Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°, Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™ Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљР Р‹Р В Р Р‹Р Р†Р вЂљР’ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°
   const rightY = clientTop;
   const rightX = W - margin;
   const savedY = y;
@@ -277,10 +280,8 @@ if (data.client.phone) {
     drawRight(data.order.correction_of_invoice_number, rightX, bold, 10, COLORS.correctionText);
   }
 
-  // Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В·Р В Р’В Р В РІР‚В Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋР’ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏ Р В Р’В Р РЋРІР‚Сњ Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚СћР В Р’В Р Р†РІР‚С›РІР‚вЂњ Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’Вµ
   y = Math.min(savedY, y) - 26;
 
-  // ===================== Р В Р’В Р Р†Р вЂљРІР‚СњР В Р’В Р РЋРІР‚в„ўР В Р’В Р Р†Р вЂљРЎС™Р В Р’В Р РЋРІР‚С”Р В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р РЋРІР‚С”Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р РЋРІР‚С”Р В Р’В Р РЋРІвЂћСћ =====================
   if (isCorrectionDocument) {
     page.drawRectangle({
       x: margin,
@@ -297,7 +298,6 @@ if (data.client.phone) {
   drawText(isCorrectionDocument ? 'Korrigierte Rechnung' : 'Rechnung', margin, bold, 22, COLORS.text);
   y -= 26;
 
-  // ===================== Р В Р’В Р РЋРЎвЂєР В Р’В Р РЋРІР‚в„ўР В Р’В Р Р†Р вЂљР’ВР В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р вЂ™Р’ВР В Р’В Р вЂ™Р’В¦Р В Р’В Р РЋРІР‚в„ў Р В Р’В Р В РІвЂљВ¬Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р В РІвЂљВ¬Р В Р’В Р Р†Р вЂљРЎС™ =====================
   const tableTop = y;
   page.drawRectangle({
     x: margin,
@@ -307,29 +307,31 @@ if (data.client.phone) {
     color: COLORS.tableHeader,
   });
 
-  // Р В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚В: Pos | Leistung | Betrag
   const colPos = margin + 8;
   const colLeistung = margin + 40;
   const colTotals = margin + 350;
   const colBetragRight = W - margin - 8;
 
   drawText('Pos.', colPos, bold, 9, COLORS.text);
-  y -= 15; // Р В Р’В Р В РІР‚В Р В Р’В Р В РІР‚В¦Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚В Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚В
-  // Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р РЋР’ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏ Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В° Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СњР В Р Р‹Р РЋРІР‚Сљ Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ Р В Р’В Р В РІР‚В Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚Сћ Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В°
-  y = tableTop - 15;
   drawText('Leistung', colLeistung, bold, 9, COLORS.text);
   drawRight('Betrag', colBetragRight, bold, 9, COLORS.text);
 
   y = tableTop - 35;
 
-  // Р В Р’В Р В Р вЂ№Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° 1
-  drawText('1', colPos, regular, 10);
-  drawText(data.order.service_title, colLeistung, regular, 10);
-  drawRight(formatEUR(data.order.price), colBetragRight, regular, 10);
-  y -= 14;
+  const invoiceItems = data.order.items && data.order.items.length > 0 
+    ? data.order.items 
+    : [{ title: data.order.service_title, price: data.order.price ?? 0 }];
 
-  // Р В Р’В Р РЋРІР‚С”Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’В»Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚СћР В Р’В Р Р†РІР‚С›РІР‚вЂњ
+  invoiceItems.forEach((item, idx) => {
+    ensureSpace(20);
+    drawText(String(idx + 1), colPos, regular, 10);
+    drawText(item.title, colLeistung, regular, 10);
+    drawRight(formatEUR(item.price), colBetragRight, regular, 10);
+    y -= 16;
+  });
+
   if (data.order.description) {
+    ensureSpace(20);
     const lines = data.order.description.split('\n');
     for (const line of lines) {
       drawWrapped(line, colLeistung, W - colLeistung - margin - 80, regular, 9, COLORS.muted);
@@ -337,7 +339,6 @@ if (data.client.phone) {
     y -= 5;
   }
 
-  // Р В Р’В Р вЂ™Р’В Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В·Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°
   page.drawLine({
     start: { x: margin, y },
     end: { x: W - margin, y },
@@ -346,8 +347,8 @@ if (data.client.phone) {
   });
   y -= 18;
 
-  // ===================== Р В Р’В Р вЂ™Р’ВР В Р’В Р РЋРЎвЂєР В Р’В Р РЋРІР‚С”Р В Р’В Р Р†Р вЂљРЎС™Р В Р’В Р РЋРІР‚С” =====================
-  // Netto = Brutto Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ Kleinunternehmer (Р В Р’В Р вЂ™Р’В±Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В· Р В Р’В Р РЋРЎС™Р В Р’В Р Р†Р вЂљРЎСљР В Р’В Р В Р вЂ№)
+  const brutto = invoiceItems.reduce((sum, item) => sum + item.price, 0);
+
   if (data.master.is_kleinunternehmer) {
     page.drawRectangle({
       x: margin + 250,
@@ -358,10 +359,9 @@ if (data.client.phone) {
     });
     y -= 16;
     drawText('Gesamtbetrag', colTotals, bold, 12, COLORS.text);
-    drawRight(formatEUR(data.order.price), colBetragRight, bold, 13, COLORS.accent);
+    drawRight(formatEUR(brutto), colBetragRight, bold, 13, COLORS.accent);
     y -= 24;
 
-    // Р В Р’В Р РЋРІР‚С”Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р В Р РЏР В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р В Р РЏ Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° Р В РІР‚в„ўР вЂ™Р’В§19 UStG
     page.drawRectangle({
       x: margin,
       y: y - 32,
@@ -387,8 +387,6 @@ if (data.client.phone) {
     );
     y -= 20;
   } else {
-    // Р В Р’В Р РЋРЎС™Р В Р’В Р вЂ™Р’В° Р В Р’В Р В РІР‚В Р В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚ВР В Р’В Р Р†РІР‚С›РІР‚вЂњ Р В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’В»Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљР Р‹Р В Р’В Р вЂ™Р’В°Р В Р’В Р Р†РІР‚С›РІР‚вЂњ: Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљР Р‹Р В Р Р‹Р Р†Р вЂљР’ВР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р РЋРЎС™Р В Р’В Р Р†Р вЂљРЎСљР В Р’В Р В Р вЂ№ 19%
-    const brutto = data.order.price ?? 0;
     const vatRate = 0.19;
     const netto = brutto / (1 + vatRate);
     const vat = brutto - netto;
@@ -411,7 +409,6 @@ if (data.client.phone) {
     y -= 25;
   }
 
-  // ===================== ZAHLUNG =====================
 if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   const paymentLabels: Record<string, string> = {
     cash: 'Barzahlung',
@@ -484,7 +481,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
         `Empfaenger: ${data.master.company_name || data.master.full_name || '-'}`,
         `IBAN: ${data.master.iban}`,
         data.master.bic ? `BIC: ${data.master.bic}` : null,
-        `Betrag: ${formatEUR(data.order.price)}`,
+        `Betrag: ${formatEUR(brutto)}`,
         `Verwendungszweck: Rechnung ${data.order.invoice_number}`,
       ].filter(Boolean);
 
@@ -537,11 +534,9 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
 }
 
 
-  // ===================== Р В Р’В Р РЋРЎСџР В Р’В Р РЋРІР‚С”Р В Р’В Р Р†Р вЂљРЎСљР В Р’В Р РЋРЎСџР В Р’В Р вЂ™Р’ВР В Р’В Р В Р вЂ№Р В Р’В Р вЂ™Р’В¬ =====================
   if (data.signature) {
   ensureSpace(180);
 
-  // Р В Р’В Р РЋРЎвЂєР В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В¶Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В Р РЏ (Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚Сњ Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В» Р В Р’В Р РЋРІР‚вЂќР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р’В Р СћРІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ°Р В Р Р‹Р В РІР‚в„–)
   drawText('Auftragsbestaetigung / Leistungsbestaetigung', margin, bold, 9, COLORS.text);
   y -= 12;
 
@@ -567,7 +562,6 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
 
   y -= 4;
 
-  // Р В Р’В Р РЋРЎСџР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ°
   drawText('Unterschrift des Kunden', margin, bold, 9, COLORS.muted);
   y -= 8;
 
@@ -593,7 +587,6 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   }
 }
 
-  // ===================== Р В Р’В Р вЂ™Р’В¤Р В Р’В Р РЋРІР‚С”Р В Р’В Р РЋРЎвЂєР В Р’В Р РЋРІР‚С” =====================
   async function drawPhotoGrid(title: string, photos: Uint8Array[]) {
     if (photos.length === 0) return;
     ensureSpace(140);
@@ -638,12 +631,10 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   await drawPhotoGrid('Fotos vor der Arbeit', data.photosBefore);
   await drawPhotoGrid('Fotos nach der Arbeit', data.photosAfter);
 
-  // ===================== Р В Р’В Р вЂ™Р’В¤Р В Р’В Р В РІвЂљВ¬Р В Р’В Р РЋРЎвЂєР В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В  Р В Р’В Р РЋРЎС™Р В Р’В Р РЋРІР‚в„ў Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎС›Р В Р’В Р СћРЎвЂ™ Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В Р’В Р РЋРІР‚в„ўР В Р’В Р РЋРЎС™Р В Р’В Р вЂ™Р’ВР В Р’В Р вЂ™Р’В¦Р В Р’В Р РЋРІР‚в„ўР В Р’В Р СћРЎвЂ™ =====================
   const pages = doc.getPages();
   pages.forEach((p, idx) => {
     const footerY = 40;
 
-    // Р В Р’В Р Р†Р вЂљРЎвЂќР В Р’В Р РЋРІР‚ВР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В Р РЏ
     p.drawLine({
       start: { x: margin, y: footerY + 45 },
       end: { x: W - margin, y: footerY + 45 },
@@ -651,10 +642,8 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
       color: COLORS.line,
     });
 
-    // 3 Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚В Р В Р Р‹Р Р†Р вЂљРЎвЂєР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°
     const colW = (W - 2 * margin) / 3;
 
-    // Р В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° 1: Р В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚СњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“
     const left = [
       data.master.company_name,
       data.master.full_name,
@@ -671,7 +660,6 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
       ly -= 9;
     }
 
-    // Р В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° 2: Р В Р’В Р РЋРЎС™Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’Вµ
     const middle = [
       data.master.tax_number ? `Steuernummer: ${data.master.tax_number}` : null,
       data.master.vat_id ? `USt-IdNr.: ${data.master.vat_id}` : null,
@@ -685,7 +673,6 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
       my -= 9;
     }
 
-    // Р В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° 3: Р В Р’В Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚Сњ
     const right = [
       data.master.bank_name ? `Bank: ${data.master.bank_name}` : null,
       data.master.iban ? `IBAN: ${data.master.iban}` : null,
@@ -699,7 +686,6 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
       ry -= 9;
     }
 
-    // Р В Р’В Р РЋРЎС™Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™ Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљР’В Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“
     const pageLabel = `Seite ${idx + 1} / ${pages.length}`;
     const pw = regular.widthOfTextAtSize(pageLabel, 7);
     p.drawText(pageLabel, {

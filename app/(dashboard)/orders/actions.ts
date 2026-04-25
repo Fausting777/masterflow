@@ -388,7 +388,7 @@ export async function linkSumupTransactionAction(
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, user_id, invoice_number, invoice_locked_at')
+    .select('id, user_id, invoice_number, invoice_locked_at, payment_method')
     .eq('id', orderId)
     .eq('user_id', user.id)
     .maybeSingle();
@@ -417,10 +417,11 @@ export async function linkSumupTransactionAction(
   if (updateTransactionError) return { ok: false, error: updateTransactionError.message };
 
   if (!order.invoice_number && !order.invoice_locked_at) {
+    const paymentMethod = order.payment_method === 'cash' ? 'cash' : 'ec_card';
     const { error: updateOrderError } = await supabase
       .from('orders')
       .update({
-        payment_method: 'ec_card',
+        payment_method: paymentMethod,
         payment_provider: 'sumup',
         paid_at: transaction.paid_at,
         sumup_transaction_id: transaction.id,

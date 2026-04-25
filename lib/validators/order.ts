@@ -75,8 +75,8 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
     errors.payment_provider = 'Ungueltiger Zahlungsanbieter';
   }
 
-  if (data.payment_provider && data.payment_method !== 'ec_card') {
-    errors.payment_provider = 'Zahlungsanbieter ist nur fuer Kartenzahlung erlaubt';
+  if (data.payment_provider && !['cash', 'ec_card'].includes(data.payment_method)) {
+    errors.payment_provider = 'Zahlungsanbieter ist nur fuer Bar- oder Kartenzahlung erlaubt';
   }
 
   if (data.paid_at && Number.isNaN(Date.parse(data.paid_at))) {

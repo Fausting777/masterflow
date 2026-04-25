@@ -142,9 +142,9 @@ export default function OrderForm({
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const nextMethod = e.target.value;
       setPaymentMethod(nextMethod);
-      if (nextMethod !== 'ec_card') {
+      if (!['cash', 'ec_card'].includes(nextMethod)) {
         setPaymentProvider('');
-      } else if (!paymentProvider) {
+      } else if (nextMethod === 'ec_card' && !paymentProvider) {
         setPaymentProvider('sumup');
       }
       if (!paidAt && ['cash', 'ec_card', 'paypal'].includes(nextMethod)) {
@@ -465,7 +465,7 @@ export default function OrderForm({
         )}
       </div>
 
-      {paymentMethod === 'ec_card' ? (
+      {['cash', 'ec_card'].includes(paymentMethod) ? (
         <div>
           <label htmlFor="payment_provider" className="mb-1 block text-sm font-medium">
             {paymentMetaText.paymentProvider}

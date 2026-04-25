@@ -129,7 +129,7 @@ export function normalizeOrderInput(data: OrderInput) {
   };
 
   const normalizedItems = data.items.map(item => ({
-    service_id: item.service_id === 'custom' ? null : item.service_id,
+    service_id: item.service_id === 'custom' || item.service_id.trim() === '' ? null : item.service_id,
     title: item.title.trim(),
     price: parsePriceInput(item.price) || 0,
     save_to_catalog: item.save_to_catalog

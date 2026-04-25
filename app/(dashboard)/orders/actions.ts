@@ -8,13 +8,14 @@ import { createClient } from '@/lib/supabase/server';
 import {
   normalizeOrderInput,
   validateOrder,
+  type OrderInput,
   type OrderValidationErrors,
 } from '@/lib/validators/order';
 
 export type OrderFormState = {
   errors?: OrderValidationErrors;
   formError?: string;
-  values?: any; 
+  values?: OrderInput;
 };
 
 type UiLocale = 'ru' | 'de';
@@ -81,8 +82,8 @@ function getMessages(locale: UiLocale) {
   };
 }
 
-function readFormData(formData: FormData): any {
-  const items: any[] = [];
+function readFormData(formData: FormData): OrderInput {
+  const items: OrderInput['items'] = [];
   let i = 0;
   while (formData.has(`items[${i}].title`)) {
     items.push({
@@ -113,15 +114,47 @@ function readFormData(formData: FormData): any {
   };
 }
 
-async function syncItemsToCatalog(supabase: any, userId: string, items: any[]) {
+async function resolveItemsToCatalog(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  items: ReturnType<typeof normalizeOrderInput>['items']
+) {
+  const resolvedItems: ReturnType<typeof normalizeOrderInput>['items'] = [];
+
   for (const item of items) {
-    if (item.save_to_catalog && item.title) {
-      const { data: existing } = await supabase.from('services').select('id').eq('user_id', userId).ilike('title', item.title).maybeSingle();
-      if (!existing) {
-        await supabase.from('services').insert({ user_id: userId, title: item.title, default_price: item.price });
-      }
+    if (item.service_id) {
+      resolvedItems.push(item);
+      continue;
     }
+
+    const title = item.title.trim();
+    const { data: existing } = await supabase
+      .from('services')
+      .select('id')
+      .eq('user_id', userId)
+      .ilike('title', title)
+      .maybeSingle();
+
+    if (existing?.id) {
+      resolvedItems.push({ ...item, service_id: existing.id });
+      continue;
+    }
+
+    if (item.save_to_catalog && title) {
+      const { data: created } = await supabase
+        .from('services')
+        .insert({ user_id: userId, title, default_price: item.price })
+        .select('id')
+        .single();
+
+      resolvedItems.push({ ...item, service_id: created?.id ?? null });
+      continue;
+    }
+
+    resolvedItems.push(item);
   }
+
+  return resolvedItems;
 }
 
 export async function createOrderAction(_prevState: OrderFormState, formData: FormData): Promise<OrderFormState> {
@@ -135,7 +168,7 @@ export async function createOrderAction(_prevState: OrderFormState, formData: Fo
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { formError: m.unauthorized, values: raw };
   const normalized = normalizeOrderInput(raw);
-  await syncItemsToCatalog(supabase, user.id, normalized.items);
+  const normalizedItems = await resolveItemsToCatalog(supabase, user.id, normalized.items);
   let clientId = normalized.client_id;
   if (!clientId && normalized.client_quick_name) {
     const { data: client, error: clientError } = await supabase.from('clients').insert({
@@ -151,10 +184,10 @@ export async function createOrderAction(_prevState: OrderFormState, formData: Fo
     order_address: normalized.order_address || normalized.client_quick_address,
     scheduled_at: normalized.scheduled_at, service_date: normalized.service_date,
     payment_method: normalized.payment_method, payment_provider: normalized.payment_provider, paid_at: normalized.paid_at,
-    service_id: normalized.items[0].service_id, custom_service_title: normalized.items[0].service_id ? null : normalized.items[0].title, custom_price: normalized.items[0].price
+    service_id: normalizedItems[0].service_id, custom_service_title: normalizedItems[0].service_id ? null : normalizedItems[0].title, custom_price: normalizedItems[0].price
   }).select('id').single();
   if (orderError || !order) return { formError: m.orderCreateError, values: raw };
-  const orderItems = normalized.items.map(item => ({ order_id: order.id, user_id: user.id, service_id: item.service_id, title: item.title, price: item.price }));
+  const orderItems = normalizedItems.map(item => ({ order_id: order.id, user_id: user.id, service_id: item.service_id, title: item.title, price: item.price }));
   await supabase.from('order_items').insert(orderItems);
   revalidatePath('/orders');
   revalidatePath('/services');
@@ -180,8 +213,18 @@ export async function updateOrderAction(id: string, _prevState: OrderFormState, 
     return { formError: m.invoiceEditBlocked, values: raw };
   }
   const normalized = normalizeOrderInput(raw);
-  await syncItemsToCatalog(supabase, user.id, normalized.items);
-  const { items: normalizedItems, client_quick_name: _, client_quick_phone: __, client_quick_address: ___, client_quick_postal_code: ____, client_quick_city: _____, ...updateData } = normalized;
+  const normalizedItems = await resolveItemsToCatalog(supabase, user.id, normalized.items);
+  const updateData = {
+    client_id: normalized.client_id,
+    correction_reason: normalized.correction_reason,
+    description: normalized.description,
+    order_address: normalized.order_address,
+    scheduled_at: normalized.scheduled_at,
+    service_date: normalized.service_date,
+    payment_method: normalized.payment_method,
+    payment_provider: normalized.payment_provider,
+    paid_at: normalized.paid_at,
+  };
   const { error } = await supabase.from('orders').update({
     ...updateData,
     service_id: normalizedItems[0].service_id,
@@ -234,6 +277,22 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
     user_id: user.id, correction_of_order_id: src.id, correction_reason: `${m.correctionReasonPrefix} ${src.invoice_number}`, status: 'new', client_id: src.client_id, service_id: src.service_id, custom_service_title: src.custom_service_title, custom_price: src.custom_price, description: src.description, order_address: src.order_address, service_date: src.service_date, payment_method: src.payment_method
   }).select('id').single();
   if (error || !created) throw new Error(m.correctionCreateError);
+  const { data: srcItems } = await supabase
+    .from('order_items')
+    .select('service_id, title, price')
+    .eq('order_id', src.id)
+    .eq('user_id', user.id);
+  if (srcItems && srcItems.length > 0) {
+    await supabase.from('order_items').insert(
+      srcItems.map((item) => ({
+        order_id: created.id,
+        user_id: user.id,
+        service_id: item.service_id,
+        title: item.title,
+        price: item.price,
+      }))
+    );
+  }
   await supabase.from('activity_logs').insert([{ order_id: src.id, user_id: user.id, action_type: 'invoice_correction_created', action_text: `${m.correctionCreatedLogPrefix} ${src.invoice_number}` }, { order_id: created.id, user_id: user.id, action_type: 'correction_draft_created', action_text: `${m.correctionDraftCreatedLogPrefix} ${src.invoice_number}` }]);
   revalidatePath('/orders'); redirect(`/orders/${created.id}?edit=1`);
 }

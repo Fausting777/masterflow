@@ -19,6 +19,7 @@ import type {
   AuditTrailEntry,
   Client,
   Order,
+  OrderItem,
   OrderPhoto,
   PaymentMethod,
   PaymentProvider,
@@ -59,6 +60,7 @@ export default async function OrderPage({
   const [
     clientRes,
     serviceRes,
+    orderItemsRes,
     logsRes,
     auditRes,
     photosRes,
@@ -74,6 +76,12 @@ export default async function OrderPage({
     o.service_id
       ? supabase.from('services').select('*').eq('id', o.service_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from('order_items')
+      .select('*')
+      .eq('order_id', o.id)
+      .eq('user_id', o.user_id)
+      .order('created_at', { ascending: true }),
     showHistory
       ? supabase
           .from('activity_logs')
@@ -128,6 +136,7 @@ export default async function OrderPage({
 
   const client = clientRes.data as Client | null;
   const service = serviceRes.data as Service | null;
+  const orderItems = (orderItemsRes.data ?? []) as OrderItem[];
   const logs = (logsRes.data ?? []) as ActivityLog[];
   const auditEntries = (auditRes.data ?? []) as AuditTrailEntry[];
   const photos = (photosRes.data ?? []) as OrderPhoto[];
@@ -160,8 +169,28 @@ export default async function OrderPage({
       ? await getSignedUrl(supabase, 'order-signatures', o.signature_file_path)
       : null;
 
-  const serviceTitle = service?.title ?? o.custom_service_title ?? DASH;
-  const priceToShow = o.custom_price ?? service?.default_price ?? null;
+  const displayItems =
+    orderItems.length > 0
+      ? orderItems
+      : [
+          {
+            id: o.id,
+            order_id: o.id,
+            user_id: o.user_id,
+            service_id: o.service_id,
+            title: service?.title ?? o.custom_service_title ?? DASH,
+            price: Number(o.custom_price ?? service?.default_price ?? 0),
+            created_at: o.created_at,
+          },
+        ];
+  const serviceTitle =
+    displayItems.length > 1
+      ? `${displayItems[0].title} + ${displayItems.length - 1}`
+      : displayItems[0]?.title ?? DASH;
+  const priceToShow =
+    displayItems.length > 0
+      ? displayItems.reduce((sum, item) => sum + Number(item.price), 0)
+      : o.custom_price ?? service?.default_price ?? null;
   const sumupCandidates = ((sumupCandidatesRes.data ?? []) as SumupTransaction[])
     .sort((a, b) => {
       if (priceToShow === null) {
@@ -292,7 +321,7 @@ export default async function OrderPage({
               action={boundUpdate}
               clients={(clientsListRes.data ?? []) as Client[]}
               services={(servicesListRes.data ?? []) as Service[]}
-              initial={o}
+              initial={{ ...o, items: displayItems }}
               cancelHref={`/orders/${o.id}`}
               submitLabel={t.orderPage.save}
             />
@@ -374,6 +403,21 @@ export default async function OrderPage({
               />
             )}
             <Row label={t.orderPage.price} value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
+            <div className="border-t border-neutral-100 pt-2 dark:border-neutral-800">
+              <div className="mb-2 text-sm text-neutral-500">
+                {locale === 'de' ? 'Leistungen' : '\u0423\u0441\u043b\u0443\u0433\u0438'}
+              </div>
+              <div className="space-y-1">
+                {displayItems.map((item, index) => (
+                  <div key={item.id} className="flex items-start justify-between gap-3 text-sm">
+                    <span className="min-w-0">
+                      {index + 1}. {item.title}
+                    </span>
+                    <span className="whitespace-nowrap font-medium">{formatPrice(Number(item.price))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             {o.payment_method && <Row label={t.orderPage.paymentMethod} value={paymentLabels[o.payment_method]} />}
             {(o.payment_provider || linkedSumupTransaction) && (
               <Row

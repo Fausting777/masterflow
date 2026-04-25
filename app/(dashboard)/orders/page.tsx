@@ -6,7 +6,7 @@ import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { getMonthOptions, getRange } from '@/lib/utils/date-range';
 import { formatPrice } from '@/lib/utils/format';
-import type { OrderWithClient } from '@/types/database';
+import type { OrderItem, OrderWithClient } from '@/types/database';
 
 type SearchParams = Promise<{
   invoice?: string;
@@ -139,10 +139,35 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     }
   }
 
+  const orderItemMap = new Map<string, OrderItem[]>();
+  const orderIds = ordersList.map((order) => order.id);
+  if (orderIds.length > 0) {
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('*')
+      .in('order_id', orderIds)
+      .order('created_at', { ascending: true });
+
+    for (const item of (orderItems ?? []) as OrderItem[]) {
+      const current = orderItemMap.get(item.order_id) ?? [];
+      current.push(item);
+      orderItemMap.set(item.order_id, current);
+    }
+  }
+
   const getOrderAmount = (order: OrderWithClient) => {
     const snapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
+    if (snapshot?.order.items && snapshot.order.items.length > 0) {
+      return snapshot.order.items.reduce((sum, item) => sum + Number(item.price), 0);
+    }
+
     if (snapshot?.order.price !== undefined && snapshot.order.price !== null) {
       return Number(snapshot.order.price);
+    }
+
+    const orderItems = orderItemMap.get(order.id);
+    if (orderItems && orderItems.length > 0) {
+      return orderItems.reduce((sum, item) => sum + Number(item.price), 0);
     }
 
     if (order.custom_price !== null) {
@@ -154,6 +179,21 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
     }
 
     return null;
+  };
+
+  const getOrderServiceTitle = (order: OrderWithClient) => {
+    const snapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
+    const snapshotItems = snapshot?.order.items;
+    if (snapshotItems && snapshotItems.length > 0) {
+      return snapshotItems.length > 1 ? `${snapshotItems[0].title} + ${snapshotItems.length - 1}` : snapshotItems[0].title;
+    }
+
+    const orderItems = orderItemMap.get(order.id);
+    if (orderItems && orderItems.length > 0) {
+      return orderItems.length > 1 ? `${orderItems[0].title} + ${orderItems.length - 1}` : orderItems[0].title;
+    }
+
+    return order.custom_service_title ?? DASH;
   };
 
   const totals = ordersList.reduce(
@@ -340,7 +380,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
                     </div>
                     <h3 className="truncate font-medium">{order.client_name}</h3>
                     <p className="truncate text-sm text-neutral-500">
-                      {order.custom_service_title ?? DASH}
+                      {getOrderServiceTitle(order)}
                       {order.order_address ? ` · ${order.order_address}` : ''}
                     </p>
                   </div>

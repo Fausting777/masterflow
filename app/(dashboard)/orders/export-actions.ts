@@ -6,7 +6,7 @@ import { escapeCsvCell } from '@/lib/security/csv';
 import { createClient } from '@/lib/supabase/server';
 import { getRange } from '@/lib/utils/date-range';
 import { PAYMENT_METHOD_LABELS } from '@/lib/utils/format';
-import type { OrderWithClient } from '@/types/database';
+import type { OrderItem, OrderWithClient } from '@/types/database';
 
 export type OrdersExportFilter = {
   invoice?: 'all' | 'with' | 'without' | 'sent';
@@ -129,6 +129,22 @@ export async function exportOrdersCsvAction(
     }
   }
 
+  const orderItemMap = new Map<string, OrderItem[]>();
+  const orderIds = orders.map((order) => order.id);
+  if (orderIds.length > 0) {
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('*')
+      .in('order_id', orderIds)
+      .order('created_at', { ascending: true });
+
+    for (const item of (orderItems ?? []) as OrderItem[]) {
+      const current = orderItemMap.get(item.order_id) ?? [];
+      current.push(item);
+      orderItemMap.set(item.order_id, current);
+    }
+  }
+
   const headers = [
     'Auftrag-ID',
     'Kunde',
@@ -155,16 +171,36 @@ export async function exportOrdersCsvAction(
 
   const rows = orders.map((order) => {
     const snapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
-    const amount =
-      snapshot?.order.price ??
-      (order.custom_price !== null ? Number(order.custom_price) : order.service_id ? servicePrices.get(order.service_id) : null);
+    const snapshotItems = snapshot?.order.items;
+    const orderItems = orderItemMap.get(order.id);
+    let amount: number | null | undefined = null;
+    if (snapshotItems && snapshotItems.length > 0) {
+      amount = snapshotItems.reduce((sum, item) => sum + Number(item.price), 0);
+    } else if (snapshot?.order.price !== undefined && snapshot.order.price !== null) {
+      amount = Number(snapshot.order.price);
+    } else if (orderItems && orderItems.length > 0) {
+      amount = orderItems.reduce((sum, item) => sum + Number(item.price), 0);
+    } else {
+      amount =
+        order.custom_price !== null
+          ? Number(order.custom_price)
+          : order.service_id
+            ? servicePrices.get(order.service_id)
+            : null;
+    }
+    const serviceTitle =
+      snapshotItems && snapshotItems.length > 0
+        ? snapshotItems.map((item) => item.title).join(' + ')
+        : orderItems && orderItems.length > 0
+          ? orderItems.map((item) => item.title).join(' + ')
+          : snapshot?.order.service_title ?? order.custom_service_title ?? '';
     const paymentMethod = order.payment_method ? PAYMENT_METHOD_LABELS[order.payment_method] : '';
 
     return [
       order.id,
       order.client_name,
       order.client_phone ?? '',
-      snapshot?.order.service_title ?? order.custom_service_title ?? '',
+      serviceTitle,
       order.description ?? '',
       order.order_address ?? '',
       money(amount),

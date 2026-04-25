@@ -52,6 +52,12 @@ type InvoiceSumupTransactionRow = {
   paid_at: string | null;
 };
 
+type InvoiceOrderItemRow = {
+  service_id: string | null;
+  title: string;
+  price: number | string;
+};
+
 async function getMessages() {
   const locale = await getLocale();
   return locale === 'de'
@@ -199,6 +205,25 @@ async function buildLiveInvoiceSnapshot(
     }
   }
 
+  const { data: itemRows } = await supabase
+    .from('order_items')
+    .select('service_id, title, price')
+    .eq('order_id', order.id)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  const items = ((itemRows ?? []) as InvoiceOrderItemRow[])
+    .map((item) => ({
+      title: item.title,
+      price: Number(item.price),
+    }))
+    .filter((item) => item.title.trim() && Number.isFinite(item.price));
+
+  if (items.length > 0) {
+    serviceTitle = items.length > 1 ? `${items[0].title} + ${items.length - 1}` : items[0].title;
+    servicePrice = items.reduce((sum, item) => sum + item.price, 0);
+  }
+
   if (servicePrice === null) {
     return { snapshot: null, error: m.missingPrice };
   }
@@ -278,6 +303,7 @@ async function buildLiveInvoiceSnapshot(
         service_date: serviceDate,
         service_title: serviceTitle,
         price: servicePrice,
+        items: items.length > 0 ? items : undefined,
         correction_of_invoice_number: correctionOfInvoiceNumber,
         description,
         order_address: order.order_address,

@@ -85,6 +85,16 @@ export interface Order {
   updated_at: string;
 }
 
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  user_id: string;
+  service_id: string | null;
+  title: string;
+  price: number;
+  created_at: string;
+}
+
 export interface OrderPhoto {
   id: string;
   order_id: string;

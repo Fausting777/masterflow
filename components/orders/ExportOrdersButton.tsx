@@ -18,13 +18,15 @@ export default function ExportOrdersButton({ invoice, month }: Props) {
     locale === 'de'
       ? {
           export: 'CSV exportieren',
-          exporting: 'Export laeuft...',
+          exportShort: 'CSV',
+          exporting: 'Export...',
           error: 'Exportfehler',
         }
       : {
-          export: 'Экспорт CSV',
-          exporting: 'Экспорт...',
-          error: 'Ошибка экспорта',
+          export: '\u042d\u043a\u0441\u043f\u043e\u0440\u0442 CSV',
+          exportShort: 'CSV',
+          exporting: '\u042d\u043a\u0441\u043f\u043e\u0440\u0442...',
+          error: '\u041e\u0448\u0438\u0431\u043a\u0430 \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0430',
         };
 
   function handleExport() {
@@ -54,9 +56,16 @@ export default function ExportOrdersButton({ invoice, month }: Props) {
         type="button"
         onClick={handleExport}
         disabled={isPending}
-        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:bg-green-400"
+        className="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium leading-none text-white transition hover:bg-green-700 disabled:bg-green-400"
       >
-        {isPending ? text.exporting : text.export}
+        {isPending ? (
+          text.exporting
+        ) : (
+          <>
+            <span className="sm:hidden">{text.exportShort}</span>
+            <span className="hidden sm:inline">{text.export}</span>
+          </>
+        )}
       </button>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>

@@ -198,9 +198,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{text.title}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ExportOrdersButton invoice={invoiceFilter} month={currentMonth || null} />
           <Link
             href="/orders/trash"
@@ -211,7 +211,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           </Link>
           <Link
             href="/orders/new"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium leading-none text-white hover:bg-blue-700 sm:px-4"
           >
             + {text.new}
           </Link>

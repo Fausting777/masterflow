@@ -109,9 +109,7 @@ function buildSepaQrPayload(data: InvoiceData): string | null {
     iban,
     amount,
     '',
-    '',
     remittance,
-    '',
   ].join('\n');
 }
 

@@ -1,9 +1,16 @@
 import Link from 'next/link';
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { LocaleProvider } from '@/components/i18n/LocaleProvider';
 import { getDictionary } from '@/lib/i18n/server';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin', 'cyrillic'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'MasterFlow',
@@ -38,8 +45,8 @@ export default async function RootLayout({
   const { locale, t } = await getDictionary();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body className="bg-white text-neutral-900 antialiased">
+    <html lang={locale} suppressHydrationWarning className={inter.variable}>
+      <body className="bg-white text-neutral-900 antialiased" style={{ fontFamily: 'var(--font-inter), Arial, sans-serif' }}>
         <LocaleProvider locale={locale}>
           <div className="min-h-screen">{children}</div>
 

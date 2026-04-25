@@ -5,12 +5,13 @@ import { exportExpensesCsvAction } from '@/app/(dashboard)/expenses/export-actio
 import { useI18n } from '@/components/i18n/LocaleProvider';
 
 type Props = {
-  fromDate: string;
-  toDate: string;
+  fromDate: string | null;
+  toDate: string | null;
   category: string;
+  search: string | null;
 };
 
-export default function ExportExpensesButton({ fromDate, toDate, category }: Props) {
+export default function ExportExpensesButton({ fromDate, toDate, category, search }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const { t } = useI18n();
@@ -18,7 +19,7 @@ export default function ExportExpensesButton({ fromDate, toDate, category }: Pro
   function handleExport() {
     setError(null);
     startTransition(async () => {
-      const res = await exportExpensesCsvAction({ fromDate, toDate, category });
+      const res = await exportExpensesCsvAction({ fromDate, toDate, category, search });
       if (!res.ok || !res.csv || !res.filename) {
         setError(res.error ?? t.expensesPage.exportError);
         return;

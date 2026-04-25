@@ -127,9 +127,12 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t.expensesPage.title}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          {activePeriod !== 'all' && (
-            <ExportExpensesButton fromDate={fromDate} toDate={toDate} category={activeCategory} />
-          )}
+          <ExportExpensesButton
+            fromDate={activePeriod === 'all' ? null : fromDate}
+            toDate={activePeriod === 'all' ? null : toDate}
+            category={activeCategory}
+            search={search || null}
+          />
           <Link
             href="/expenses/trash"
             className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"

@@ -87,31 +87,47 @@ function cleanEpcField(value: string | null | undefined, maxLength: number): str
   return (value ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, maxLength);
 }
 
+function isValidIban(iban: string): boolean {
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
+  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`;
+  let remainder = 0;
+
+  for (const char of rearranged) {
+    const value = /[A-Z]/.test(char) ? String(char.charCodeAt(0) - 55) : char;
+    for (const digit of value) {
+      remainder = (remainder * 10 + Number(digit)) % 97;
+    }
+  }
+
+  return remainder === 1;
+}
+
 function buildSepaQrPayload(data: InvoiceData): string | null {
-  if (data.order.payment_method !== 'transfer' || data.order.price === null || !data.master.iban) {
+  if (data.order.payment_method !== 'transfer' || data.order.price === null || !data.master.iban || !data.master.bic) {
     return null;
   }
 
   const recipient = cleanEpcField(data.master.company_name || data.master.full_name, 70);
   const iban = data.master.iban.replace(/\s+/g, '').toUpperCase();
-  if (!recipient || !iban) return null;
+  const bic = data.master.bic.replace(/\s+/g, '').toUpperCase();
+  if (!recipient || !iban || !bic || !isValidIban(iban)) return null;
 
   const amount = `EUR${data.order.price.toFixed(2)}`;
   const remittance = cleanEpcField(`Rechnung ${data.order.invoice_number}`, 140);
 
   return [
     'BCD',
-    '002',
+    '001',
     '1',
     'SCT',
-    cleanEpcField(data.master.bic, 11),
+    cleanEpcField(bic, 11),
     recipient,
     iban,
     amount,
     '', // Purpose code: unused for normal invoice payments.
     '', // Structured creditor reference: must stay empty when free text is used.
     remittance,
-  ].join('\n');
+  ].join('\r\n');
 }
 
 async function createQrPngBytes(payload: string): Promise<Uint8Array> {

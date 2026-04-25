@@ -10,17 +10,17 @@ export default function ImpressumPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-4">
-        <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-700">
+        <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
           ← Zurueck zum Dashboard
         </Link>
       </div>
 
       <h1 className="text-3xl font-semibold">Impressum</h1>
 
-      <div className="mt-8 space-y-8 text-sm leading-6 text-neutral-700">
+      <div className="mt-8 space-y-8 text-sm leading-6 text-neutral-700 dark:text-neutral-300">
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">Angaben gemaess Paragraf 5 DDG</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Angaben gemaess Paragraf 5 DDG</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>{BUSINESS_INFO.legalName}</p>
             <p>Inhaber: {BUSINESS_INFO.owner}</p>
             <p>{BUSINESS_INFO.street}</p>
@@ -32,8 +32,8 @@ export default function ImpressumPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">Kontakt</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Kontakt</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>Telefon: {BUSINESS_INFO.phone}</p>
             <p>
               E-Mail:{' '}
@@ -51,15 +51,15 @@ export default function ImpressumPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">Umsatzsteuer</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Umsatzsteuer</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>{BUSINESS_INFO.vatNote}</p>
           </div>
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">Verantwortlich fuer den Inhalt</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Verantwortlich fuer den Inhalt</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>{BUSINESS_INFO.owner}</p>
             <p>{BUSINESS_INFO.street}</p>
             <p>
@@ -69,8 +69,8 @@ export default function ImpressumPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">Hinweis</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Hinweis</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>
               Dieses Impressum wurde fuer die Anwendung {BUSINESS_INFO.brandName} mit den auf{' '}
               <a href={BUSINESS_INFO.website} className="text-blue-600 hover:underline">

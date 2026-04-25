@@ -10,17 +10,17 @@ export default function DatenschutzPage() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-4">
-        <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-700">
+        <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
           ← Zurueck zum Dashboard
         </Link>
       </div>
 
       <h1 className="text-3xl font-semibold">Datenschutzhinweise</h1>
 
-      <div className="mt-8 space-y-8 text-sm leading-6 text-neutral-700">
+      <div className="mt-8 space-y-8 text-sm leading-6 text-neutral-700 dark:text-neutral-300">
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">1. Verantwortlicher</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">1. Verantwortlicher</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>{BUSINESS_INFO.legalName}</p>
             <p>Inhaber: {BUSINESS_INFO.owner}</p>
             <p>{BUSINESS_INFO.street}</p>
@@ -38,8 +38,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">2. Zweck der Verarbeitung</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">2. Zweck der Verarbeitung</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>Diese Anwendung verarbeitet personenbezogene Daten, um Kunden-, Auftrags-, Quittungs- und Ausgabenprozesse zu verwalten.</p>
             <p className="mt-2">Dazu gehoeren insbesondere:</p>
             <ul className="mt-2 list-disc pl-5">
@@ -53,8 +53,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">3. Kategorien verarbeiteter Daten</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">3. Kategorien verarbeiteter Daten</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <ul className="list-disc pl-5">
               <li>Bestandsdaten wie Name, Anschrift, Telefonnummer und E-Mail-Adresse</li>
               <li>Quittungs- und Leistungsdaten</li>
@@ -67,8 +67,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">4. Rechtsgrundlagen</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">4. Rechtsgrundlagen</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <ul className="list-disc pl-5">
               <li>Art. 6 Abs. 1 lit. b DSGVO fuer vorvertragliche Massnahmen und Vertragserfuellung</li>
               <li>Art. 6 Abs. 1 lit. c DSGVO fuer gesetzliche Aufbewahrungs- und Dokumentationspflichten</li>
@@ -78,8 +78,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">5. Empfaenger und Auftragsverarbeiter</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">5. Empfaenger und Auftragsverarbeiter</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>Zur technischen Bereitstellung und fuer einzelne Funktionen koennen folgende Dienstleister eingesetzt werden:</p>
             <ul className="mt-2 list-disc pl-5">
               <li>Supabase fuer Datenbank, Authentifizierung und Dateispeicher</li>
@@ -90,8 +90,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">6. Speicherdauer</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">6. Speicherdauer</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>
               Quittungen, Quittungssnapshots, Korrekturen, versandbezogene Nachweise sowie steuerlich relevante Belege
               werden nicht nur nach betrieblichem Bedarf, sondern auch zur Erfuellung gesetzlicher Aufbewahrungspflichten
@@ -110,8 +110,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">7. Cookies und technisch notwendige Speicherungen</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">7. Cookies und technisch notwendige Speicherungen</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>
               Die Anwendung verwendet technisch notwendige Session- und Sicherheitsmechanismen, insbesondere fuer Login,
               Zugriffsschutz und Sitzungsverwaltung. Es findet nach aktuellem Stand kein Marketing- oder Werbetracking in der
@@ -121,8 +121,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">8. Ihre Rechte</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">8. Ihre Rechte</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>Sie haben nach der DSGVO insbesondere das Recht auf:</p>
             <ul className="mt-2 list-disc pl-5">
               <li>Auskunft nach Art. 15 DSGVO</li>
@@ -136,8 +136,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">9. Beschwerderecht</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">9. Beschwerderecht</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>
               Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehoerde zu beschweren. Zustaendig ist insbesondere:
             </p>
@@ -151,8 +151,8 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900">10. Stand</h2>
-          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">10. Stand</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>Stand dieser Datenschutzhinweise: 20.04.2026</p>
           </div>
         </section>

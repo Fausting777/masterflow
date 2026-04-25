@@ -282,7 +282,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
             <li key={expense.id}>
               <Link
                 href={`/expenses/${expense.id}`}
-                className="block rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-blue-500 dark:border-neutral-800 dark:bg-neutral-900"
+                className="block rounded-xl border border-neutral-200 bg-white p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] dark:border-neutral-800 dark:bg-neutral-900"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">

@@ -359,12 +359,18 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           )}
         </div>
       ) : (
-        <ul>
+        <ul className="space-y-2">
           {ordersList.map((order) => (
             <li key={order.id}>
               <Link
                 href={`/orders/${order.id}`}
-                className="block rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-blue-500 dark:border-neutral-800 dark:bg-neutral-900"
+                className={`block rounded-xl border bg-white p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] dark:bg-neutral-900 ${
+                  order.invoice_sent_at
+                    ? 'border-neutral-200 border-l-4 border-l-blue-500 dark:border-neutral-800 dark:border-l-blue-600'
+                    : order.invoice_number
+                    ? 'border-neutral-200 border-l-4 border-l-green-500 dark:border-neutral-800 dark:border-l-green-600'
+                    : 'border-neutral-200 border-l-4 border-l-neutral-300 dark:border-neutral-800 dark:border-l-neutral-700'
+                }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">

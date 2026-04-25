@@ -124,7 +124,7 @@ export default function SumupPaymentLinker({
         id={id}
         value={sumupPaymentMethod}
         onChange={(event) => setSumupPaymentMethod(event.target.value as SumupPaymentMethod)}
-        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-800"
       >
         <option value="cash">{text.methodCash}</option>
         <option value="ec_card">{text.methodCard}</option>
@@ -143,15 +143,15 @@ export default function SumupPaymentLinker({
         <div className="font-medium">
           {transaction.transaction_code ?? transaction.sumup_transaction_id ?? text.transaction}
         </div>
-        <div className="mt-1 text-xs text-neutral-500">
+        <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
           {text.paidAt}: {formatDateTime(transaction.paid_at)}
         </div>
         {transaction.receipt_no && (
-          <div className="mt-1 text-xs text-neutral-500">
+          <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
             {text.receipt}: {transaction.receipt_no}
           </div>
         )}
-        <div className="mt-1 text-xs text-neutral-500">
+        <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
           {formatPrice(Number(transaction.amount))} {transaction.currency}
           {diff !== null && (
             <>
@@ -165,26 +165,26 @@ export default function SumupPaymentLinker({
   };
 
   return (
-    <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5">
-      <h2 className="mb-3 text-sm font-medium text-neutral-500">{text.title}</h2>
+    <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+      <h2 className="mb-3 text-sm font-medium text-neutral-500 dark:text-neutral-400">{text.title}</h2>
 
       {linkedTransaction ? (
-        <div className="space-y-3 rounded-lg border border-green-200 bg-green-50 p-3">
-          <div className="text-sm font-semibold text-green-800">{text.linked}</div>
+        <div className="space-y-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/30">
+          <div className="text-sm font-semibold text-green-800 dark:text-green-300">{text.linked}</div>
           {renderTransaction(linkedTransaction)}
           {methodSelect('sumup_payment_method_linked')}
           <button
             type="button"
             onClick={handleUpdateMethod}
             disabled={isPending}
-            className="w-full rounded-lg border border-green-300 bg-white py-2 text-sm font-medium text-green-700 transition hover:bg-green-100 disabled:opacity-50"
+            className="w-full rounded-lg border border-green-300 bg-white py-2 text-sm font-medium text-green-700 transition hover:bg-green-100 disabled:opacity-50 dark:border-green-800 dark:bg-transparent dark:text-green-400 dark:hover:bg-green-950/30"
           >
             {isPending ? text.linking : text.updateMethod}
           </button>
           {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       ) : candidates.length === 0 ? (
-        <p className="text-sm text-neutral-500">{text.noCandidates}</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{text.noCandidates}</p>
       ) : (
         <div className="space-y-3">
           {methodSelect('sumup_payment_method')}
@@ -196,7 +196,7 @@ export default function SumupPaymentLinker({
             id="sumup_transaction_id"
             value={selectedId}
             onChange={(event) => setSelectedId(event.target.value)}
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-800"
           >
             {candidates.map((transaction) => (
               <option key={transaction.id} value={transaction.id}>
@@ -207,13 +207,13 @@ export default function SumupPaymentLinker({
           </select>
 
           {selectedId && (
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-800">
               {renderTransaction(candidates.find((candidate) => candidate.id === selectedId) ?? candidates[0])}
             </div>
           )}
 
           {amountWarning && (
-            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300">
               {text.amountMismatch}
             </p>
           )}

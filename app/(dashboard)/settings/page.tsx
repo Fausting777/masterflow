@@ -70,7 +70,7 @@ export default async function SettingsPage() {
       <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-3">
           <h2 className="text-base font-semibold">{t.settings.languageTitle}</h2>
-          <p className="mt-1 text-sm text-neutral-500">{t.settings.languageText}</p>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{t.settings.languageText}</p>
         </div>
         <LanguageSwitcher />
       </div>
@@ -92,7 +92,7 @@ export default async function SettingsPage() {
         </Link>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <ProfileForm
           initial={{
             full_name: profile?.full_name ?? null,
@@ -113,7 +113,7 @@ export default async function SettingsPage() {
       </div>
 
       <h2 className="mb-3 mt-8 text-lg font-semibold">{t.settings.securityTitle}</h2>
-      <div className="max-w-md rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="max-w-md rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">{t.settings.securityText}</p>
         <PasswordChangeForm />
       </div>
@@ -122,9 +122,9 @@ export default async function SettingsPage() {
         <strong>{t.settings.emailLabel}:</strong> {user!.email}
       </div>
 
-      <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <h2 className="text-base font-semibold">{locale === 'de' ? 'Audit Export' : 'Экспорт аудита'}</h2>
-        <p className="mb-4 mt-1 text-sm text-neutral-500">
+        <p className="mb-4 mt-1 text-sm text-neutral-500 dark:text-neutral-400">
           {locale === 'de'
             ? 'Lädt den DB-Audit-Trail als CSV für Prüfung und Archiv herunter.'
             : 'Скачивает DB-аудит в CSV для проверки и архива.'}

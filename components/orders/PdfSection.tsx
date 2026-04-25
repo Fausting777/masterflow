@@ -158,7 +158,7 @@ export default function PdfSection({
     <div>
       {pdfExists ? (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-green-700">
+          <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
             <span>{text.readyIcon}</span>
             <span>
               {text.ready}
@@ -179,7 +179,7 @@ export default function PdfSection({
               type="button"
               onClick={savePdf}
               disabled={isSavingPdf}
-              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
+              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800 dark:text-neutral-200"
             >
               {isSavingPdf ? text.saving : text.savePdf}
             </button>
@@ -188,13 +188,13 @@ export default function PdfSection({
           <button
             type="button"
             onClick={() => setDialogOpen(true)}
-            className="w-full rounded-lg border border-blue-300 bg-blue-50 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+            className="w-full rounded-lg border border-blue-300 bg-blue-50 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50"
           >
             {text.sendByEmail}
           </button>
 
           {invoiceSentAt && (
-            <div className="rounded-lg bg-neutral-50 p-2 text-xs text-neutral-500">
+            <div className="rounded-lg bg-neutral-50 p-2 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
               {text.lastSent}: {formatDateTime(invoiceSentAt, locale)}
               {invoiceSentTo && (
                 <>
@@ -205,14 +205,14 @@ export default function PdfSection({
             </div>
           )}
 
-          <p className="text-xs text-neutral-500">{isIssued ? text.draftLocked : text.draftHint}</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">{isIssued ? text.draftLocked : text.draftHint}</p>
         </div>
       ) : (
         <button
           type="button"
           onClick={handleGenerate}
           disabled={isPending}
-          className="w-full rounded-lg border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 disabled:opacity-50"
+          className="w-full rounded-lg border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-700 transition hover:border-blue-500 hover:text-blue-600 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-blue-500 dark:hover:text-blue-400"
         >
           {isPending ? text.generating : text.generatePdf}
         </button>

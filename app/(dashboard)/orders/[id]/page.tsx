@@ -309,7 +309,7 @@ export default async function OrderPage({
   return (
     <div className="max-w-2xl">
       <div className="mb-4">
-        <Link href="/orders" className="text-sm text-neutral-500 hover:text-neutral-700">
+        <Link href="/orders" className="text-sm text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
           {'<-'} {t.orderPage.backToList}
         </Link>
       </div>
@@ -331,19 +331,19 @@ export default async function OrderPage({
       ) : (
         <>
           {requestedEdit && isInvoiceLocked && (
-            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
               {invoiceText.editLocked}
             </div>
           )}
 
           {isInvoiceLocked && (
-            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300">
               {invoiceText.invoiceLocked}
             </div>
           )}
 
           {o.correction_of_order_id && (
-            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
               {invoiceText.correctionOfInvoice}{' '}
               {correctionSource?.invoice_number ? (
                 <Link href={`/orders/${correctionSource.id}`} className="font-medium underline">
@@ -365,7 +365,7 @@ export default async function OrderPage({
             <div className="min-w-0">
               <h1 className="truncate text-2xl font-semibold">{serviceTitle}</h1>
               {o.deleted_at && (
-                <div className="mt-2 inline-block rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
+                <div className="mt-2 inline-block rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-950/40 dark:text-red-300">
                   {t.orderPage.inTrash}
                 </div>
               )}
@@ -405,7 +405,7 @@ export default async function OrderPage({
             )}
             <Row label={t.orderPage.price} value={<span className="font-semibold">{formatPrice(priceToShow)}</span>} />
             <div className="border-t border-neutral-100 pt-2 dark:border-neutral-800">
-              <div className="mb-2 text-sm text-neutral-500">
+              <div className="mb-2 text-sm text-neutral-500 dark:text-neutral-400">
                 {locale === 'de' ? 'Leistungen' : '\u0423\u0441\u043b\u0443\u0433\u0438'}
               </div>
               <div className="space-y-1">
@@ -416,7 +416,7 @@ export default async function OrderPage({
                         {index + 1}. {item.title}
                       </span>
                       {item.description && (
-                        <span className="block whitespace-pre-wrap text-xs text-neutral-500">{item.description}</span>
+                        <span className="block whitespace-pre-wrap text-xs text-neutral-500 dark:text-neutral-400">{item.description}</span>
                       )}
                     </span>
                     <span className="whitespace-nowrap font-medium">{formatPrice(Number(item.price))}</span>
@@ -469,7 +469,7 @@ export default async function OrderPage({
             <Row label={t.orderPage.createdAt} value={formatDateTimeLocal(o.created_at)} />
             {o.description && (
               <div className="border-t border-neutral-100 pt-2 dark:border-neutral-800">
-                <div className="mb-1 text-sm text-neutral-500">{t.orderPage.description}</div>
+                <div className="mb-1 text-sm text-neutral-500 dark:text-neutral-400">{t.orderPage.description}</div>
                 <p className="whitespace-pre-wrap text-sm">{o.description}</p>
               </div>
             )}
@@ -487,7 +487,7 @@ export default async function OrderPage({
           {showMedia ? (
             <>
               <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-                <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.beforePhotos}</h2>
+                <h2 className="mb-3 text-sm font-medium text-neutral-500 dark:text-neutral-400">{t.orderPage.beforePhotos}</h2>
                 <div className="mb-3">
                   <PhotoGallery photos={beforePhotos} />
                 </div>
@@ -497,7 +497,7 @@ export default async function OrderPage({
               </div>
 
               <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-                <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.afterPhotos}</h2>
+                <h2 className="mb-3 text-sm font-medium text-neutral-500 dark:text-neutral-400">{t.orderPage.afterPhotos}</h2>
                 <div className="mb-3">
                   <PhotoGallery photos={afterPhotos} />
                 </div>
@@ -507,7 +507,7 @@ export default async function OrderPage({
               </div>
 
               <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-                <h2 className="mb-3 text-sm font-medium text-neutral-500">{t.orderPage.signature}</h2>
+                <h2 className="mb-3 text-sm font-medium text-neutral-500 dark:text-neutral-400">{t.orderPage.signature}</h2>
                 {signatureUrl ? (
                   <div>
                     <div className="mb-3 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800">
@@ -540,8 +540,8 @@ export default async function OrderPage({
             />
           )}
 
-          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-medium text-neutral-500">{invoiceText.pdfInvoice}</h2>
+          <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-3 text-sm font-medium text-neutral-500 dark:text-neutral-400">{invoiceText.pdfInvoice}</h2>
             <PdfSection
               orderId={o.id}
               hasPdf={!!o.pdf_file_path}
@@ -577,7 +577,7 @@ export default async function OrderPage({
                     <Link href={`/orders/${correction.id}`} className="text-blue-600 hover:underline">
                       {correction.invoice_number ?? t.orderPage.correctionDraft}
                     </Link>{' '}
-                    <span className="text-neutral-500">
+                    <span className="text-neutral-500 dark:text-neutral-400">
                       {t.orderPage.from} {formatDateTimeLocal(correction.created_at)}
                     </span>
                   </li>
@@ -593,7 +593,7 @@ export default async function OrderPage({
                 <ul className="space-y-2">
                   {logs.map((l) => (
                     <li key={l.id} className="flex items-start gap-3 text-sm">
-                      <span className="mt-0.5 whitespace-nowrap text-xs text-neutral-400">
+                      <span className="mt-0.5 whitespace-nowrap text-xs text-neutral-400 dark:text-neutral-500">
                         {formatDateTimeLocal(l.created_at)}
                       </span>
                       <span>{l.action_text ?? l.action_type}</span>
@@ -625,12 +625,12 @@ export default async function OrderPage({
           )}
 
           {o.deleted_at ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950/30">
               <div className="mb-3 flex items-start gap-2">
                 <div>
-                  <div className="font-medium text-red-900">{t.orderPage.orderInTrash}</div>
+                  <div className="font-medium text-red-900 dark:text-red-300">{t.orderPage.orderInTrash}</div>
                   {deletedAtLabel && (
-                    <div className="mt-0.5 text-xs text-red-700">
+                    <div className="mt-0.5 text-xs text-red-700 dark:text-red-400">
                       {t.orderPage.deletedAt} {deletedAtLabel}
                     </div>
                   )}
@@ -650,7 +650,7 @@ export default async function OrderPage({
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-sm text-neutral-500">{label}</dt>
+      <dt className="text-sm text-neutral-500 dark:text-neutral-400">{label}</dt>
       <dd className="text-right text-sm">{value}</dd>
     </div>
   );
@@ -667,7 +667,7 @@ function LoadSectionCard({
 }) {
   return (
     <div className="mb-4 rounded-xl border border-dashed border-neutral-300 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">
-      <p className="mb-3 text-sm text-neutral-500">{hint}</p>
+      <p className="mb-3 text-sm text-neutral-500 dark:text-neutral-400">{hint}</p>
       <Link
         href={href}
         className="inline-flex items-center justify-center rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"

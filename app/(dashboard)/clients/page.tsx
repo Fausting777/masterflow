@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Users, SearchX } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import type { Client } from '@/types/database';
@@ -69,18 +71,18 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
       )}
 
       {clients && clients.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          {search ? (
-            <>{text.emptySearch} &quot;{search}&quot;</>
-          ) : (
-            <>
-              {text.emptyDefault}{' '}
-              <Link href="/clients/new" className="text-blue-600 hover:underline">
-                {text.addFirst}
-              </Link>
-            </>
-          )}
-        </div>
+        search ? (
+          <EmptyState
+            icon={SearchX}
+            title={`${text.emptySearch} "${search}"`}
+          />
+        ) : (
+          <EmptyState
+            icon={Users}
+            title={text.emptyDefault}
+            action={{ href: '/clients/new', label: text.addFirst }}
+          />
+        )
       ) : (
         <ul className="space-y-2">
           {(clients as Client[] | null)?.map((c) => (

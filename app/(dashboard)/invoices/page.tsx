@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { FileText, SearchX } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 import ExportButton from '@/components/invoices/ExportButton';
 import PeriodPicker from '@/components/stats/PeriodPicker';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
@@ -302,9 +304,10 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
       )}
 
       {invoices.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
-          {search ? `${text.emptySearch} "${search}"` : text.emptyPeriod}
-        </div>
+        <EmptyState
+          icon={search ? SearchX : FileText}
+          title={search ? `${text.emptySearch} "${search}"` : text.emptyPeriod}
+        />
       ) : (
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
           <div className="hidden grid-cols-12 gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-2 text-xs font-medium text-neutral-500 sm:grid dark:border-neutral-800 dark:bg-neutral-800/50 dark:text-neutral-400">

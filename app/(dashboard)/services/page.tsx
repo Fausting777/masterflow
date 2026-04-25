@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Wrench } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { formatPrice } from '@/lib/utils/format';
@@ -28,12 +30,11 @@ export default async function ServicesPage() {
       )}
 
       {services && services.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 p-8 text-center text-sm text-neutral-500">
-          {t.servicesPage.empty}{' '}
-          <Link href="/services/new" className="text-blue-600 hover:underline">
-            {t.servicesPage.addFirst}
-          </Link>
-        </div>
+        <EmptyState
+          icon={Wrench}
+          title={t.servicesPage.empty}
+          action={{ href: '/services/new', label: t.servicesPage.addFirst }}
+        />
       ) : (
         <ul className="space-y-2">
           {(services as Service[] | null)?.map((s) => (

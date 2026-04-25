@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Wallet, SlidersHorizontal, SearchX } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 import ExportExpensesButton from '@/components/expenses/ExportExpensesButton';
 import PeriodPicker from '@/components/stats/PeriodPicker';
 import { getDictionary } from '@/lib/i18n/server';
@@ -260,22 +262,17 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       </div>
 
       {expenses.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
-          {search ? (
-            <>
-              {t.expensesPage.emptySearch} &quot;{search}&quot;
-            </>
-          ) : activeCategory !== 'all' || activePeriod !== 'all' ? (
-            t.expensesPage.emptyFilter
-          ) : (
-            <>
-              {t.expensesPage.emptyDefault}{' '}
-              <Link href="/expenses/new" className="text-blue-600 hover:underline">
-                {t.expensesPage.addFirst}
-              </Link>
-            </>
-          )}
-        </div>
+        search ? (
+          <EmptyState icon={SearchX} title={`${t.expensesPage.emptySearch} "${search}"`} />
+        ) : activeCategory !== 'all' || activePeriod !== 'all' ? (
+          <EmptyState icon={SlidersHorizontal} title={t.expensesPage.emptyFilter} />
+        ) : (
+          <EmptyState
+            icon={Wallet}
+            title={t.expensesPage.emptyDefault}
+            action={{ href: '/expenses/new', label: t.expensesPage.addFirst }}
+          />
+        )
       ) : (
         <ul className="space-y-2">
           {expenses.map((expense) => (

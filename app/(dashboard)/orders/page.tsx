@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ClipboardList, SlidersHorizontal } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 import ExportOrdersButton from '@/components/orders/ExportOrdersButton';
 import InvoiceBadges from '@/components/orders/InvoiceBadges';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
@@ -346,18 +348,18 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
       )}
 
       {ordersList.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          {invoiceFilter === 'all' && !currentMonth ? (
-            <>
-              {text.emptyDefault}{' '}
-              <Link href="/orders/new" className="text-blue-600 hover:underline">
-                {text.createFirst}
-              </Link>
-            </>
-          ) : (
-            text.emptyFilter
-          )}
-        </div>
+        invoiceFilter === 'all' && !currentMonth ? (
+          <EmptyState
+            icon={ClipboardList}
+            title={text.emptyDefault}
+            action={{ href: '/orders/new', label: text.createFirst }}
+          />
+        ) : (
+          <EmptyState
+            icon={SlidersHorizontal}
+            title={text.emptyFilter}
+          />
+        )
       ) : (
         <ul className="space-y-2">
           {ordersList.map((order) => (

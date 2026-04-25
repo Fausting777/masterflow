@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ClipboardList } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 import { getDictionary, getLocale } from '@/lib/i18n/server';
 import { getExpensesSummary } from '@/lib/stats/expenses';
 import { getRevenueStats } from '@/lib/stats/calculate';
@@ -102,9 +104,11 @@ export default async function DashboardPage() {
       </div>
 
       {recent.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
-          {t.dashboard.empty}
-        </div>
+        <EmptyState
+          icon={ClipboardList}
+          title={t.dashboard.empty}
+          action={{ href: '/orders/new', label: t.dashboard.new }}
+        />
       ) : (
         <ul className="space-y-2">
           {recent.map((o) => (

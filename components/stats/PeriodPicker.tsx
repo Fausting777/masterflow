@@ -120,7 +120,7 @@ export default function PeriodPicker({
   const isSpecificMonth = currentPeriod === 'month' && currentMonth;
 
   return (
-    <div className="mb-6 space-y-3 rounded-xl border border-neutral-200 bg-white p-4">
+    <div className="mb-6 space-y-3 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex flex-wrap gap-2">
         {presets.map((preset) => {
           const active =
@@ -136,7 +136,7 @@ export default function PeriodPicker({
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 active
                   ? 'bg-blue-600 text-white'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
               }`}
             >
               {preset.label}
@@ -146,11 +146,11 @@ export default function PeriodPicker({
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="whitespace-nowrap text-sm text-neutral-600">{text.monthLabel}</label>
+        <label className="whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-400">{text.monthLabel}</label>
         <select
           value={currentMonth ?? ''}
           onChange={(e) => goMonth(e.target.value)}
-          className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-none"
+          className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-none dark:border-neutral-700 dark:bg-neutral-800"
         >
           <option value="">{`- ${text.select} -`}</option>
           {monthOptions.map((month) => (
@@ -162,19 +162,19 @@ export default function PeriodPicker({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="whitespace-nowrap text-sm text-neutral-600">{text.period}</label>
+        <label className="whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-400">{text.period}</label>
         <input
           type="date"
           value={customFrom}
           onChange={(e) => setCustomFrom(e.target.value)}
-          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm"
+          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-800"
         />
-        <span className="text-neutral-400">-</span>
+        <span className="text-neutral-400 dark:text-neutral-500">-</span>
         <input
           type="date"
           value={customTo}
           onChange={(e) => setCustomTo(e.target.value)}
-          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm"
+          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-800"
         />
         <button
           type="button"
@@ -183,7 +183,7 @@ export default function PeriodPicker({
           className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
             isCustomActive
               ? 'bg-blue-600 text-white'
-              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 disabled:opacity-50'
+              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 disabled:opacity-50 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
           }`}
         >
           {isCustomActive ? text.applied : text.apply}

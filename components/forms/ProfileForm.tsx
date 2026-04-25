@@ -47,13 +47,13 @@ export default function ProfileForm({ initial }: Props) {
   };
 
   const inputCls =
-    'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100';
 
   return (
     <form action={formAction} className="space-y-6">
       <CsrfTokenInput />
       <section className="space-y-4">
-        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
           {t.profileForm.personalTitle}
         </h3>
 
@@ -102,7 +102,7 @@ export default function ProfileForm({ initial }: Props) {
       </section>
 
       <section className="space-y-4">
-        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
           {t.profileForm.addressTitle} <span className="text-red-500">*</span>
           <span className="ml-2 text-xs font-normal text-neutral-500">
             {t.profileForm.addressRequiredHint}
@@ -121,7 +121,7 @@ export default function ProfileForm({ initial }: Props) {
             placeholder="info@ihre-firma.de"
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-neutral-500">{t.profileForm.businessEmailHelp}</p>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{t.profileForm.businessEmailHelp}</p>
         </div>
 
         <div>
@@ -172,11 +172,11 @@ export default function ProfileForm({ initial }: Props) {
       </section>
 
       <section className="space-y-4">
-        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
           {t.profileForm.taxTitle}
         </h3>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-200 p-3 transition hover:bg-neutral-50">
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-200 p-3 transition hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
           <input
             type="checkbox"
             name="is_kleinunternehmer"
@@ -186,7 +186,7 @@ export default function ProfileForm({ initial }: Props) {
           />
           <div className="flex-1">
             <div className="text-sm font-medium">Kleinunternehmer (Paragraf 19 UStG)</div>
-            <div className="mt-0.5 text-xs text-neutral-500">{t.profileForm.kleinunternehmerHint}</div>
+            <div className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{t.profileForm.kleinunternehmerHint}</div>
           </div>
         </label>
 
@@ -202,13 +202,13 @@ export default function ProfileForm({ initial }: Props) {
             placeholder="12/345/67890"
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-neutral-500">{t.profileForm.taxNumberHelp}</p>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{t.profileForm.taxNumberHelp}</p>
         </div>
 
         <div>
           <label htmlFor="vat_id" className="mb-1 block text-sm font-medium">
             USt-IdNr.
-            <span className="ml-2 text-xs font-normal text-neutral-500">{t.profileForm.optionalHint}</span>
+            <span className="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">{t.profileForm.optionalHint}</span>
           </label>
           <input
             id="vat_id"
@@ -218,12 +218,12 @@ export default function ProfileForm({ initial }: Props) {
             placeholder="DE123456789"
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-neutral-500">{t.profileForm.vatIdHelp}</p>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{t.profileForm.vatIdHelp}</p>
         </div>
       </section>
 
       <section className="space-y-4">
-        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700">
+        <h3 className="border-b border-neutral-200 pb-2 text-sm font-semibold text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
           {t.profileForm.bankTitle}
           <span className="ml-2 text-xs font-normal text-neutral-500">{t.profileForm.bankTitleHint}</span>
         </h3>
@@ -272,13 +272,13 @@ export default function ProfileForm({ initial }: Props) {
       </section>
 
       {state.formError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
           {state.formError}
         </div>
       )}
 
       {state.success && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-400">
           {t.profileForm.success}
         </div>
       )}

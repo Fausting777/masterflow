@@ -31,7 +31,7 @@ export default function PasswordChangeForm() {
   const passwordsMatch = confirmPassword.length > 0 && newPassword === confirmPassword;
 
   const inputCls =
-    'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100';
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
@@ -99,13 +99,13 @@ export default function PasswordChangeForm() {
       </div>
 
       {state.formError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
           {state.formError}
         </div>
       )}
 
       {state.success && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
+        <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-400">
           {t.password.changed}
         </div>
       )}

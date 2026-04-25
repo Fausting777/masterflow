@@ -111,6 +111,11 @@ export function normalizeOrderInput(data: OrderInput) {
     const trimmed = value.trim();
     return trimmed.length === 0 ? null : trimmed;
   };
+  const toIsoDate = (value: string) => {
+    if (!value) return null;
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+    return new Date(dateOnly ? `${value}T12:00:00` : value).toISOString();
+  };
 
   const hasService = data.service_id.trim().length > 0;
 
@@ -127,10 +132,10 @@ export function normalizeOrderInput(data: OrderInput) {
     custom_price: parsePriceInput(data.custom_price),
     description: clean(data.description),
     order_address: clean(data.order_address),
-    scheduled_at: data.scheduled_at ? new Date(data.scheduled_at).toISOString() : null,
-    service_date: data.service_date ? new Date(data.service_date).toISOString() : null,
+    scheduled_at: toIsoDate(data.scheduled_at),
+    service_date: toIsoDate(data.service_date),
     payment_method: data.payment_method.trim() || null,
     payment_provider: data.payment_provider.trim() || null,
-    paid_at: data.paid_at ? new Date(data.paid_at).toISOString() : null,
+    paid_at: toIsoDate(data.paid_at),
   };
 }

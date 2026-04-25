@@ -31,14 +31,12 @@ type Props = {
   submitLabel: string;
 };
 
-function toDateTimeLocal(iso: string | null | undefined): string {
+function toDateLocal(iso: string | null | undefined): string {
   if (!iso) return '';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 export default function OrderForm({
@@ -68,11 +66,11 @@ export default function OrderForm({
         : '',
     description: initial?.description ?? '',
     order_address: initial?.order_address ?? '',
-    scheduled_at: toDateTimeLocal(initial?.scheduled_at),
-    service_date: toDateTimeLocal(initial?.service_date),
+    scheduled_at: '',
+    service_date: toDateLocal(initial?.service_date),
     payment_method: initial?.payment_method ?? '',
     payment_provider: initial?.payment_provider ?? '',
-    paid_at: toDateTimeLocal(initial?.paid_at),
+    paid_at: toDateLocal(initial?.paid_at),
   };
 
   const [useCustom, setUseCustom] = useState(
@@ -148,7 +146,7 @@ export default function OrderForm({
         setPaymentProvider('sumup');
       }
       if (!paidAt && ['cash', 'ec_card', 'paypal'].includes(nextMethod)) {
-        setPaidAt(toDateTimeLocal(new Date().toISOString()));
+        setPaidAt(toDateLocal(new Date().toISOString()));
       }
     },
     [paymentProvider, paidAt]
@@ -416,18 +414,7 @@ export default function OrderForm({
         />
       </div>
 
-      <div>
-        <label htmlFor="scheduled_at" className="mb-1 block text-sm font-medium">
-          {t.orderForm.scheduledAt}
-        </label>
-        <input
-          id="scheduled_at"
-          name="scheduled_at"
-          type="datetime-local"
-          defaultValue={values.scheduled_at}
-          className={inputCls}
-        />
-      </div>
+      <input type="hidden" name="scheduled_at" value="" />
 
       <div>
         <label htmlFor="service_date" className="mb-1 block text-sm font-medium">
@@ -436,7 +423,7 @@ export default function OrderForm({
         <input
           id="service_date"
           name="service_date"
-          type="datetime-local"
+          type="date"
           defaultValue={values.service_date}
           className={inputCls}
         />
@@ -506,7 +493,7 @@ export default function OrderForm({
         <input
           id="paid_at"
           name="paid_at"
-          type="datetime-local"
+          type="date"
           value={paidAt}
           onChange={(e) => setPaidAt(e.target.value)}
           className={inputCls}

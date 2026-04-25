@@ -252,6 +252,15 @@ export default async function OrderPage({
         })
       : DASH;
 
+  const formatDateLocal = (value: string | null | undefined) =>
+    value
+      ? new Date(value).toLocaleDateString(locale === 'de' ? 'de-DE' : 'ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        })
+      : DASH;
+
   const createSectionHref = (section: 'media' | 'history' | 'audit') => {
     const params = new URLSearchParams();
 
@@ -373,14 +382,13 @@ export default async function OrderPage({
               />
             )}
             {sumupReceiptNo && <Row label="SumUp" value={sumupReceiptNo} />}
-            {sumupPaidAt && <Row label={paymentMetaText.paidAt} value={formatDateTimeLocal(sumupPaidAt)} />}
+            {sumupPaidAt && <Row label={paymentMetaText.paidAt} value={formatDateLocal(sumupPaidAt)} />}
             <Row label={t.orderPage.workAddress} value={o.order_address ?? client?.address ?? DASH} />
-            <Row label={t.orderPage.scheduledAt} value={formatDateTimeLocal(o.scheduled_at)} />
             <Row
               label={t.orderPage.serviceDate}
               value={
                 o.service_date ? (
-                  formatDateTimeLocal(o.service_date)
+                  formatDateLocal(o.service_date)
                 ) : (
                   <span className="italic text-neutral-400">{t.orderPage.notSpecified}</span>
                 )

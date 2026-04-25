@@ -30,7 +30,17 @@ export function isValidOrigin(request: NextRequest) {
   const origin = request.headers.get('origin');
 
   if (!origin) {
-    return false;
+    const referer = request.headers.get('referer');
+    if (referer) {
+      try {
+        return getAllowedOrigins(request).has(new URL(referer).origin);
+      } catch {
+        return false;
+      }
+    }
+
+    const fetchSite = request.headers.get('sec-fetch-site');
+    return fetchSite === 'same-origin' || fetchSite === 'none';
   }
 
   return getAllowedOrigins(request).has(origin);
@@ -49,4 +59,3 @@ export function applyCsrfCookie(
     maxAge: CSRF_COOKIE_MAX_AGE,
   });
 }
-

@@ -1,8 +1,7 @@
 import MobileShell from '@/components/ui/MobileShell';
 import InstallButton from '@/components/ui/InstallButton';
 import IosInstallHint from '@/components/ui/IosInstallHint';
-import { CSRF_FORM_FIELD } from '@/lib/csrf/shared';
-import { getCsrfToken } from '@/lib/csrf/server';
+import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 import { createClient } from '@/lib/supabase/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { redirect } from 'next/navigation';
@@ -13,7 +12,6 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const csrfToken = await getCsrfToken();
   const { t } = await getDictionary();
   const supabase = await createClient();
   const {
@@ -59,7 +57,7 @@ export default async function DashboardLayout({
             </Link>
             <span className="text-neutral-300">|</span>
             <form action="/auth/signout" method="post">
-              <input type="hidden" name={CSRF_FORM_FIELD} value={csrfToken} />
+              <CsrfTokenInput />
               <button
                 type="submit"
                 className="text-sm text-neutral-600 hover:text-red-600"
@@ -75,7 +73,7 @@ export default async function DashboardLayout({
         {children}
       </main>
 
-      <MobileShell csrfToken={csrfToken} />
+      <MobileShell />
 
       <InstallButton />
       <IosInstallHint />

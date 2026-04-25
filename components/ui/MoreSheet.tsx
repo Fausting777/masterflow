@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useI18n } from '@/components/i18n/LocaleProvider';
-import { CSRF_FORM_FIELD } from '@/lib/csrf/shared';
+import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 import {
   FileText,
   Wallet,
@@ -17,10 +17,9 @@ import {
 type Props = {
   open: boolean;
   onClose: () => void;
-  csrfToken: string;
 };
 
-export default function MoreSheet({ open, onClose, csrfToken }: Props) {
+export default function MoreSheet({ open, onClose }: Props) {
   const { t } = useI18n();
 
   const moreItems = [
@@ -103,7 +102,7 @@ export default function MoreSheet({ open, onClose, csrfToken }: Props) {
 
         <div className="border-t border-neutral-100 py-2">
           <form action="/auth/signout" method="post">
-            <input type="hidden" name={CSRF_FORM_FIELD} value={csrfToken} />
+            <CsrfTokenInput />
             <button
               type="submit"
               className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-red-50 active:bg-red-100 text-red-600"

@@ -33,8 +33,11 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#2563eb',
-  colorScheme: 'light',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#2563eb' },
+    { media: '(prefers-color-scheme: dark)', color: '#1d4ed8' },
+  ],
+  colorScheme: 'light dark',
 };
 
 export default async function RootLayout({
@@ -46,7 +49,14 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning className={inter.variable}>
-      <body className="bg-white text-neutral-900 antialiased" style={{ fontFamily: 'var(--font-inter), Arial, sans-serif' }}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body className="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 antialiased" style={{ fontFamily: 'var(--font-inter), Arial, sans-serif' }}>
         <LocaleProvider locale={locale}>
           <div className="min-h-screen">{children}</div>
 

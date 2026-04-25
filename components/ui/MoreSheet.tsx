@@ -60,21 +60,21 @@ export default function MoreSheet({ open, onClose }: Props) {
       />
 
       <div
-        className={`sm:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 transition-transform duration-300 ${
+        className={`sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-2xl z-50 transition-transform duration-300 ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 bg-neutral-300 rounded-full" />
+          <div className="w-10 h-1 bg-neutral-300 dark:bg-neutral-600 rounded-full" />
         </div>
 
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100">
-          <h2 className="font-semibold text-base">{t.nav.menu}</h2>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 dark:border-neutral-800">
+          <h2 className="font-semibold text-base text-neutral-900 dark:text-neutral-100">{t.nav.menu}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
             aria-label={t.nav.close}
           >
             <X size={20} />
@@ -89,23 +89,23 @@ export default function MoreSheet({ open, onClose }: Props) {
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className="flex items-center gap-3 px-5 py-3.5 hover:bg-neutral-50 active:bg-neutral-100"
+                className="flex items-center gap-3 px-5 py-3.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 active:bg-neutral-100 dark:active:bg-neutral-700"
               >
                 <div className={item.color}>
                   <Icon size={22} />
                 </div>
-                <span className="text-base font-medium">{item.label}</span>
+                <span className="text-base font-medium text-neutral-900 dark:text-neutral-100">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-neutral-100 py-2">
+        <div className="border-t border-neutral-100 dark:border-neutral-800 py-2">
           <form action="/auth/signout" method="post">
             <CsrfTokenInput />
             <button
               type="submit"
-              className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-red-50 active:bg-red-100 text-red-600"
+              className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-red-50 dark:hover:bg-red-950 active:bg-red-100 dark:active:bg-red-900 text-red-600 dark:text-red-400"
             >
               <LogOut size={22} />
               <span className="text-base font-medium">{t.nav.logout}</span>

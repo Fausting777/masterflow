@@ -1,19 +1,26 @@
 @import "tailwindcss";
 
-/* Отключаем автоматическое применение dark: классов.
-   В Tailwind v4 это делается через кастомный variant. 
-   Мы привязываем dark: к селектору, которого никогда нет в DOM,
-   поэтому все dark: классы всегда неактивны. */
-@custom-variant dark (&:where(.dark-mode-enabled, .dark-mode-enabled *));
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* Принудительно светлая схема для браузера */
 :root {
-  color-scheme: light only;
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 html, body {
   background: #ffffff;
   color: #171717;
+}
+
+.dark html,
+.dark body,
+html.dark,
+body.dark {
+  background: #0a0a0a;
+  color: #ededed;
 }
 
 body {

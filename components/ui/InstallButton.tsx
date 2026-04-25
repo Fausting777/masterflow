@@ -61,14 +61,14 @@ export default function InstallButton() {
   if (installed || dismissed || !promptEvent) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:max-w-sm bg-white border border-neutral-200 rounded-xl shadow-lg p-4 z-40">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:max-w-sm bg-white border border-neutral-200 rounded-xl shadow-lg p-4 z-40 dark:bg-neutral-900 dark:border-neutral-700">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
           M
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm">Установить MasterFlow</div>
-          <div className="text-xs text-neutral-500 mt-0.5">
+          <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
             Быстрый доступ с главного экрана
           </div>
           <div className="flex gap-2 mt-3">
@@ -82,7 +82,7 @@ export default function InstallButton() {
             <button
               type="button"
               onClick={handleDismiss}
-              className="rounded-lg border border-neutral-300 text-sm px-3 py-2 hover:bg-neutral-50"
+              className="rounded-lg border border-neutral-300 text-sm px-3 py-2 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800 dark:text-neutral-300"
             >
               Не сейчас
             </button>

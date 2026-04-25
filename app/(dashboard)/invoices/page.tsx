@@ -227,7 +227,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         <ExportButton from={fromIso} to={toIso} />
       </div>
 
-      <p className="mb-4 text-sm text-neutral-500">
+      <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">
         {text.periodDesc}: {range.label}
       </p>
 
@@ -243,7 +243,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
               key={button.key}
               href={`/invoices${params.toString() ? `?${params}` : ''}`}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
               }`}
             >
               {button.label}
@@ -275,39 +275,39 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           name="q"
           defaultValue={search}
           placeholder={text.searchPlaceholder}
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900"
         />
       </form>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
         <div className="flex items-center gap-2">
           <span className="text-xl">#</span>
           <div>
-            <div className="text-xs uppercase tracking-wide text-neutral-600">{text.summaryTitle}</div>
-            <div className="text-sm text-amber-900">
+            <div className="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">{text.summaryTitle}</div>
+            <div className="text-sm text-amber-900 dark:text-amber-300">
               <span className="font-semibold">{invoices.length}</span> {getInvoiceLabel(invoices.length)}
             </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-wide text-neutral-600">{text.total}</div>
-          <div className="text-2xl font-bold text-amber-700">{formatPrice(total)}</div>
+          <div className="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">{text.total}</div>
+          <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{formatPrice(total)}</div>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
           {text.error}: {error.message}
         </div>
       )}
 
       {invoices.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
           {search ? `${text.emptySearch} "${search}"` : text.emptyPeriod}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-          <div className="hidden grid-cols-12 gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-2 text-xs font-medium text-neutral-500 sm:grid">
+        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="hidden grid-cols-12 gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-2 text-xs font-medium text-neutral-500 sm:grid dark:border-neutral-800 dark:bg-neutral-800/50 dark:text-neutral-400">
             <div className="col-span-2">{text.number}</div>
             <div className="col-span-2">{text.date}</div>
             <div className="col-span-4">{text.client}</div>
@@ -333,54 +333,54 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                     : null);
 
               return (
-                <li key={invoice.id} className="border-b border-neutral-100 last:border-b-0">
-                  <Link href={`/orders/${invoice.id}`} className="block transition hover:bg-neutral-50">
+                <li key={invoice.id} className="border-b border-neutral-100 last:border-b-0 dark:border-neutral-800">
+                  <Link href={`/orders/${invoice.id}`} className="block transition hover:bg-neutral-50 dark:hover:bg-neutral-800">
                     <div className="p-4 sm:hidden">
                       <div className="mb-1 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-semibold text-blue-700">{invoice.invoice_number}</span>
+                          <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-400">{invoice.invoice_number}</span>
                           {invoice.correction_of_order_id && (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                               {text.correction}
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-neutral-500">{formatDate(invoice.invoice_issued_at)}</span>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400">{formatDate(invoice.invoice_issued_at)}</span>
                       </div>
                       <div className="truncate font-medium">{clientName}</div>
-                      <div className="truncate text-sm text-neutral-500">{serviceName}</div>
+                      <div className="truncate text-sm text-neutral-500 dark:text-neutral-400">{serviceName}</div>
                       <div className="mt-1 font-semibold">{formatPrice(price)}</div>
                       {invoice.invoice_sent_at && (
-                        <div className="mt-1 text-xs text-green-600">
+                        <div className="mt-1 text-xs text-green-600 dark:text-green-400">
                           {text.sentAt} {formatDate(invoice.invoice_sent_at)}
                         </div>
                       )}
                     </div>
 
                     <div className="hidden grid-cols-12 items-center gap-2 px-4 py-3 text-sm sm:grid">
-                      <div className="col-span-2 font-mono font-semibold text-blue-700">
+                      <div className="col-span-2 font-mono font-semibold text-blue-700 dark:text-blue-400">
                         <div className="flex items-center gap-2">
                           <span>{invoice.invoice_number}</span>
                           {invoice.correction_of_order_id && (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                               {text.correction}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="col-span-2 text-neutral-600">{formatDate(invoice.invoice_issued_at)}</div>
+                      <div className="col-span-2 text-neutral-600 dark:text-neutral-400">{formatDate(invoice.invoice_issued_at)}</div>
                       <div className="col-span-4 truncate font-medium">
                         {clientName}
                         {invoice.invoice_sent_at && (
                           <span
-                            className="ml-2 text-xs text-green-600"
+                            className="ml-2 text-xs text-green-600 dark:text-green-400"
                             title={`${text.sentAt} ${formatDate(invoice.invoice_sent_at)}`}
                           >
                             OK
                           </span>
                         )}
                       </div>
-                      <div className="col-span-2 truncate text-neutral-600">{serviceName}</div>
+                      <div className="col-span-2 truncate text-neutral-600 dark:text-neutral-400">{serviceName}</div>
                       <div className="col-span-2 text-right font-semibold">{formatPrice(price)}</div>
                     </div>
                   </Link>
@@ -391,7 +391,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
         </div>
       )}
 
-      <div className="mt-4 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500">{text.archiveNote}</div>
+      <div className="mt-4 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">{text.archiveNote}</div>
     </div>
   );
 }

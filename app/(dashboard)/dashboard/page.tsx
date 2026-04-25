@@ -50,34 +50,34 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="mb-1 text-2xl font-semibold">{t.dashboard.title}</h1>
-      <p className="mb-6 text-sm text-neutral-500">{user!.email}</p>
+      <p className="mb-6 text-sm text-neutral-500 dark:text-neutral-400">{user!.email}</p>
 
-      <div className="mb-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
+      <div className="mb-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 dark:border-blue-900 dark:from-blue-950/30 dark:to-indigo-950/30">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs uppercase tracking-wide text-neutral-500">{monthRange.label}</div>
-            <div className={`mt-1 text-3xl font-bold ${monthProfit >= 0 ? 'text-blue-900' : 'text-orange-700'}`}>
+            <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{monthRange.label}</div>
+            <div className={`mt-1 text-3xl font-bold ${monthProfit >= 0 ? 'text-blue-900 dark:text-blue-300' : 'text-orange-700 dark:text-orange-400'}`}>
               {formatPrice(monthProfit)}
             </div>
-            <div className="mt-0.5 text-xs text-neutral-500">
+            <div className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
               {monthProfit >= 0 ? t.dashboard.profit : t.dashboard.loss} {t.dashboard.forMonth}
             </div>
           </div>
-          <Link href="/stats" className="whitespace-nowrap text-sm font-medium text-blue-700 hover:text-blue-900">
+          <Link href="/stats" className="whitespace-nowrap text-sm font-medium text-blue-700 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
             {t.dashboard.details} →
           </Link>
         </div>
-        <div className="grid grid-cols-3 gap-2 border-t border-blue-200 pt-3">
+        <div className="grid grid-cols-3 gap-2 border-t border-blue-200 pt-3 dark:border-blue-900">
           <div>
-            <div className="text-xs text-neutral-500">{t.dashboard.revenue}</div>
-            <div className="text-sm font-semibold text-green-700">{formatPrice(monthStats.total)}</div>
+            <div className="text-xs text-neutral-500 dark:text-neutral-400">{t.dashboard.revenue}</div>
+            <div className="text-sm font-semibold text-green-700 dark:text-green-400">{formatPrice(monthStats.total)}</div>
           </div>
           <div>
-            <div className="text-xs text-neutral-500">{t.dashboard.expenses}</div>
-            <div className="text-sm font-semibold text-rose-700">{formatPrice(monthExpenses.total)}</div>
+            <div className="text-xs text-neutral-500 dark:text-neutral-400">{t.dashboard.expenses}</div>
+            <div className="text-sm font-semibold text-rose-700 dark:text-rose-400">{formatPrice(monthExpenses.total)}</div>
           </div>
           <div>
-            <div className="text-xs text-neutral-500">{t.dashboard.invoices}</div>
+            <div className="text-xs text-neutral-500 dark:text-neutral-400">{t.dashboard.invoices}</div>
             <div className="text-sm font-semibold">{monthStats.invoicesCount}</div>
           </div>
         </div>
@@ -90,12 +90,12 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-medium text-neutral-500">{t.dashboard.recentOrders}</h2>
+        <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{t.dashboard.recentOrders}</h2>
         <div className="flex items-center gap-3">
-          <Link href="/orders/trash" className="text-sm text-neutral-500 hover:text-neutral-700">
+          <Link href="/orders/trash" className="text-sm text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-300">
             {t.dashboard.trash}
           </Link>
-          <Link href="/orders/new" className="text-sm text-blue-600 hover:underline">
+          <Link href="/orders/new" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
             + {t.dashboard.new}
           </Link>
         </div>
@@ -150,7 +150,7 @@ function StatCard({
           : 'border-neutral-200 bg-white hover:border-blue-500 dark:border-neutral-800 dark:bg-neutral-900'
       }`}
     >
-      <div className="mb-1 text-xs text-neutral-500">{label}</div>
+      <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">{label}</div>
       <div className="text-2xl font-semibold">{value}</div>
     </Link>
   );

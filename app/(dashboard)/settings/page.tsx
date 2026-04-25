@@ -43,22 +43,22 @@ export default async function SettingsPage() {
   return (
     <div className="max-w-lg">
       <h1 className="mb-1 text-2xl font-semibold">{t.settings.title}</h1>
-      <p className="mb-6 text-sm text-neutral-500">{t.settings.subtitle}</p>
+      <p className="mb-6 text-sm text-neutral-500 dark:text-neutral-400">{t.settings.subtitle}</p>
 
       <div
         className={`mb-6 rounded-xl border p-5 ${
           invoiceMissing.length === 0
-            ? 'border-green-200 bg-green-50'
-            : 'border-amber-200 bg-amber-50'
+            ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30'
+            : 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30'
         }`}
       >
         <h2 className="text-base font-semibold">{invoiceReadinessText.title}</h2>
         {invoiceMissing.length === 0 ? (
-          <p className="mt-2 text-sm text-green-700">{invoiceReadinessText.ready}</p>
+          <p className="mt-2 text-sm text-green-700 dark:text-green-400">{invoiceReadinessText.ready}</p>
         ) : (
           <>
-            <p className="mt-2 text-sm text-amber-800">{invoiceReadinessText.missing}</p>
-            <ul className="mt-2 list-disc pl-5 text-sm text-amber-900">
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-300">{invoiceReadinessText.missing}</p>
+            <ul className="mt-2 list-disc pl-5 text-sm text-amber-900 dark:text-amber-300">
               {invoiceMissing.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -67,7 +67,7 @@ export default async function SettingsPage() {
         )}
       </div>
 
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-3">
           <h2 className="text-base font-semibold">{t.settings.languageTitle}</h2>
           <p className="mt-1 text-sm text-neutral-500">{t.settings.languageText}</p>
@@ -75,7 +75,7 @@ export default async function SettingsPage() {
         <LanguageSwitcher />
       </div>
 
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <h2 className="text-base font-semibold">
           {locale === 'de' ? 'SumUp Integration' : 'Интеграция SumUp'}
         </h2>
@@ -86,7 +86,7 @@ export default async function SettingsPage() {
         </p>
         <Link
           href="/settings/sumup"
-          className="mt-3 inline-flex rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+          className="mt-3 inline-flex rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
         >
           {locale === 'de' ? 'SumUp einrichten' : 'Настроить SumUp'}
         </Link>
@@ -114,11 +114,11 @@ export default async function SettingsPage() {
 
       <h2 className="mb-3 mt-8 text-lg font-semibold">{t.settings.securityTitle}</h2>
       <div className="max-w-md rounded-xl border border-neutral-200 bg-white p-5">
-        <p className="mb-4 text-sm text-neutral-600">{t.settings.securityText}</p>
+        <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">{t.settings.securityText}</p>
         <PasswordChangeForm />
       </div>
 
-      <div className="mt-4 rounded-lg bg-neutral-100 p-4 text-xs text-neutral-600">
+      <div className="mt-4 rounded-lg bg-neutral-100 p-4 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
         <strong>{t.settings.emailLabel}:</strong> {user!.email}
       </div>
 

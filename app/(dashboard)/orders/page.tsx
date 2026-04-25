@@ -244,7 +244,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           <ExportOrdersButton invoice={invoiceFilter} month={currentMonth || null} />
           <Link
             href="/orders/trash"
-            className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+            className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
             title={text.trash}
           >
             {text.trash}
@@ -266,7 +266,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
               key={filter.key}
               href={buildHref({ invoice: filter.key })}
               className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
               }`}
             >
               {filter.icon ? <span className="mr-1">{filter.icon}</span> : null}
@@ -276,17 +276,17 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
         })}
       </div>
 
-      <form method="get" className="mb-4 rounded-xl border border-neutral-200 bg-white p-4">
+      <form method="get" className="mb-4 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label htmlFor="month" className="mb-1 block text-sm font-medium text-neutral-700">
+            <label htmlFor="month" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
               {text.month}
             </label>
             <select
               id="month"
               name="m"
               defaultValue={currentMonth}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-800"
             >
               <option value="">{`- ${text.chooseMonth} -`}</option>
               {monthOptions.map((month) => (
@@ -310,7 +310,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           {currentMonth && (
             <Link
               href={buildHref({ m: null })}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             >
               {text.resetMonth}
             </Link>
@@ -318,17 +318,17 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
         </div>
       </form>
 
-      <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+      <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <div className="text-xs uppercase tracking-wide text-neutral-600">{text.currentSelection}</div>
+            <div className="text-xs uppercase tracking-wide text-neutral-600 dark:text-neutral-400">{text.currentSelection}</div>
             {monthRange && (
-              <div className="text-sm text-amber-900">
+              <div className="text-sm text-amber-900 dark:text-amber-300">
                 {text.monthSummaryPrefix}: <span className="font-medium">{monthRange.label}</span>
               </div>
             )}
           </div>
-          <div className="text-2xl font-bold text-amber-700">{formatPrice(roundedTotal)}</div>
+          <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{formatPrice(roundedTotal)}</div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -340,7 +340,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
           {text.error}: {error.message}
         </div>
       )}
@@ -407,10 +407,10 @@ function SummaryCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/70 bg-white/70 p-3">
-      <div className="text-xs uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="mt-1 text-xl font-semibold text-neutral-900">{value}</div>
-      {hint ? <div className="mt-1 text-xs text-neutral-500">{hint}</div> : null}
+    <div className="rounded-xl border border-white/70 bg-white/70 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+      <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</div>
+      <div className="mt-1 text-xl font-semibold text-neutral-900 dark:text-neutral-100">{value}</div>
+      {hint ? <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{hint}</div> : null}
     </div>
   );
 }

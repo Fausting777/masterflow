@@ -45,14 +45,14 @@ export default function IosInstallHint() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-40 rounded-xl border border-neutral-200 bg-white p-4 shadow-lg sm:left-auto sm:max-w-sm">
+    <div className="fixed bottom-4 left-4 right-4 z-40 rounded-xl border border-neutral-200 bg-white p-4 shadow-lg sm:left-auto sm:max-w-sm dark:border-neutral-700 dark:bg-neutral-900">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white">
           {text.icon}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium">{text.title}</div>
-          <div className="mt-1 text-xs leading-relaxed text-neutral-500">{text.body}</div>
+          <div className="mt-1 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">{text.body}</div>
           <button
             type="button"
             onClick={handleDismiss}

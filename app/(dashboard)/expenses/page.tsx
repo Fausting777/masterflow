@@ -135,7 +135,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
           />
           <Link
             href="/expenses/trash"
-            className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+            className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
             title={t.expensesPage.trash}
           >
             {t.expensesPage.trash}
@@ -149,7 +149,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         </div>
       </div>
 
-      <p className="mb-4 text-sm text-neutral-500">{range.label}</p>
+      <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">{range.label}</p>
 
       <div className="mb-3 flex flex-wrap gap-2">
         {periodButtons.map((period) => {
@@ -159,7 +159,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
               key={period.key}
               href={buildHref({ period: period.key })}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
               }`}
             >
               {period.label}
@@ -198,7 +198,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
               key={category}
               href={buildHref({ category })}
               className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                active ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
               }`}
             >
               {getExpenseCategoryEmoji(category)} {getExpenseCategoryLabel(category, locale)}
@@ -218,23 +218,23 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
           name="q"
           defaultValue={search}
           placeholder={t.expensesPage.searchPlaceholder}
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900"
         />
       </form>
 
-      <div className="mb-4 rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 p-5">
+      <div className="mb-4 rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 p-5 dark:border-rose-900 dark:from-rose-950/30 dark:to-pink-950/30">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase tracking-wide text-neutral-500">
+            <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
               {t.expensesPage.rangeTotal} {range.label}
             </div>
-            <div className="mt-1 text-2xl font-bold text-rose-700">{formatPrice(summaryResult.total)}</div>
+            <div className="mt-1 text-2xl font-bold text-rose-700 dark:text-rose-400">{formatPrice(summaryResult.total)}</div>
           </div>
           <div className="text-right">
-            <div className="text-xs text-neutral-500">
+            <div className="text-xs text-neutral-500 dark:text-neutral-400">
               {t.expensesPage.expenseCount}: {summaryResult.count}
             </div>
-            <div className="mt-1 text-xs text-neutral-500">
+            <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
               {t.expensesPage.taxDeductible}:{' '}
               <span className="font-semibold">{formatPrice(summaryResult.taxDeductible)}</span>
             </div>
@@ -242,7 +242,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
         </div>
 
         {summaryResult.total > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2 border-t border-rose-200 pt-3">
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-rose-200 pt-3 dark:border-rose-900">
             {CATEGORIES.map((category) => {
               const amount = summaryResult.byCategory[category];
               if (amount === 0) return null;
@@ -260,7 +260,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
       </div>
 
       {expenses.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
           {search ? (
             <>
               {t.expensesPage.emptySearch} &quot;{search}&quot;
@@ -293,21 +293,21 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
                         {getExpenseCategoryEmoji(expense.category)}{' '}
                         {getExpenseCategoryLabel(expense.category, locale)}
                       </span>
-                      <span className="text-xs text-neutral-500">
+                      <span className="text-xs text-neutral-500 dark:text-neutral-400">
                         {formatDate(expense.expense_date, locale)}
                       </span>
                       {expense.receipt_file_path && (
-                        <span className="text-xs text-green-600" title={t.expensesPage.receiptTitle}>
+                        <span className="text-xs text-green-600 dark:text-green-400" title={t.expensesPage.receiptTitle}>
                           {t.expensesPage.receiptTitle}
                         </span>
                       )}
                       {expense.order_id && (
-                        <span className="text-xs text-blue-600" title={t.expensesPage.linkedOrderTitle}>
+                        <span className="text-xs text-blue-600 dark:text-blue-400" title={t.expensesPage.linkedOrderTitle}>
                           {t.expensesPage.linkedOrderTitle}
                         </span>
                       )}
                       {!expense.tax_deductible && (
-                        <span className="text-xs text-neutral-500" title={t.expensesPage.noDeductionTitle}>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400" title={t.expensesPage.noDeductionTitle}>
                           {t.expensesPage.noDeductionTitle}
                         </span>
                       )}
@@ -316,11 +316,11 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Sea
                       {expense.vendor ?? expense.description ?? t.expensesPage.untitled}
                     </h3>
                     {expense.vendor && expense.description && (
-                      <p className="truncate text-sm text-neutral-500">{expense.description}</p>
+                      <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">{expense.description}</p>
                     )}
                   </div>
                   <div className="whitespace-nowrap text-right">
-                    <div className="font-semibold text-rose-700">{formatPrice(Number(expense.amount))}</div>
+                    <div className="font-semibold text-rose-700 dark:text-rose-400">{formatPrice(Number(expense.amount))}</div>
                   </div>
                 </div>
               </Link>

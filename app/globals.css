@@ -28,8 +28,6 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Инпуты — принудительно светлые */
-/* Инпуты — принудительно светлые (кроме чекбоксов и радио) */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
@@ -42,4 +40,16 @@ select {
 input:-webkit-autofill {
   -webkit-text-fill-color: #171717;
   -webkit-box-shadow: 0 0 0 30px #ffffff inset;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: #262626;
+  color: #ededed;
+}
+
+.dark input:-webkit-autofill {
+  -webkit-text-fill-color: #ededed;
+  -webkit-box-shadow: 0 0 0 30px #262626 inset;
 }

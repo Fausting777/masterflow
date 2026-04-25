@@ -66,7 +66,7 @@ export default function FabMenu() {
                 transitionDelay: open ? `${i * 30}ms` : '0ms',
               }}
             >
-              <span className="bg-white border border-neutral-200 shadow-md rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap">
+              <span className="bg-white border border-neutral-200 shadow-md rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-100">
                 {action.label}
               </span>
               <Link

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ExportOrdersButton from '@/components/orders/ExportOrdersButton';
 import InvoiceBadges from '@/components/orders/InvoiceBadges';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
 import { getLocale } from '@/lib/i18n/server';
@@ -200,6 +201,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
       <div className="mb-4 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{text.title}</h1>
         <div className="flex items-center gap-2">
+          <ExportOrdersButton invoice={invoiceFilter} month={currentMonth || null} />
           <Link
             href="/orders/trash"
             className="rounded-lg px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"

@@ -266,9 +266,9 @@ async function buildLiveInvoiceSnapshot(
       client: {
         full_name: client.full_name,
         phone: client.phone,
-        address: [client.address, [client.postal_code, client.city].filter(Boolean).join(' ')]
-          .filter(Boolean)
-          .join(', '),
+        address: client.address,
+        postal_code: client.postal_code,
+        city: client.city,
       },
       order: {
         id: order.id,

@@ -100,9 +100,10 @@ export async function exportInvoicesCsvAction(
 
     const fullName = snapshot?.client.full_name ?? client?.full_name ?? '';
     const phone = snapshot?.client.phone ?? client?.phone ?? '';
+    const email = snapshot?.client.email ?? client?.email ?? '';
     const address = snapshot?.client.address ?? client?.address ?? '';
-    const postalCode = snapshot?.client.address ? '' : client?.postal_code ?? '';
-    const city = snapshot?.client.address ? '' : client?.city ?? '';
+    const postalCode = snapshot?.client.postal_code ?? client?.postal_code ?? '';
+    const city = snapshot?.client.city ?? client?.city ?? '';
     const serviceTitle = snapshot?.order.service_title ?? service?.title ?? order.custom_service_title ?? '';
     const amount =
       snapshot?.order.price ??
@@ -125,7 +126,7 @@ export async function exportInvoicesCsvAction(
           : '',
       fullName,
       phone,
-      snapshot?.client.full_name ? '' : client?.email ?? '',
+      email,
       address,
       postalCode,
       city,

@@ -25,6 +25,8 @@ export type InvoiceData = {
     full_name: string;
     phone: string | null;
     address: string | null;
+    postal_code: string | null;
+    city: string | null;
   };
   order: {
     id: string;

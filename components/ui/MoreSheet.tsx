@@ -53,7 +53,7 @@ export default function MoreSheet({ open, onClose }: Props) {
   return (
     <>
       <div
-        className={`sm:hidden fixed inset-0 bg-black/50 z-50 transition-opacity ${
+        className={`sm:hidden fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}

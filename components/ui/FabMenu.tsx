@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Plus, ClipboardList, UserPlus, Wallet, X } from 'lucide-react';
+import { Plus, ClipboardList, UserPlus, Wallet } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 
@@ -49,11 +49,7 @@ export default function FabMenu() {
       />
 
       <div
-        className={`sm:hidden fixed right-4 z-50 flex flex-col items-end gap-2 transition-all ${
-          open
-            ? 'opacity-100 translate-y-0 pointer-events-auto'
-            : 'opacity-0 translate-y-4 pointer-events-none'
-        }`}
+        className="sm:hidden fixed right-4 z-50 flex flex-col items-end gap-2"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 10rem)' }}
       >
         {actions.map((action, i) => {
@@ -61,9 +57,12 @@ export default function FabMenu() {
           return (
             <div
               key={action.href}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 transition-all duration-200 ease-out"
               style={{
-                transitionDelay: open ? `${i * 30}ms` : '0ms',
+                opacity: open ? 1 : 0,
+                transform: open ? 'translateY(0) scale(1)' : 'translateY(14px) scale(0.9)',
+                transitionDelay: open ? `${i * 55}ms` : '0ms',
+                pointerEvents: open ? 'auto' : 'none',
               }}
             >
               <span className="bg-white border border-neutral-200 shadow-md rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-100">
@@ -72,7 +71,7 @@ export default function FabMenu() {
               <Link
                 href={action.href}
                 onClick={() => setOpen(false)}
-                className={`${action.color} w-12 h-12 rounded-full flex items-center justify-center shadow-lg text-white hover:scale-110 active:scale-95 transition-transform`}
+                className={`${action.color} w-12 h-12 rounded-full flex items-center justify-center shadow-lg text-white hover:scale-110 active:scale-95 transition-transform duration-150`}
               >
                 <Icon size={22} />
               </Link>
@@ -84,12 +83,12 @@ export default function FabMenu() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="sm:hidden fixed right-4 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl flex items-center justify-center transition-transform active:scale-95"
+        className="sm:hidden fixed right-4 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-xl flex items-center justify-center transition-all duration-200"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}
         aria-label={open ? t.fab.closeMenu : t.fab.create}
       >
-        <div className={`transition-transform duration-300 ${open ? 'rotate-45' : ''}`}>
-          {open ? <X size={24} /> : <Plus size={28} />}
+        <div className={`transition-transform duration-300 ease-in-out ${open ? 'rotate-45' : 'rotate-0'}`}>
+          <Plus size={26} />
         </div>
       </button>
     </>

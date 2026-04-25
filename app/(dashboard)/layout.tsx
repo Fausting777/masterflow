@@ -72,7 +72,7 @@ export default async function DashboardLayout({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6 pb-24 sm:pb-6">
+      <main className="max-w-5xl mx-auto px-4 py-6 pb-24 sm:pb-6 page-enter">
         {children}
       </main>
 

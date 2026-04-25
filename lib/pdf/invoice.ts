@@ -38,6 +38,7 @@ export type InvoiceData = {
     price: number | null;
     items?: {
       title: string;
+      description?: string | null;
       price: number;
     }[];
     correction_of_invoice_number?: string | null;
@@ -323,11 +324,18 @@ if (data.client.phone) {
     : [{ title: data.order.service_title, price: data.order.price ?? 0 }];
 
   invoiceItems.forEach((item, idx) => {
-    ensureSpace(20);
+    ensureSpace(item.description ? 42 : 20);
     drawText(String(idx + 1), colPos, regular, 10);
     drawText(item.title, colLeistung, regular, 10);
     drawRight(formatEUR(item.price), colBetragRight, regular, 10);
     y -= 16;
+    if (item.description) {
+      const descriptionLines = item.description.split('\n');
+      for (const line of descriptionLines) {
+        drawWrapped(line, colLeistung, W - colLeistung - margin - 80, regular, 8.5, COLORS.muted);
+      }
+      y -= 4;
+    }
   });
 
   if (data.order.description) {

@@ -179,6 +179,7 @@ export default async function OrderPage({
             user_id: o.user_id,
             service_id: o.service_id,
             title: service?.title ?? o.custom_service_title ?? DASH,
+            description: service?.description ?? null,
             price: Number(o.custom_price ?? service?.default_price ?? 0),
             created_at: o.created_at,
           },
@@ -410,8 +411,13 @@ export default async function OrderPage({
               <div className="space-y-1">
                 {displayItems.map((item, index) => (
                   <div key={item.id} className="flex items-start justify-between gap-3 text-sm">
-                    <span className="min-w-0">
-                      {index + 1}. {item.title}
+                    <span className="min-w-0 space-y-0.5">
+                      <span className="block">
+                        {index + 1}. {item.title}
+                      </span>
+                      {item.description && (
+                        <span className="block whitespace-pre-wrap text-xs text-neutral-500">{item.description}</span>
+                      )}
                     </span>
                     <span className="whitespace-nowrap font-medium">{formatPrice(Number(item.price))}</span>
                   </div>

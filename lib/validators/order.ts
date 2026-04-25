@@ -1,8 +1,9 @@
 import { parsePriceInput } from '@/lib/utils/format';
 
 export type OrderItemInput = {
-  service_id: string; // uuid или 'custom'
+  service_id: string;
   title: string;
+  description: string;
   price: string;
   save_to_catalog: boolean;
 };
@@ -55,6 +56,10 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
         errors.items = 'Ungueltiger Preis fuer eine Leistung';
         break;
       }
+      if (item.description.length > 2000) {
+        errors.items = 'Beschreibung einer Leistung ist zu lang';
+        break;
+      }
     }
   }
 
@@ -87,7 +92,7 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
   }
 
   if (data.payment_provider && !['cash', 'ec_card'].includes(data.payment_method)) {
-    errors.payment_provider = 'Zahlungsanbieter ist только для Bar- или Kartenzahlung';
+    errors.payment_provider = 'Zahlungsanbieter ist nur fuer Bar- oder Kartenzahlung';
   }
 
   if (data.paid_at && Number.isNaN(Date.parse(data.paid_at))) {
@@ -128,11 +133,12 @@ export function normalizeOrderInput(data: OrderInput) {
     return new Date(dateOnly ? `${value}T12:00:00` : value).toISOString();
   };
 
-  const normalizedItems = data.items.map(item => ({
+  const normalizedItems = data.items.map((item) => ({
     service_id: item.service_id === 'custom' || item.service_id.trim() === '' ? null : item.service_id,
     title: item.title.trim(),
+    description: clean(item.description),
     price: parsePriceInput(item.price) || 0,
-    save_to_catalog: item.save_to_catalog
+    save_to_catalog: item.save_to_catalog,
   }));
 
   return {

@@ -55,6 +55,7 @@ type InvoiceSumupTransactionRow = {
 type InvoiceOrderItemRow = {
   service_id: string | null;
   title: string;
+  description: string | null;
   price: number | string;
 };
 
@@ -195,19 +196,21 @@ async function buildLiveInvoiceSnapshot(
 
   let serviceTitle = order.custom_service_title ?? 'Leistung';
   let servicePrice = order.custom_price;
+  let serviceDescription: string | null = null;
   let correctionOfInvoiceNumber: string | null = null;
 
   if (order.service_id) {
     const { data: service } = await supabase.from('services').select('*').eq('id', order.service_id).maybeSingle();
     if (service) {
       serviceTitle = service.title;
+      serviceDescription = service.description ?? null;
       if (servicePrice === null) servicePrice = service.default_price;
     }
   }
 
   const { data: itemRows } = await supabase
     .from('order_items')
-    .select('service_id, title, price')
+    .select('service_id, title, description, price')
     .eq('order_id', order.id)
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
@@ -215,6 +218,7 @@ async function buildLiveInvoiceSnapshot(
   const items = ((itemRows ?? []) as InvoiceOrderItemRow[])
     .map((item) => ({
       title: item.title,
+      description: item.description,
       price: Number(item.price),
     }))
     .filter((item) => item.title.trim() && Number.isFinite(item.price));
@@ -303,7 +307,7 @@ async function buildLiveInvoiceSnapshot(
         service_date: serviceDate,
         service_title: serviceTitle,
         price: servicePrice,
-        items: items.length > 0 ? items : undefined,
+        items: items.length > 0 ? items : [{ title: serviceTitle, description: serviceDescription, price: servicePrice }],
         correction_of_invoice_number: correctionOfInvoiceNumber,
         description,
         order_address: order.order_address,

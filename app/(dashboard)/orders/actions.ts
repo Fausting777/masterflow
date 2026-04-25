@@ -89,6 +89,7 @@ function readFormData(formData: FormData): OrderInput {
     items.push({
       service_id: String(formData.get(`items[${i}].service_id`) ?? 'custom'),
       title: String(formData.get(`items[${i}].title`) ?? ''),
+      description: String(formData.get(`items[${i}].description`) ?? ''),
       price: String(formData.get(`items[${i}].price`) ?? ''),
       save_to_catalog: formData.get(`items[${i}].save_to_catalog`) === 'true',
     });
@@ -130,20 +131,20 @@ async function resolveItemsToCatalog(
     const title = item.title.trim();
     const { data: existing } = await supabase
       .from('services')
-      .select('id')
+      .select('id, description')
       .eq('user_id', userId)
       .ilike('title', title)
       .maybeSingle();
 
     if (existing?.id) {
-      resolvedItems.push({ ...item, service_id: existing.id });
+      resolvedItems.push({ ...item, service_id: existing.id, description: item.description ?? existing.description ?? null });
       continue;
     }
 
     if (item.save_to_catalog && title) {
       const { data: created } = await supabase
         .from('services')
-        .insert({ user_id: userId, title, default_price: item.price })
+        .insert({ user_id: userId, title, default_price: item.price, description: item.description })
         .select('id')
         .single();
 
@@ -187,7 +188,7 @@ export async function createOrderAction(_prevState: OrderFormState, formData: Fo
     service_id: normalizedItems[0].service_id, custom_service_title: normalizedItems[0].service_id ? null : normalizedItems[0].title, custom_price: normalizedItems[0].price
   }).select('id').single();
   if (orderError || !order) return { formError: m.orderCreateError, values: raw };
-  const orderItems = normalizedItems.map(item => ({ order_id: order.id, user_id: user.id, service_id: item.service_id, title: item.title, price: item.price }));
+  const orderItems = normalizedItems.map(item => ({ order_id: order.id, user_id: user.id, service_id: item.service_id, title: item.title, description: item.description, price: item.price }));
   await supabase.from('order_items').insert(orderItems);
   revalidatePath('/orders');
   revalidatePath('/services');
@@ -233,7 +234,7 @@ export async function updateOrderAction(id: string, _prevState: OrderFormState, 
   }).eq('id', id).eq('user_id', user.id);
   if (error) return { formError: error.message, values: raw };
   await supabase.from('order_items').delete().eq('order_id', id).eq('user_id', user.id);
-  const orderItems = normalizedItems.map(item => ({ order_id: id, user_id: user.id, service_id: item.service_id, title: item.title, price: item.price }));
+  const orderItems = normalizedItems.map(item => ({ order_id: id, user_id: user.id, service_id: item.service_id, title: item.title, description: item.description, price: item.price }));
   await supabase.from('order_items').insert(orderItems);
   await supabase.from('activity_logs').insert({ order_id: id, user_id: user.id, action_type: 'order_updated', action_text: m.orderUpdatedLog });
   revalidatePath('/orders');
@@ -279,7 +280,7 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
   if (error || !created) throw new Error(m.correctionCreateError);
   const { data: srcItems } = await supabase
     .from('order_items')
-    .select('service_id, title, price')
+    .select('service_id, title, description, price')
     .eq('order_id', src.id)
     .eq('user_id', user.id);
   if (srcItems && srcItems.length > 0) {
@@ -289,6 +290,7 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
         user_id: user.id,
         service_id: item.service_id,
         title: item.title,
+        description: item.description,
         price: item.price,
       }))
     );

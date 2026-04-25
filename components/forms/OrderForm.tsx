@@ -12,6 +12,7 @@ import type { Client, Service } from '@/types/database';
 type OrderItemFormValue = {
   service_id: string;
   title: string;
+  description: string;
   price: string;
   save_to_catalog: boolean;
 };
@@ -31,6 +32,7 @@ type Props = {
     items?: {
       service_id: string | null;
       title: string;
+      description?: string | null;
       price: number;
     }[];
   };
@@ -47,7 +49,19 @@ function toDateLocal(iso: string | null | undefined): string {
 }
 
 function createEmptyItem(): OrderItemFormValue {
-  return { service_id: 'custom', title: '', price: '', save_to_catalog: true };
+  return { service_id: 'custom', title: '', description: '', price: '', save_to_catalog: true };
+}
+
+function scoreServiceMatch(service: Service, query: string) {
+  const terms = query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 3);
+  if (terms.length === 0) return 0;
+
+  const haystack = `${service.title} ${service.description ?? ''}`.toLowerCase();
+  return terms.reduce((score, term) => score + (haystack.includes(term) ? 1 : 0), 0);
 }
 
 export default function OrderForm({
@@ -67,6 +81,7 @@ export default function OrderForm({
       return initial.items.map((item) => ({
         service_id: item.service_id ?? 'custom',
         title: item.title,
+        description: item.description ?? '',
         price: String(item.price),
         save_to_catalog: item.service_id === null,
       }));
@@ -101,15 +116,21 @@ export default function OrderForm({
       updateItem(index, {
         service_id: matchedService.id,
         title: matchedService.title,
+        description: matchedService.description ?? '',
         price: matchedService.default_price !== null ? String(matchedService.default_price) : '',
         save_to_catalog: false,
       });
       return;
     }
 
+    const suggestedService = services
+      .map((service) => ({ service, score: scoreServiceMatch(service, title) }))
+      .sort((a, b) => b.score - a.score)[0];
+
     updateItem(index, {
       service_id: 'custom',
       title,
+      description: items[index]?.description || (suggestedService?.score ? suggestedService.service.description ?? '' : ''),
       save_to_catalog: true,
     });
   };
@@ -229,6 +250,15 @@ export default function OrderForm({
                 className={inputCls}
                 inputMode="decimal"
                 required
+              />
+
+              <textarea
+                name={`items[${index}].description`}
+                value={item.description}
+                onChange={(e) => updateItem(index, { description: e.target.value })}
+                rows={2}
+                placeholder={locale === 'de' ? 'Beschreibung dieser Leistung' : '\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u044d\u0442\u043e\u0439 \u0443\u0441\u043b\u0443\u0433\u0438'}
+                className={`${inputCls} resize-none`}
               />
 
               {item.service_id === 'custom' && item.title.trim() && (

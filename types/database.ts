@@ -91,6 +91,7 @@ export interface OrderItem {
   user_id: string;
   service_id: string | null;
   title: string;
+  description: string | null;
   price: number;
   created_at: string;
 }

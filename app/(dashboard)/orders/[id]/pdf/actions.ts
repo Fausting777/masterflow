@@ -72,6 +72,7 @@ async function getMessages() {
         orderNotFound: 'Auftrag nicht gefunden',
         invoiceLocked:
           'Die Rechnung wurde bereits erstellt und fixiert. Eine Neugenerierung ueber das Ausgangsdokument ist gesperrt. Fuer Aenderungen ist eine separate Rechnungskorrektur erforderlich.',
+        invoicePdfRefreshed: 'PDF der Rechnung wurde aus dem fixierten Snapshot neu erzeugt',
         numberFailed: 'Rechnungsnummer konnte nicht erzeugt werden',
         snapshotFailed: 'Rechnungssnapshot konnte nicht erstellt werden',
         generationError: 'Fehler bei der PDF-Erzeugung',
@@ -100,6 +101,8 @@ async function getMessages() {
         orderNotFound: '\u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
         invoiceLocked:
           '\u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044f \u0443\u0436\u0435 \u0432\u044b\u0434\u0430\u043d\u0430 \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u0430. \u041f\u043e\u0432\u0442\u043e\u0440\u043d\u0430\u044f \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u043f\u043e \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443 \u0437\u0430\u043f\u0440\u0435\u0449\u0435\u043d\u0430. \u0414\u043b\u044f \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0439 \u043d\u0443\u0436\u043d\u0430 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438.',
+        invoicePdfRefreshed:
+          '\u041f\u0414\u0424 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438 \u0437\u0430\u043d\u043e\u0432\u043e \u0441\u043e\u0437\u0434\u0430\u043d \u0438\u0437 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0433\u043e snapshot',
         numberFailed:
           '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043d\u043e\u043c\u0435\u0440 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
         snapshotFailed:
@@ -334,9 +337,7 @@ export async function generatePdfAction(orderId: string): Promise<{
   const order = orderData as InvoiceOrderRow;
 
   const storedSnapshot = isInvoiceSnapshot(order.invoice_snapshot_json) ? order.invoice_snapshot_json : null;
-  if (storedSnapshot && order.pdf_file_path) {
-    return { ok: false, error: m.invoiceLocked };
-  }
+  const isRefreshingIssuedPdf = Boolean(storedSnapshot && order.pdf_file_path);
 
   let invoiceNumber = order.invoice_number;
   let invoiceIssuedAt = order.invoice_issued_at;
@@ -372,9 +373,11 @@ export async function generatePdfAction(orderId: string): Promise<{
     return { ok: false, error: snapshotResult.error ?? m.snapshotFailed };
   }
   const snapshot = snapshotResult.snapshot;
+  const version = Math.max(snapshot.version ?? 1, order.invoice_version ?? 0, 1);
+  const snapshotForStorage: InvoiceSnapshot = { ...snapshot, version };
 
   const assets = await loadPdfAssets(supabase, orderId, order.signature_file_path);
-  const invoiceData = snapshotToInvoiceData(snapshot, {
+  const invoiceData = snapshotToInvoiceData(snapshotForStorage, {
     signature: assets.signature,
     photosBefore: assets.beforePhotos,
     photosAfter: assets.afterPhotos,
@@ -390,8 +393,9 @@ export async function generatePdfAction(orderId: string): Promise<{
     };
   }
 
-  const version = Math.max(snapshot.version ?? 1, order.invoice_version ?? 0, 1);
-  const filePath = `${user.id}/${orderId}/invoice-v${version}.pdf`;
+  const filePath = isRefreshingIssuedPdf && order.pdf_file_path
+    ? order.pdf_file_path
+    : `${user.id}/${orderId}/invoice-v${version}.pdf`;
   const pdfSha256 = sha256Hex(pdfBytes);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
@@ -403,19 +407,23 @@ export async function generatePdfAction(orderId: string): Promise<{
   });
   if (uploadError) return { ok: false, error: uploadError.message };
 
+  const updatePayload = isRefreshingIssuedPdf
+    ? { pdf_sha256: pdfSha256 }
+    : {
+        invoice_number: snapshot.invoice_number,
+        invoice_issued_at: snapshot.invoice_issued_at,
+        invoice_locked_at: order.invoice_locked_at ?? new Date().toISOString(),
+        invoice_version: version,
+        invoice_snapshot_json: snapshotForStorage,
+        pdf_file_path: filePath,
+        pdf_sha256: pdfSha256,
+        paid_at: order.paid_at,
+        payment_provider: order.payment_provider,
+      };
+
   const { error: updateError } = await supabase
     .from('orders')
-    .update({
-      invoice_number: snapshot.invoice_number,
-      invoice_issued_at: snapshot.invoice_issued_at,
-      invoice_locked_at: order.invoice_locked_at ?? new Date().toISOString(),
-      invoice_version: version,
-      invoice_snapshot_json: snapshot,
-      pdf_file_path: filePath,
-      pdf_sha256: pdfSha256,
-      paid_at: order.paid_at,
-      payment_provider: order.payment_provider,
-    })
+    .update(updatePayload)
     .eq('id', orderId)
     .eq('user_id', user.id);
 
@@ -425,9 +433,11 @@ export async function generatePdfAction(orderId: string): Promise<{
     order_id: orderId,
     user_id: user.id,
     action_type: order.correction_of_order_id ? 'invoice_correction_issued' : 'invoice_issued',
-    action_text: order.correction_of_order_id
-      ? `${m.correctionIssued} ${snapshot.invoice_number} ${m.wasIssued}`
-      : `${m.invoiceIssued} ${snapshot.invoice_number} ${m.wasIssued}`,
+    action_text: isRefreshingIssuedPdf
+      ? `${m.invoicePdfRefreshed}: ${snapshot.invoice_number}`
+      : order.correction_of_order_id
+        ? `${m.correctionIssued} ${snapshot.invoice_number} ${m.wasIssued}`
+        : `${m.invoiceIssued} ${snapshot.invoice_number} ${m.wasIssued}`,
   });
 
   revalidatePath(`/orders/${orderId}`);

@@ -56,7 +56,7 @@ export default function PdfSection({
           sendByEmail: 'An Kunden per E-Mail senden',
           lastSent: 'Zuletzt gesendet',
           draftLocked:
-            'Nach Ausstellung der Rechnung ist das PDF fixiert. Eine Neuerzeugung ueber das Ursprungsdokument hinaus ist nicht mehr moeglich.',
+            'Die Rechnungsdaten bleiben fixiert. Das PDF kann bei Bedarf aus dem gespeicherten Snapshot neu gerendert werden.',
           draftHint:
             'Vor Ausstellung der Rechnung kann das PDF neu erzeugt werden, wenn Daten geaendert oder Fotos hinzugefuegt wurden.',
           generating: 'PDF wird erzeugt...',
@@ -185,17 +185,15 @@ export default function PdfSection({
             >
               {isSavingPdf ? text.saving : text.savePdf}
             </button>
-            {!isIssued && (
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={isPending}
-                title={text.regeneratePdf}
-                className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
-              >
-                {isPending ? '...' : text.regenerateIcon}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={isPending}
+              title={text.regeneratePdf}
+              className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
+            >
+              {isPending ? '...' : text.regenerateIcon}
+            </button>
           </div>
 
           <button

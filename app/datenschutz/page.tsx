@@ -82,10 +82,11 @@ export default function DatenschutzPage() {
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>Zur technischen Bereitstellung und fuer einzelne Funktionen koennen folgende Dienstleister eingesetzt werden:</p>
             <ul className="mt-2 list-disc pl-5">
-              <li>Supabase fuer Datenbank, Authentifizierung und Dateispeicher</li>
-              <li>Resend fuer den Versand von Quittungen per E-Mail</li>
+              <li>Supabase (Irland/USA) fuer Datenbank, Authentifizierung und Dateispeicher</li>
+              <li>Resend (USA) fuer den Versand von Quittungen per E-Mail</li>
+              <li>SumUp (Irland) fuer die Zahlungsabwicklung und Speicherung von Transaktionsdaten (Betrag, Zahlungsart, Transaktionscode, Belegnummer)</li>
             </ul>
-            <p className="mt-2">Eine Weitergabe erfolgt nur, soweit sie zur Bereitstellung der Anwendung oder zur Erfuellung gesetzlicher Pflichten erforderlich ist.</p>
+            <p className="mt-2">Eine Weitergabe erfolgt nur, soweit sie zur Bereitstellung der Anwendung oder zur Erfuellung gesetzlicher Pflichten erforderlich ist. Mit allen Auftragsverarbeitern bestehen oder werden Auftragsverarbeitungsvertraege gemaess Art. 28 DSGVO geschlossen.</p>
           </div>
         </section>
 
@@ -116,6 +117,12 @@ export default function DatenschutzPage() {
               Die Anwendung verwendet technisch notwendige Session- und Sicherheitsmechanismen, insbesondere fuer Login,
               Zugriffsschutz und Sitzungsverwaltung. Es findet nach aktuellem Stand kein Marketing- oder Werbetracking in der
               Anwendung statt.
+            </p>
+            <p className="mt-2">
+              Zur Speicherung von Benutzereinstellungen (z.B. Darstellungsmodus hell/dunkel) wird der lokale Browserspeicher
+              (localStorage) verwendet. Diese Speicherung erfolgt ausschliesslich auf dem Geraet des Nutzers, enthaelt keine
+              personenbezogenen Daten und erfordert keine zusaetzliche Einwilligung gemaess Art. 6 Abs. 1 lit. f DSGVO
+              (berechtigtes Interesse an der nutzerfreundlichen Darstellung).
             </p>
           </div>
         </section>
@@ -153,7 +160,7 @@ export default function DatenschutzPage() {
         <section>
           <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">10. Stand</h2>
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <p>Stand dieser Datenschutzhinweise: 20.04.2026</p>
+            <p>Stand dieser Datenschutzhinweise: 26.04.2026</p>
           </div>
         </section>
       </div>

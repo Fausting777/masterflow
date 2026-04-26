@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getDictionary } from '@/lib/i18n/server';
 
 export default async function AuthLayout({
@@ -8,7 +9,7 @@ export default async function AuthLayout({
   const { t } = await getDictionary();
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-neutral-50 dark:bg-neutral-950">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-neutral-50 dark:bg-neutral-950">
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-semibold">MasterFlow</h1>
@@ -20,6 +21,14 @@ export default async function AuthLayout({
           {children}
         </div>
       </div>
-    </main>
+      <footer className="mt-8 flex gap-4 text-xs text-neutral-400 dark:text-neutral-600">
+        <Link href="/impressum" className="hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors">
+          Impressum
+        </Link>
+        <Link href="/datenschutz" className="hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors">
+          Datenschutz
+        </Link>
+      </footer>
+    </div>
   );
 }

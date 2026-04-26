@@ -1,6 +1,6 @@
 export const BUSINESS_INFO = {
   brandName: 'MasterFlow',
-  legalName: 'RETTER Schluesseldienst & Hausmeisterservice',
+  legalName: 'RETTER Schlüsseldienst & Hausmeisterservice',
   owner: 'Yevhenii Lementarchuk',
   street: 'Oertzenweg 46',
   postalCode: '14163',
@@ -9,7 +9,8 @@ export const BUSINESS_INFO = {
   phone: '+49 175 5328 410',
   email: 'info@berlin-retter.de',
   website: 'https://berlin-retter.de',
-  vatNote: 'Als Kleinunternehmer gemaess Paragraf 19 Abs. 1 UStG wird keine Umsatzsteuer ausgewiesen.',
-  supervisoryAuthority: 'Berliner Beauftragte fuer Datenschutz und Informationsfreiheit',
+  taxNumber: 'TODO: Steuernummer eintragen (z.\u202fB.\u00a034/123/12345)',
+  vatNote: 'Als Kleinunternehmer gemäß § 19 Abs.\u00a01 UStG wird keine Umsatzsteuer ausgewiesen.',
+  supervisoryAuthority: 'Berliner Beauftragte für Datenschutz und Informationsfreiheit',
   supervisoryAuthorityUrl: 'https://www.datenschutz-berlin.de/',
 } as const;

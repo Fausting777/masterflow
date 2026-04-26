@@ -78,15 +78,15 @@ export default function DatenschutzPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">5. Empfaenger und Auftragsverarbeiter</h2>
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">5. Empfänger und Auftragsverarbeiter</h2>
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <p>Zur technischen Bereitstellung und für einzelne Funktionen können folgende Dienstleister eingesetzt werden:</p>
+            <p>Zur technischen Bereitstellung und für einzelne Funktionen werden folgende Dienstleister eingesetzt:</p>
             <ul className="mt-2 list-disc pl-5">
-              <li>Supabase (Irland/USA) für Datenbank, Authentifizierung und Dateispeicher</li>
+              <li>Supabase (EU-Region, Irland) für Datenbank, Authentifizierung und Dateispeicher</li>
               <li>Resend (USA) für den Versand von Rechnungen per E-Mail</li>
               <li>SumUp (Irland) für die Zahlungsabwicklung und Speicherung von Transaktionsdaten (Betrag, Zahlungsart, Transaktionscode, Belegnummer)</li>
             </ul>
-            <p className="mt-2">Eine Weitergabe erfolgt nur, soweit sie zur Bereitstellung der Anwendung oder zur Erfüllung gesetzlicher Pflichten erforderlich ist. Mit allen Auftragsverarbeitern bestehen oder werden Auftragsverarbeitungsvertraege gemäß Art. 28 DSGVO geschlossen.</p>
+            <p className="mt-2">Eine Weitergabe erfolgt nur, soweit sie zur Bereitstellung der Anwendung oder zur Erfüllung gesetzlicher Pflichten erforderlich ist. Mit allen Auftragsverarbeitern wurden Auftragsverarbeitungsverträge gemäß Art. 28 DSGVO geschlossen.</p>
           </div>
         </section>
 
@@ -100,11 +100,11 @@ export default function DatenschutzPage() {
             </p>
             <p className="mt-2">
               Für Rechnungen und steuerlich relevante Unterlagen gilt regelmäßig eine Aufbewahrung von mindestens 8 Jahren
-              gemäß § 14b UStG und § 147 AO. Laengere Aufbewahrung kann erforderlich sein, wenn steuerliche
-              oder rechtliche Gruende dies verlangen.
+              gemäß § 14b UStG und § 147 AO. Längere Aufbewahrung kann erforderlich sein, wenn steuerliche
+              oder rechtliche Gründe dies verlangen.
             </p>
             <p className="mt-2">
-              Sonstige Daten werden geloescht, sobald sie für die genannten Zwecke nicht mehr erforderlich sind und keine
+              Sonstige Daten werden gelöscht, sobald sie für die genannten Zwecke nicht mehr erforderlich sind und keine
               gesetzlichen Pflichten oder berechtigten Interessen entgegenstehen.
             </p>
           </div>
@@ -119,9 +119,9 @@ export default function DatenschutzPage() {
               Anwendung statt.
             </p>
             <p className="mt-2">
-              Zur Speicherung von Benutzereinstellungen (z.B. Darstellungsmodus hell/dunkel) wird der lokale Browserspeicher
+              Zur Speicherung von Benutzereinstellungen (z.&#8239;B. Darstellungsmodus hell/dunkel) wird der lokale Browserspeicher
               (localStorage) verwendet. Diese Speicherung erfolgt ausschließlich auf dem Gerät des Nutzers, enthält keine
-              personenbezogenen Daten und erfordert keine zusätzliche Einwilligung gemäß Art. 6 Abs. 1 lit. f DSGVO
+              personenbezogenen Daten und erfordert keine zusätzliche Einwilligung gemäß Art. 6 Abs. 1 lit.&#8239;f DSGVO
               (berechtigtes Interesse an der nutzerfreundlichen Darstellung).
             </p>
           </div>
@@ -134,9 +134,9 @@ export default function DatenschutzPage() {
             <ul className="mt-2 list-disc pl-5">
               <li>Auskunft nach Art. 15 DSGVO</li>
               <li>Berichtigung nach Art. 16 DSGVO</li>
-              <li>Loeschung nach Art. 17 DSGVO, soweit keine gesetzlichen Aufbewahrungspflichten entgegenstehen</li>
-              <li>Einschraenkung der Verarbeitung nach Art. 18 DSGVO</li>
-              <li>Datenuebertragbarkeit nach Art. 20 DSGVO</li>
+              <li>Löschung nach Art. 17 DSGVO, soweit keine gesetzlichen Aufbewahrungspflichten entgegenstehen</li>
+              <li>Einschränkung der Verarbeitung nach Art. 18 DSGVO</li>
+              <li>Datenübertragbarkeit nach Art. 20 DSGVO</li>
               <li>Widerspruch nach Art. 21 DSGVO</li>
             </ul>
           </div>
@@ -146,7 +146,7 @@ export default function DatenschutzPage() {
           <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">9. Beschwerderecht</h2>
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>
-              Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehoerde zu beschweren. Zustaendig ist insbesondere:
+              Sie haben das Recht, sich bei einer Datenschutzaufsichtsbehörde zu beschweren. Zuständig ist insbesondere:
             </p>
             <p className="mt-2">{BUSINESS_INFO.supervisoryAuthority}</p>
             <p>

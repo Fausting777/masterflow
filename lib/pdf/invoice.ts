@@ -420,7 +420,7 @@ if (data.client.phone) {
 if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   const paymentLabels: Record<string, string> = {
     cash: 'Barzahlung',
-    transfer: 'Ueberweisung',
+    transfer: 'Überweisung',
     ec_card: 'EC-Karte',
     paypal: 'PayPal',
   };
@@ -457,7 +457,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   }
   if (isOpenTransferInvoice) {
     drawText(
-      `Zahlbar innerhalb von 14 Tagen${dueDate ? `, spaetestens bis ${formatDate(dueDate)}` : ''}.`,
+      `Zahlbar innerhalb von 14 Tagen${dueDate ? `, spätestens bis ${formatDate(dueDate)}` : ''}.`,
       margin,
       regular,
       10,
@@ -465,7 +465,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
     );
     y -= 14;
     drawWrapped(
-      'Hinweis: Es gelten die gesetzlichen Verzugsregeln nach Paragraph 286 BGB. Gegenüber Verbrauchern tritt automatischer Verzug 30 Tage nach Faelligkeit und Zugang dieser Rechnung nur ein, wenn dieser Hinweis in der Rechnung enthalten ist.',
+      'Hinweis: Es gelten die gesetzlichen Verzugsregeln nach § 286 BGB. Gegenüber Verbrauchern tritt automatischer Verzug 30 Tage nach Fälligkeit und Zugang dieser Rechnung nur ein, wenn dieser Hinweis in der Rechnung enthalten ist.',
       margin,
       W - 2 * margin,
       regular,
@@ -486,7 +486,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
 
       let detailsY = qrTop - 18;
       const paymentDetails = [
-        `Empfaenger: ${data.master.company_name || data.master.full_name || '-'}`,
+        `Empfänger: ${data.master.company_name || data.master.full_name || '-'}`,
         `IBAN: ${data.master.iban}`,
         data.master.bic ? `BIC: ${data.master.bic}` : null,
         `Betrag: ${formatEUR(brutto)}`,
@@ -545,11 +545,11 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   if (data.signature) {
   ensureSpace(180);
 
-  drawText('Auftragsbestaetigung / Leistungsbestaetigung', margin, bold, 9, COLORS.text);
+  drawText('Auftragsbestätigung / Leistungsbestätigung', margin, bold, 9, COLORS.text);
   y -= 12;
 
   drawWrapped(
-    'Mit meiner Unterschrift bestaetige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
+    'Mit meiner Unterschrift bestätige ich, dass die oben genannten Leistungen fachgerecht und zu meiner Zufriedenheit erbracht wurden.',
     margin,
     W - 2 * margin,
     regular,

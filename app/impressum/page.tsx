@@ -51,6 +51,13 @@ export default function ImpressumPage() {
         </section>
 
         <section>
+          <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Steuernummer</h2>
+          <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <p>Steuernummer: {BUSINESS_INFO.taxNumber}</p>
+          </div>
+        </section>
+
+        <section>
           <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Umsatzsteuer</h2>
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>{BUSINESS_INFO.vatNote}</p>

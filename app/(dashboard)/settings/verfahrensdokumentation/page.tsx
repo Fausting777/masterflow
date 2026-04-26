@@ -119,7 +119,7 @@ export default function VerfahrensdokumentationPage() {
             8. Datenspeicherung und Backup
           </h2>
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900 space-y-2">
-            <p><span className="font-medium">Primärspeicher:</span> Supabase PostgreSQL-Datenbank, EU-Region (Irland, AWS eu-west-1). Dateien (PDFs, Fotos, Belege) in Supabase Storage.</p>
+            <p><span className="font-medium">Primärspeicher:</span> Supabase PostgreSQL-Datenbank, EU-Region (Frankfurt, AWS eu-central-1). Dateien (PDFs, Fotos, Belege) in Supabase Storage.</p>
             <p><span className="font-medium">Backup:</span> Supabase erstellt automatisch tägliche Point-in-Time-Backups der Datenbank. Für den Pro-Plan sind Backups 7 Tage verfügbar, für höhere Pläne länger.</p>
             <p><span className="font-medium">Zusätzlicher Export:</span> CSV-Export aller Rechnungen, Ausgaben und des Audit Trails ist jederzeit über Einstellungen → Export möglich. Diese Exporte sollten regelmäßig heruntergeladen und an einem sicheren Ort aufbewahrt werden.</p>
             <p><span className="font-medium">Aufbewahrung:</span> Rechnungen und steuerlich relevante Unterlagen mindestens 8 Jahre gemäß § 14b UStG und § 147 AO. Sonstige Geschäftsdaten nach § 257 HGB.</p>
@@ -159,7 +159,7 @@ export default function VerfahrensdokumentationPage() {
                 <tr className="border-b border-neutral-100 dark:border-neutral-800">
                   <td className="py-2 pr-4">Supabase</td>
                   <td className="py-2 pr-4">Datenbank, Auth, Dateispeicher</td>
-                  <td className="py-2">Irland / EU (AWS eu-west-1)</td>
+                  <td className="py-2">Deutschland / EU (AWS eu-central-1, Frankfurt)</td>
                 </tr>
                 <tr className="border-b border-neutral-100 dark:border-neutral-800">
                   <td className="py-2 pr-4">Resend</td>

@@ -186,7 +186,7 @@ export default function ProfileForm({ initial }: Props) {
             style={{ accentColor: '#2563eb' }}
           />
           <div className="flex-1">
-            <div className="text-sm font-medium">Kleinunternehmer (Paragraf 19 UStG)</div>
+            <div className="text-sm font-medium">Kleinunternehmer (§ 19 UStG)</div>
             <div className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{t.profileForm.kleinunternehmerHint}</div>
           </div>
         </label>

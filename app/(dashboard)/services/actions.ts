@@ -27,7 +27,7 @@ function getTexts(locale: 'ru' | 'de') {
       csrfError: 'CSRF validation failed',
       unauthorized: 'Nicht autorisiert',
       genericError: 'Fehler',
-      deleteError: 'Fehler beim Loeschen',
+      deleteError: 'Fehler beim Löschen',
     };
   }
 

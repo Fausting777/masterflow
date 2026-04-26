@@ -8,7 +8,7 @@ export default async function NewClientPage() {
   const text =
     locale === 'de'
       ? {
-          back: 'Zurueck zur Liste',
+          back: 'Zurück zur Liste',
           title: 'Neuer Kunde',
           submit: 'Kunden erstellen',
         }

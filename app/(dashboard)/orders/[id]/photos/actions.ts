@@ -20,7 +20,7 @@ async function getMessages() {
         invalidFileType: 'Nur JPEG, PNG und WebP sind erlaubt',
         unauthorized: 'Nicht autorisiert',
         orderNotFound: 'Auftrag nicht gefunden',
-        locked: 'Nach der Rechnungsausstellung koennen PDF-relevante Fotos nicht mehr geaendert werden',
+        locked: 'Nach der Rechnungsausstellung können PDF-relevante Fotos nicht mehr geaendert werden',
         uploadError: 'Upload-Fehler',
         dbError: 'Datenbank-Fehler',
         photoNotFound: 'Foto nicht gefunden',

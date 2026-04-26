@@ -17,7 +17,7 @@ export default async function NewOrderPage() {
   const text =
     locale === 'de'
       ? {
-          back: 'Zurueck zur Liste',
+          back: 'Zurück zur Liste',
           title: 'Neuer Auftrag',
           submit: 'Auftrag erstellen',
         }

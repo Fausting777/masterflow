@@ -46,8 +46,8 @@ export default function SumupPaymentLinker({
           title: 'SumUp Zahlung',
           linked: 'Verknuepfte SumUp Zahlung',
           noCandidates:
-            'Keine nicht verknuepften SumUp Zahlungen gefunden. Importiere zuerst Transaktionen in den SumUp Einstellungen.',
-          selectPayment: 'Zahlung auswaehlen',
+            'Keine nicht verknüpften SumUp Zahlungen gefunden. Importiere zuerst Transaktionen in den SumUp Einstellungen.',
+          selectPayment: 'Zahlung auswählen',
           methodLabel: 'Wie wurde in SumUp bezahlt?',
           methodCash: 'Barzahlung',
           methodCard: 'EC-Karte',

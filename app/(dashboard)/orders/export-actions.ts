@@ -55,10 +55,10 @@ export async function exportOrdersCsvAction(
     locale === 'de'
       ? {
           unauthorized: 'Nicht autorisiert',
-          empty: 'Keine Auftraege in der aktuellen Auswahl',
+          empty: 'Keine Aufträge in der aktuellen Auswahl',
           yes: 'Ja',
           no: 'Nein',
-          filename: 'Auftraege',
+          filename: 'Aufträge',
           filterAll: 'alle',
           filterWith: 'mit-quittung',
           filterWithout: 'ohne-quittung',
@@ -156,7 +156,7 @@ export async function exportOrdersCsvAction(
     'Status',
     'Effektives Datum',
     'Leistungsdatum',
-    'Geplant fuer',
+    'Geplant für',
     'Abgeschlossen am',
     'Zahlungsart',
     'Bezahlt am',

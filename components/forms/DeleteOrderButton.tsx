@@ -13,7 +13,7 @@ export default function DeleteOrderButton({ orderId }: { orderId: string }) {
     locale === 'de'
       ? {
           confirm:
-            'Auftrag in den Papierkorb verschieben? Er kann spaeter wiederhergestellt werden.',
+            'Auftrag in den Papierkorb verschieben? Er kann später wiederhergestellt werden.',
           genericError: 'Fehler',
           deleting: 'Wird verschoben...',
           delete: 'Auftrag in den Papierkorb',

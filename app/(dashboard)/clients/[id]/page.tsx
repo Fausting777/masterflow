@@ -27,7 +27,7 @@ export default async function ClientPage({
   const text =
     locale === 'de'
       ? {
-          back: 'Zurueck zur Liste',
+          back: 'Zurück zur Liste',
           editTitle: 'Kunden bearbeiten',
           save: 'Speichern',
           edit: 'Bearbeiten',

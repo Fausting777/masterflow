@@ -13,7 +13,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const { t, locale } = useI18n();
-  const deleteForeverLabel = locale === 'de' ? 'Endgueltig loeschen' : 'Удалить навсегда';
+  const deleteForeverLabel = locale === 'de' ? 'Endgueltig löschen' : 'Удалить навсегда';
   const confirmDeleteForever =
     locale === 'de'
       ? 'Soll diese Ausgabe endgueltig geloescht werden?'

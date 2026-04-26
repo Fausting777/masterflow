@@ -26,7 +26,7 @@ const FIELD_LABELS: Record<string, { ru: string; de: string }> = {
   invoice_snapshot_json: { ru: 'snapshot счёта', de: 'Rechnungs-Snapshot' },
   invoice_version: { ru: 'версия счёта', de: 'Rechnungsversion' },
   order_address: { ru: 'адрес работы', de: 'Arbeitsadresse' },
-  order_id: { ru: 'связанный заказ', de: 'verknuepfter Auftrag' },
+  order_id: { ru: 'связанный заказ', de: 'verknüpfter Auftrag' },
   payment_method: { ru: 'способ оплаты', de: 'Zahlungsart' },
   pdf_file_path: { ru: 'PDF-файл', de: 'PDF-Datei' },
   receipt_file_path: { ru: 'чек', de: 'Beleg' },

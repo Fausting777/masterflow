@@ -45,9 +45,9 @@ async function getActionMessages() {
   return locale === 'de'
     ? {
         unauthorized: 'Nicht autorisiert',
-        foreignOrder: 'Diese Ausgabe kann nicht mit einem fremden Auftrag verknuepft werden',
+        foreignOrder: 'Diese Ausgabe kann nicht mit einem fremden Auftrag verknüpft werden',
         foreignSumup: 'Diese SumUp-Transaktion ist nicht verfuegbar',
-        sumupAlreadyLinked: 'Diese SumUp-Transaktion ist bereits mit einer anderen Ausgabe verknuepft',
+        sumupAlreadyLinked: 'Diese SumUp-Transaktion ist bereits mit einer anderen Ausgabe verknüpft',
         createError: 'Fehler beim Erstellen',
         updateError: 'Fehler',
         uploadLog: 'Fehler beim Hochladen des Belegs:',

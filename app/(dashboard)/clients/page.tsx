@@ -18,7 +18,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Sear
           new: 'Neu',
           searchPlaceholder: 'Suche nach Name oder Telefon...',
           loadError: 'Fehler beim Laden',
-          emptySearch: 'Nichts gefunden fuer die Suche',
+          emptySearch: 'Nichts gefunden für die Suche',
           emptyDefault: 'Noch keine Kunden.',
           addFirst: 'Ersten hinzufuegen',
         }

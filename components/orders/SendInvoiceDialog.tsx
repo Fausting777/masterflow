@@ -44,14 +44,14 @@ export default function SendInvoiceDialog({
           successIcon: 'OK',
           defaultSubject: invoiceNumber
             ? `Rechnung ${invoiceNumber}`
-            : 'Rechnung fuer erbrachte Leistung',
+            : 'Rechnung für erbrachte Leistung',
           defaultBody: `Sehr geehrte/r ${clientName},
 
-anbei finden Sie die Rechnung fuer die erbrachte Leistung.
+anbei finden Sie die Rechnung für die erbrachte Leistung.
 
 Bei Fragen melden Sie sich bitte gerne bei mir.
 
-Mit freundlichen Gruessen
+Mit freundlichen Grüßen
 ${masterName}`,
         }
       : {

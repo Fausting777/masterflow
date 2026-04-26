@@ -12,9 +12,9 @@ export default function DeleteClientButton({ clientId }: { clientId: string }) {
   const text =
     locale === 'de'
       ? {
-          confirm: 'Kunden loeschen? Dieser Schritt kann nicht rueckgaengig gemacht werden.',
+          confirm: 'Kunden löschen? Dieser Schritt kann nicht rueckgaengig gemacht werden.',
           deleting: 'Wird geloescht...',
-          delete: 'Kunden loeschen',
+          delete: 'Kunden löschen',
           genericError: 'Unbekannter Fehler',
         }
       : {

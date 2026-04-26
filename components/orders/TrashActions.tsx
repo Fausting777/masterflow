@@ -24,14 +24,14 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
           genericError: 'Fehler',
           restoreLoading: 'Wird wiederhergestellt...',
           restore: 'Wiederherstellen',
-          deleteForever: 'Endgueltig loeschen',
-          deleteDisabledTitle: 'Nicht moeglich: Rechnung wurde bereits erstellt',
+          deleteForever: 'Endgueltig löschen',
+          deleteDisabledTitle: 'Nicht möglich: Rechnung wurde bereits erstellt',
           invoiceLocked:
-            'Auftraege mit Rechnung bleiben als Buchhaltungsdokument erhalten. Der Papierkorb blendet sie nur in der Oberflaeche aus.',
+            'Aufträge mit Rechnung bleiben als Buchhaltungsdokument erhalten. Der Papierkorb blendet sie nur in der Oberflaeche aus.',
           deleteHint:
-            'Auftraege ohne Rechnung koennen erst nach Verschiebung in den Papierkorb und anschliessender bestaetigter Loeschung entfernt werden.',
+            'Aufträge ohne Rechnung können erst nach Verschiebung in den Papierkorb und anschließender bestaetigter Loeschung entfernt werden.',
           permanentDeleteConfirm:
-            'Auftrag mit allen Fotos und Dateien endgueltig loeschen?\n\nDieser Schritt kann nicht rueckgaengig gemacht werden.',
+            'Auftrag mit allen Fotos und Dateien endgueltig löschen?\n\nDieser Schritt kann nicht rueckgaengig gemacht werden.',
         }
       : {
           restoreConfirm: 'Восстановить заказ из корзины?',

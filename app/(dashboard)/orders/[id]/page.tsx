@@ -236,7 +236,7 @@ export default async function OrderPage({
           editLocked:
             'Die Bearbeitung dieses Auftrags ist deaktiviert: Die Rechnung wurde bereits erstellt und die Originaldaten sind fixiert.',
           invoiceLocked:
-            'Dieser Auftrag befindet sich im Archivmodus der Rechnung. Ursprungsdaten, Unterschrift und Fotos koennen nicht mehr normal bearbeitet werden.',
+            'Dieser Auftrag befindet sich im Archivmodus der Rechnung. Ursprungsdaten, Unterschrift und Fotos können nicht mehr normal bearbeitet werden.',
           correctionOfInvoice: 'Dies ist eine Korrektur zur Rechnung',
           invoiceNumber: 'Rechnungsnummer',
           invoiceSent: 'Rechnung versendet',

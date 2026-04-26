@@ -44,7 +44,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
   const text =
     locale === 'de'
       ? {
-          back: 'Zurueck zum Dashboard',
+          back: 'Zurück zum Dashboard',
           title: 'Statistik',
           previous: 'vs. vorher',
           revenue: 'Umsatz',
@@ -66,11 +66,11 @@ export default async function StatsPage({ searchParams }: { searchParams: Search
           byRevenue: 'nach Umsatz',
           noData: 'Keine Daten',
           topServices: 'Top-Leistungen',
-          byFrequency: 'nach Haeufigkeit',
+          byFrequency: 'nach Häufigkeit',
           jobs: 'Jobs',
-          notes1: 'Im Umsatz zaehlen nur Auftraege mit ausgestellter Rechnung.',
+          notes1: 'Im Umsatz zaehlen nur Aufträge mit ausgestellter Rechnung.',
           notes2:
-            'Alle Kennzahlen beziehen sich primaer auf das Leistungsdatum. Wenn es fehlt, wird das Erstellungsdatum des Auftrags verwendet.',
+            'Alle Kennzahlen beziehen sich primär auf das Leistungsdatum. Wenn es fehlt, wird das Erstellungsdatum des Auftrags verwendet.',
           notes3: 'Der Indikator vergleicht mit dem vorherigen passenden Zeitraum.',
           of: 'von',
           showing: 'Es werden 10',

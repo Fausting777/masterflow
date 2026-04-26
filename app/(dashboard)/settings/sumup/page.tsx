@@ -45,7 +45,7 @@ export default async function SumupSettingsPage() {
   const text =
     locale === 'de'
       ? {
-          back: 'Zurueck zu Einstellungen',
+          back: 'Zurück zu Einstellungen',
           title: 'SumUp Integration',
           subtitle:
             'Verbinde deinen SumUp Account, importiere Zahlungen und verknuepfe sie danach mit Auftraegen.',
@@ -56,16 +56,16 @@ export default async function SumupSettingsPage() {
           lastSync: 'Letzte Synchronisation',
           never: 'Noch nie',
           disconnect: 'Verbindung entfernen',
-          importedPayments: 'Nicht verknuepfte SumUp Zahlungen',
+          importedPayments: 'Nicht verknüpfte SumUp Zahlungen',
           noPayments:
-            'Noch keine nicht verknuepften SumUp Zahlungen. Importiere Transaktionen oder pruefe spaeter erneut.',
+            'Noch keine nicht verknüpften SumUp Zahlungen. Importiere Transaktionen oder pruefe später erneut.',
           transaction: 'Transaktion',
           receipt: 'Beleg',
           status: 'Status',
           paidAt: 'Bezahlt am',
           nextStepTitle: 'So funktioniert es',
           nextStepText:
-            'Gib nur den SumUp Access Token ein. Merchant Code wird automatisch erkannt und danach fuer den Import der Transaktionen verwendet.',
+            'Gib nur den SumUp Access Token ein. Merchant Code wird automatisch erkannt und danach für den Import der Transaktionen verwendet.',
         }
       : {
           back: '\u041d\u0430\u0437\u0430\u0434 \u043a \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430\u043c',

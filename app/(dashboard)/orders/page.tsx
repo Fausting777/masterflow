@@ -42,7 +42,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   const text =
     locale === 'de'
       ? {
-          title: 'Auftraege',
+          title: 'Aufträge',
           trash: 'Papierkorb',
           new: 'Neu',
           all: 'Alle',
@@ -50,19 +50,19 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           withoutInvoice: 'Ohne Rechnung',
           sent: 'Versendet',
           month: 'Monat',
-          chooseMonth: 'Monat waehlen',
+          chooseMonth: 'Monat wählen',
           apply: 'Anwenden',
           resetMonth: 'Monatsfilter entfernen',
           currentSelection: 'Aktuelle Auswahl',
-          totalOrders: 'Gesamtauftraege',
+          totalOrders: 'Gesamtaufträge',
           invoicedOrders: 'Mit Rechnung',
           openOrders: 'Ohne Rechnung',
           totalAmount: 'Gesamtsumme',
           amountHint: 'Summe aller Preise in der aktuellen Auswahl',
           error: 'Fehler',
-          emptyDefault: 'Noch keine Auftraege.',
+          emptyDefault: 'Noch keine Aufträge.',
           createFirst: 'Ersten Auftrag erstellen',
-          emptyFilter: 'Keine Auftraege fuer diesen Filter',
+          emptyFilter: 'Keine Aufträge für diesen Filter',
           monthSummaryPrefix: 'Zeitraum',
         }
       : {

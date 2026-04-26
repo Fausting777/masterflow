@@ -379,7 +379,7 @@ if (data.client.phone) {
     });
     y -= 12;
     drawText(
-      'Gemaess Paragraf 19 UStG wird keine Umsatzsteuer berechnet.',
+      'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.',
       margin + 10,
       regular,
       9,
@@ -387,7 +387,7 @@ if (data.client.phone) {
     );
     y -= 10;
     drawText(
-      'Kleinunternehmer-Regelung nach Paragraf 19 Abs. 1 UStG.',
+      'Kleinunternehmer-Regelung nach § 19 Abs. 1 UStG.',
       margin + 10,
       regular,
       8,
@@ -465,7 +465,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
     );
     y -= 14;
     drawWrapped(
-      'Hinweis: Es gelten die gesetzlichen Verzugsregeln nach Paragraph 286 BGB. Gegenueber Verbrauchern tritt automatischer Verzug 30 Tage nach Faelligkeit und Zugang dieser Rechnung nur ein, wenn dieser Hinweis in der Rechnung enthalten ist.',
+      'Hinweis: Es gelten die gesetzlichen Verzugsregeln nach Paragraph 286 BGB. Gegenüber Verbrauchern tritt automatischer Verzug 30 Tage nach Faelligkeit und Zugang dieser Rechnung nur ein, wenn dieser Hinweis in der Rechnung enthalten ist.',
       margin,
       W - 2 * margin,
       regular,
@@ -480,7 +480,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
       const qrY = qrTop - qrSize;
       const detailsX = margin + qrSize + 18;
 
-      drawText('QR-Code fuer Banking-App:', margin, bold, 10, COLORS.text);
+      drawText('QR-Code für Banking-App:', margin, bold, 10, COLORS.text);
       y -= 14;
       page.drawImage(qrImage, { x: margin, y: qrY, width: qrSize, height: qrSize });
 
@@ -559,7 +559,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
   );
 
   drawWrapped(
-    'Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemaess der vereinbarten Zahlungsart.',
+    'Ich erkenne den Rechnungsbetrag an und verpflichte mich zur Zahlung gemäß der vereinbarten Zahlungsart.',
     margin,
     W - 2 * margin,
     regular,
@@ -671,7 +671,7 @@ if (data.order.payment_method || data.order.paid_at || data.order.sumup) {
     const middle = [
       data.master.tax_number ? `Steuernummer: ${data.master.tax_number}` : null,
       data.master.vat_id ? `USt-IdNr.: ${data.master.vat_id}` : null,
-      data.master.is_kleinunternehmer ? 'Kleinunternehmer (Paragraf 19 UStG)' : null,
+      data.master.is_kleinunternehmer ? 'Kleinunternehmer (§ 19 UStG)' : null,
     ].filter(Boolean);
 
     p.drawText('Steuer', { x: margin + colW, y: footerY + 36, font: bold, size: 7, color: COLORS.text });

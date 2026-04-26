@@ -81,7 +81,7 @@ export default async function SettingsPage() {
         </h2>
         <p className="mt-1 text-sm text-neutral-500">
           {locale === 'de'
-            ? 'Verbinde SumUp, um Zahlungen spaeter mit Auftraegen zu verknuepfen.'
+            ? 'Verbinde SumUp, um Zahlungen später mit Auftraegen zu verknuepfen.'
             : 'Подключи SumUp, чтобы позже привязывать оплаты к заказам.'}
         </p>
         <Link

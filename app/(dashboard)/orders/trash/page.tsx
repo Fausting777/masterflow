@@ -10,20 +10,20 @@ export default async function TrashPage() {
   const text =
     locale === 'de'
       ? {
-          back: 'Zurueck zu den Auftraegen',
-          title: 'Papierkorb der Auftraege',
+          back: 'Zurück zu den Auftraegen',
+          title: 'Papierkorb der Aufträge',
           countSuffix: 'Stk.',
           archiveTitle: 'Archivierte Dokumente',
           archiveText:
-            'Auftraege mit Rechnung duerfen nicht spurlos geloescht werden. In diesem Bereich bleiben sie nur ausgeblendet erhalten.',
+            'Aufträge mit Rechnung dürfen nicht spurlos geloescht werden. In diesem Bereich bleiben sie nur ausgeblendet erhalten.',
           noInvoiceText:
-            'Auftraege ohne Rechnung koennen nach einer Pruefung spaeter bereinigt werden. Dieser Bereich entfernt sie jedoch nicht automatisch.',
+            'Aufträge ohne Rechnung können nach einer Prüfung später bereinigt werden. Dieser Bereich entfernt sie jedoch nicht automatisch.',
           error: 'Fehler',
           empty: 'Papierkorb ist leer',
           noInvoice: 'Ohne Rechnung',
           hiddenAt: 'Versteckt',
           archivedNote: 'Dokument bleibt wegen Rechnung im Archiv',
-          laterCleanup: 'Kann nach Pruefung spaeter bereinigt werden',
+          laterCleanup: 'Kann nach Prüfung später bereinigt werden',
         }
       : {
           back: '\u041d\u0430\u0437\u0430\u0434 \u043a \u0437\u0430\u043a\u0430\u0437\u0430\u043c',

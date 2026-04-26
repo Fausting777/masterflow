@@ -13,7 +13,7 @@ export default async function SignaturePage({ params }: { params: Params }) {
   const text =
     locale === 'de'
       ? {
-          back: 'Zurueck zum Auftrag',
+          back: 'Zurück zum Auftrag',
           title: 'Kundenunterschrift',
           introTitle: 'Auftragsbestaetigung / Leistungsbestaetigung',
           introLine1:

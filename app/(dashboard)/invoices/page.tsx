@@ -59,7 +59,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           summaryTitle: 'Rechnungen in der aktuellen Auswahl',
           total: 'Gesamt',
           error: 'Fehler',
-          emptySearch: 'Nichts gefunden fuer die Suche',
+          emptySearch: 'Nichts gefunden für die Suche',
           emptyPeriod: 'Keine ausgestellten Rechnungen in diesem Zeitraum',
           number: 'Nummer',
           date: 'Datum',
@@ -73,7 +73,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           export: 'CSV exportieren',
         }
       : {
-          title: 'Рechnungen',
+          title: 'Счета',
           month: 'Месяц',
           quarter: 'Квартал',
           year: 'Год',

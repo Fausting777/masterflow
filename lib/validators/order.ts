@@ -37,7 +37,7 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
   const hasQuickName = data.client_quick_name.trim().length > 0;
 
   if (!hasClientId && !hasQuickName) {
-    errors.client_id = 'Bitte Kunden auswaehlen oder neuen Namen eingeben';
+    errors.client_id = 'Bitte Kunden auswählen oder neuen Namen eingeben';
   }
   if (hasQuickName && data.client_quick_name.trim().length > 200) {
     errors.client_quick_name = 'Kundenname ist zu lang';
@@ -53,7 +53,7 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
       }
       const price = parsePriceInput(item.price);
       if (price === null) {
-        errors.items = 'Ungueltiger Preis fuer eine Leistung';
+        errors.items = 'Ungueltiger Preis für eine Leistung';
         break;
       }
       if (item.description.length > 2000) {
@@ -92,7 +92,7 @@ export function validateOrder(data: OrderInput): OrderValidationErrors {
   }
 
   if (data.payment_provider && !['cash', 'ec_card'].includes(data.payment_method)) {
-    errors.payment_provider = 'Zahlungsanbieter ist nur fuer Bar- oder Kartenzahlung';
+    errors.payment_provider = 'Zahlungsanbieter ist nur für Bar- oder Kartenzahlung';
   }
 
   if (data.paid_at && Number.isNaN(Date.parse(data.paid_at))) {

@@ -21,14 +21,7 @@ export default async function AuthLayout({
           {children}
         </div>
       </div>
-      <footer className="mt-8 flex gap-4 text-xs text-neutral-400 dark:text-neutral-600">
-        <Link href="/impressum" className="hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors">
-          Impressum
-        </Link>
-        <Link href="/datenschutz" className="hover:text-neutral-600 dark:hover:text-neutral-400 transition-colors">
-          Datenschutz
-        </Link>
-      </footer>
+      {/* footer links hidden */}
     </div>
   );
 }

@@ -67,20 +67,7 @@ export default async function RootLayout({
                 <div className="rounded-full border border-neutral-200 bg-white px-2 py-1 dark:border-neutral-700 dark:bg-neutral-800">
                   <LanguageSwitcher />
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
-                  <Link
-                    href="/impressum"
-                    className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
-                  >
-                    {t.footer.impressum}
-                  </Link>
-                  <Link
-                    href="/datenschutz"
-                    className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
-                  >
-                    {t.footer.privacy}
-                  </Link>
-                </div>
+                {/* legal links hidden */}
               </div>
             </div>
           </footer>

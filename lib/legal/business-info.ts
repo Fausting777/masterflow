@@ -9,7 +9,7 @@ export const BUSINESS_INFO = {
   phone: '+49 175 5328 410',
   email: 'info@berlin-retter.de',
   website: 'https://berlin-retter.de',
-  taxNumber: 'TODO: Steuernummer eintragen (z.\u202fB.\u00a034/123/12345)',
+  taxNumber: 25/417/00339,
   vatNote: 'Als Kleinunternehmer gemäß § 19 Abs.\u00a01 UStG wird keine Umsatzsteuer ausgewiesen.',
   supervisoryAuthority: 'Berliner Beauftragte für Datenschutz und Informationsfreiheit',
   supervisoryAuthorityUrl: 'https://www.datenschutz-berlin.de/',

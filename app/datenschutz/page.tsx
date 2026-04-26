@@ -40,12 +40,12 @@ export default function DatenschutzPage() {
         <section>
           <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">2. Zweck der Verarbeitung</h2>
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <p>Diese Anwendung verarbeitet personenbezogene Daten, um Kunden-, Auftrags-, Quittungs- und Ausgabenprozesse zu verwalten.</p>
+            <p>Diese Anwendung verarbeitet personenbezogene Daten, um Kunden-, Auftrags-, Rechnungs- und Ausgabenprozesse zu verwalten.</p>
             <p className="mt-2">Dazu gehoeren insbesondere:</p>
             <ul className="mt-2 list-disc pl-5">
               <li>Benutzerkonto und Authentifizierung</li>
               <li>Kunden- und Auftragsverwaltung</li>
-              <li>Erstellung, Korrektur, Archivierung und Versand von Quittungen</li>
+              <li>Erstellung, Korrektur, Archivierung und Versand von Rechnungen</li>
               <li>Verwaltung von Ausgaben, Belegen, Fotos und Signaturen</li>
               <li>Dokumentation von Aenderungen und sicherheitsrelevanten Aktionen</li>
             </ul>
@@ -57,9 +57,9 @@ export default function DatenschutzPage() {
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <ul className="list-disc pl-5">
               <li>Bestandsdaten wie Name, Anschrift, Telefonnummer und E-Mail-Adresse</li>
-              <li>Quittungs- und Leistungsdaten</li>
+              <li>Rechnungs- und Leistungsdaten</li>
               <li>Zahlungsinformationen wie Zahlungsart, jedoch keine eigene Zahlungsabwicklung in der App</li>
-              <li>Dateien wie Quittungs-PDFs, Belegfotos, Einsatzfotos und Unterschriften</li>
+              <li>Dateien wie Rechnungs-PDFs, Belegfotos, Einsatzfotos und Unterschriften</li>
               <li>Protokolldaten zu Freigaben, Versand, Korrekturen und gesperrten Aenderungsversuchen</li>
               <li>Technische Daten fuer Session, Sicherheit und Zugriffsschutz</li>
             </ul>
@@ -83,7 +83,7 @@ export default function DatenschutzPage() {
             <p>Zur technischen Bereitstellung und fuer einzelne Funktionen koennen folgende Dienstleister eingesetzt werden:</p>
             <ul className="mt-2 list-disc pl-5">
               <li>Supabase (Irland/USA) fuer Datenbank, Authentifizierung und Dateispeicher</li>
-              <li>Resend (USA) fuer den Versand von Quittungen per E-Mail</li>
+              <li>Resend (USA) fuer den Versand von Rechnungen per E-Mail</li>
               <li>SumUp (Irland) fuer die Zahlungsabwicklung und Speicherung von Transaktionsdaten (Betrag, Zahlungsart, Transaktionscode, Belegnummer)</li>
             </ul>
             <p className="mt-2">Eine Weitergabe erfolgt nur, soweit sie zur Bereitstellung der Anwendung oder zur Erfuellung gesetzlicher Pflichten erforderlich ist. Mit allen Auftragsverarbeitern bestehen oder werden Auftragsverarbeitungsvertraege gemaess Art. 28 DSGVO geschlossen.</p>
@@ -94,12 +94,12 @@ export default function DatenschutzPage() {
           <h2 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">6. Speicherdauer</h2>
           <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
             <p>
-              Quittungen, Quittungssnapshots, Korrekturen, versandbezogene Nachweise sowie steuerlich relevante Belege
+              Rechnungen, Rechnungssnapshots, Korrekturen, versandbezogene Nachweise sowie steuerlich relevante Belege
               werden nicht nur nach betrieblichem Bedarf, sondern auch zur Erfuellung gesetzlicher Aufbewahrungspflichten
               gespeichert.
             </p>
             <p className="mt-2">
-              Fuer Quittungen und steuerlich relevante Unterlagen gilt regelmaessig eine Aufbewahrung von mindestens 8 Jahren
+              Fuer Rechnungen und steuerlich relevante Unterlagen gilt regelmaessig eine Aufbewahrung von mindestens 8 Jahren
               gemaess Paragraf 14b UStG und Paragraf 147 AO. Laengere Aufbewahrung kann erforderlich sein, wenn steuerliche
               oder rechtliche Gruende dies verlangen.
             </p>

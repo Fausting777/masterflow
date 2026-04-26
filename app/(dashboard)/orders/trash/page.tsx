@@ -15,14 +15,14 @@ export default async function TrashPage() {
           countSuffix: 'Stk.',
           archiveTitle: 'Archivierte Dokumente',
           archiveText:
-            'Auftraege mit Quittung duerfen nicht spurlos geloescht werden. In diesem Bereich bleiben sie nur ausgeblendet erhalten.',
+            'Auftraege mit Rechnung duerfen nicht spurlos geloescht werden. In diesem Bereich bleiben sie nur ausgeblendet erhalten.',
           noInvoiceText:
-            'Auftraege ohne Quittung koennen nach einer Pruefung spaeter bereinigt werden. Dieser Bereich entfernt sie jedoch nicht automatisch.',
+            'Auftraege ohne Rechnung koennen nach einer Pruefung spaeter bereinigt werden. Dieser Bereich entfernt sie jedoch nicht automatisch.',
           error: 'Fehler',
           empty: 'Papierkorb ist leer',
-          noInvoice: 'Ohne Quittung',
+          noInvoice: 'Ohne Rechnung',
           hiddenAt: 'Versteckt',
-          archivedNote: 'Dokument bleibt wegen Quittung im Archiv',
+          archivedNote: 'Dokument bleibt wegen Rechnung im Archiv',
           laterCleanup: 'Kann nach Pruefung spaeter bereinigt werden',
         }
       : {

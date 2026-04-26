@@ -13,7 +13,7 @@ export default function CreateCorrectionButton({ orderId }: { orderId: string })
     locale === 'de'
       ? {
           confirm:
-            'Soll ein separater Korrekturentwurf zu dieser Quittung erstellt werden?',
+            'Soll ein separater Korrekturentwurf zu dieser Rechnung erstellt werden?',
           genericError: 'Fehler',
           creating: 'Wird erstellt...',
           create: 'Korrektur erstellen',

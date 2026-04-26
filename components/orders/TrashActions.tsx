@@ -25,11 +25,11 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
           restoreLoading: 'Wird wiederhergestellt...',
           restore: 'Wiederherstellen',
           deleteForever: 'Endgueltig loeschen',
-          deleteDisabledTitle: 'Nicht moeglich: Quittung wurde bereits erstellt',
+          deleteDisabledTitle: 'Nicht moeglich: Rechnung wurde bereits erstellt',
           invoiceLocked:
-            'Auftraege mit Quittung bleiben als Buchhaltungsdokument erhalten. Der Papierkorb blendet sie nur in der Oberflaeche aus.',
+            'Auftraege mit Rechnung bleiben als Buchhaltungsdokument erhalten. Der Papierkorb blendet sie nur in der Oberflaeche aus.',
           deleteHint:
-            'Auftraege ohne Quittung koennen erst nach Verschiebung in den Papierkorb und anschliessender bestaetigter Loeschung entfernt werden.',
+            'Auftraege ohne Rechnung koennen erst nach Verschiebung in den Papierkorb und anschliessender bestaetigter Loeschung entfernt werden.',
           permanentDeleteConfirm:
             'Auftrag mit allen Fotos und Dateien endgueltig loeschen?\n\nDieser Schritt kann nicht rueckgaengig gemacht werden.',
         }
@@ -39,11 +39,11 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
           restoreLoading: 'Восстановление...',
           restore: 'Восстановить',
           deleteForever: 'Удалить навсегда',
-          deleteDisabledTitle: 'Нельзя: квитанция уже создана',
+          deleteDisabledTitle: 'Нельзя: счёт уже создан',
           invoiceLocked:
-            'Заказы с квитанцией хранятся как бухгалтерские документы. Корзина только скрывает их из интерфейса.',
+            'Заказы со счётом хранятся как бухгалтерские документы. Корзина только скрывает их из интерфейса.',
           deleteHint:
-            'Заказы без квитанции можно удалить только после перемещения в корзину и подтвержденного окончательного удаления.',
+            'Заказы без счёта можно удалить только после перемещения в корзину и подтверждённого окончательного удаления.',
           permanentDeleteConfirm:
             'Удалить заказ со всеми фото и файлами навсегда?\n\nЭто действие нельзя отменить.',
         };

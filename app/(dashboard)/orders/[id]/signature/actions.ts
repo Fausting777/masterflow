@@ -18,7 +18,7 @@ async function getMessages() {
         invalidType: 'Die Unterschrift muss eine PNG-Datei sein',
         unauthorized: 'Nicht autorisiert',
         orderNotFound: 'Auftrag nicht gefunden',
-        locked: 'Nach der Quittungsausgabe darf die Unterschrift des Archivdokuments nicht mehr geaendert werden',
+        locked: 'Nach der Rechnungsausstellung darf die Unterschrift des Archivdokuments nicht mehr geaendert werden',
         uploadError: 'Upload-Fehler',
       }
     : {
@@ -28,7 +28,7 @@ async function getMessages() {
         invalidType: 'Подпись должна быть PNG-файлом',
         unauthorized: 'Нет авторизации',
         orderNotFound: 'Заказ не найден',
-        locked: 'После выдачи квитанции нельзя менять подпись архивного документа',
+        locked: 'После выставления счёта нельзя менять подпись архивного документа',
         uploadError: 'Ошибка загрузки',
       };
 }

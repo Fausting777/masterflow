@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'MasterFlow - приложение для мастеров',
     short_name: 'MasterFlow',
-    description: 'Заказы, клиенты, фото, PDF-квитанции',
+    description: 'Заказы, клиенты, фото, PDF-Rechnungen',
     start_url: '/dashboard',
     display: 'standalone',
     background_color: '#ffffff',

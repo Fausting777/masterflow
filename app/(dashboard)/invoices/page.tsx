@@ -49,18 +49,18 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
   const text =
     locale === 'de'
       ? {
-          title: 'Quittungen',
+          title: 'Rechnungen',
           month: 'Monat',
           quarter: 'Quartal',
           year: 'Jahr',
           allTime: 'Alles',
-          periodDesc: 'Alle ausgestellten Quittungen im Zeitraum',
-          searchPlaceholder: 'Freie Suche nach Quittungsnummer, Kunde, Leistung oder Betrag...',
-          summaryTitle: 'Quittungen in der aktuellen Auswahl',
+          periodDesc: 'Alle ausgestellten Rechnungen im Zeitraum',
+          searchPlaceholder: 'Freie Suche nach Rechnungsnummer, Kunde, Leistung oder Betrag...',
+          summaryTitle: 'Rechnungen in der aktuellen Auswahl',
           total: 'Gesamt',
           error: 'Fehler',
           emptySearch: 'Nichts gefunden fuer die Suche',
-          emptyPeriod: 'Keine ausgestellten Quittungen in diesem Zeitraum',
+          emptyPeriod: 'Keine ausgestellten Rechnungen in diesem Zeitraum',
           number: 'Nummer',
           date: 'Datum',
           client: 'Kunde',
@@ -69,22 +69,22 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           sentAt: 'Versendet',
           correction: 'Korrektur',
           archiveNote:
-            'Archivquittungen werden aus dem Snapshot zum Zeitpunkt der Ausstellung angezeigt. Korrekturen werden als separate Dokumente angezeigt und ersetzen nicht die urspruengliche Quittung.',
+            'Archivierte Rechnungen werden aus dem Snapshot zum Zeitpunkt der Ausstellung angezeigt. Korrekturen werden als separate Dokumente angezeigt und ersetzen nicht die urspruengliche Rechnung.',
           export: 'CSV exportieren',
         }
       : {
-          title: 'Квитанции',
+          title: 'Рechnungen',
           month: 'Месяц',
           quarter: 'Квартал',
           year: 'Год',
           allTime: 'Все',
-          periodDesc: 'Все выставленные квитанции за период',
-          searchPlaceholder: 'Поиск по номеру квитанции, клиенту, услуге или сумме...',
-          summaryTitle: 'Квитанции в текущей выборке',
+          periodDesc: 'Все выставленные счета за период',
+          searchPlaceholder: 'Поиск по номеру счёта, клиенту, услуге или сумме...',
+          summaryTitle: 'Счета в текущей выборке',
           total: 'Итого',
           error: 'Ошибка',
           emptySearch: 'Ничего не найдено по запросу',
-          emptyPeriod: 'Нет выставленных квитанций за этот период',
+          emptyPeriod: 'Нет выставленных счетов за этот период',
           number: 'Номер',
           date: 'Дата',
           client: 'Клиент',
@@ -93,7 +93,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           sentAt: 'Отправлено',
           correction: 'Корректировка',
           archiveNote:
-            'Архивные квитанции показываются из snapshot на момент выставления. Корректировки отображаются как отдельные документы и не заменяют исходную квитанцию.',
+            'Архивные счета показываются из snapshot на момент выставления. Корректировки отображаются как отдельные документы и не заменяют исходный счёт.',
           export: 'Экспорт CSV',
         };
 
@@ -108,14 +108,14 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
 
   const getInvoiceLabel = (count: number) => {
     if (locale === 'de') {
-      return count === 1 ? 'Quittung' : 'Quittungen';
+      return count === 1 ? 'Rechnung' : 'Rechnungen';
     }
 
     const mod10 = count % 10;
     const mod100 = count % 100;
-    if (mod10 === 1 && mod100 !== 11) return 'квитанция';
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'квитанции';
-    return 'квитанций';
+    if (mod10 === 1 && mod100 !== 11) return 'счёт';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'счёта';
+    return 'счетов';
   };
 
   const periodButtons: Array<{ key: PeriodKey; label: string }> = [

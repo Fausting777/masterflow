@@ -55,7 +55,7 @@ Mit freundlichen Gruessen
 ${masterName}`,
         }
       : {
-          title: 'Отправить квитанцию на email',
+          title: 'Отправить счёт на email',
           close: 'Закрыть',
           success: 'Письмо отправлено',
           recipient: 'Кому (email)',
@@ -64,7 +64,7 @@ ${masterName}`,
           subjectLabel: 'Тема',
           bodyLabel: 'Текст письма',
           attachmentHint:
-            'PDF-квитанция будет приложена автоматически.\nОтветы клиента придут на твой email.',
+            'PDF-Rechnung wird automatisch beigefügt.\nAntworten des Kunden kommen an deine Email.',
           cancel: 'Отмена',
           send: 'Отправить',
           sending: 'Отправка...',
@@ -73,11 +73,11 @@ ${masterName}`,
           closeIcon: 'x',
           successIcon: 'OK',
           defaultSubject: invoiceNumber
-            ? `Квитанция ${invoiceNumber}`
-            : 'Квитанция за выполненную работу',
+            ? `Rechnung ${invoiceNumber}`
+            : 'Rechnung für die erbrachte Leistung',
           defaultBody: `Здравствуйте, ${clientName}.
 
-Во вложении квитанция за выполненную работу.
+Во вложении счёт за выполненную работу.
 
 Если появятся вопросы, пожалуйста, свяжитесь со мной.
 

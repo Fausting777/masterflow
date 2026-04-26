@@ -41,7 +41,7 @@ export async function exportExpensesCsvAction(
             'Anbieter',
             'Steuerlich absetzbar',
             'Zugehoeriger Auftrag',
-            'Quittungsnummer',
+            'Rechnungsnummer',
             'Beleg vorhanden',
             'Beleg-Pfad',
             'Beleg-SHA256',

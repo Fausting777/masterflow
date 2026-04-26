@@ -19,17 +19,17 @@ export default function InvoiceBadges({
   const text =
     locale === 'de'
       ? {
-          missingTitle: 'Quittung wurde noch nicht erstellt',
-          missingLabel: 'Ohne Quittung',
-          invoiceTitle: `Quittung ${invoiceNumber ?? ''}`.trim(),
+          missingTitle: 'Rechnung wurde noch nicht erstellt',
+          missingLabel: 'Ohne Rechnung',
+          invoiceTitle: `Rechnung ${invoiceNumber ?? ''}`.trim(),
           sentTitle: `Versendet ${new Date(invoiceSentAt ?? '').toLocaleDateString('de-DE')}`.trim(),
           invoiceShort: 'PDF',
           sentShort: 'Gesendet',
         }
       : {
-          missingTitle: 'Квитанция еще не создана',
-          missingLabel: 'Без квитанции',
-          invoiceTitle: `Квитанция ${invoiceNumber ?? ''}`.trim(),
+          missingTitle: 'Счёт ещё не создан',
+          missingLabel: 'Без счёта',
+          invoiceTitle: `Счёт ${invoiceNumber ?? ''}`.trim(),
           sentTitle: `Отправлено ${new Date(invoiceSentAt ?? '').toLocaleDateString('ru-RU')}`.trim(),
           invoiceShort: 'PDF',
           sentShort: 'Отправлено',

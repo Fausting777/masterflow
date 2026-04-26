@@ -35,9 +35,9 @@ export default async function SettingsPage() {
           missing: 'Für steuerlich saubere Rechnungen fehlen noch:',
         }
       : {
-          title: 'Проверка квитанции',
-          ready: 'Профиль заполнен для выдачи квитанций.',
-          missing: 'Для корректной квитанции не хватает:',
+          title: 'Rechnungs-Check',
+          ready: 'Профиль заполнен для выставления счетов.',
+          missing: 'Для корректного счёта не хватает:',
         };
 
   return (

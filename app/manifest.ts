@@ -2,14 +2,14 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'MasterFlow - приложение для мастеров',
+    name: 'MasterFlow – Auftragsverwaltung',
     short_name: 'MasterFlow',
-    description: 'Заказы, клиенты, фото, PDF-Rechnungen',
+    description: 'Aufträge, Kunden, Fotos und PDF-Rechnungen für Handwerker und Dienstleister',
     start_url: '/dashboard',
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#2563eb',
-    lang: 'ru',
+    lang: 'de',
     orientation: 'portrait',
     categories: ['business', 'productivity'],
     icons: [

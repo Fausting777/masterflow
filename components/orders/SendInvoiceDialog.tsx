@@ -34,7 +34,7 @@ export default function SendInvoiceDialog({
           subjectLabel: 'Betreff',
           bodyLabel: 'Nachricht',
           attachmentHint:
-            'Die PDF-Rechnung wird automatisch angehaengt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
+            'Die PDF-Rechnung wird automatisch angehängt.\nAntworten des Kunden gehen an deine hinterlegte E-Mail-Adresse.',
           cancel: 'Abbrechen',
           send: 'Senden',
           sending: 'Wird gesendet...',
@@ -64,7 +64,7 @@ ${masterName}`,
           subjectLabel: 'Тема',
           bodyLabel: 'Текст письма',
           attachmentHint:
-            'PDF-Rechnung wird automatisch beigefügt.\nAntworten des Kunden kommen an deine Email.',
+            'PDF-счёт прикрепляется автоматически.\nОтветы клиента придут на твой email.',
           cancel: 'Отмена',
           send: 'Отправить',
           sending: 'Отправка...',

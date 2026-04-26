@@ -35,11 +35,15 @@ export default function BottomTabBar({ onOpenMore }: Props) {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition ${
-                active ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+                active ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'
               }`}
             >
-              <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+              <div className={`flex items-center justify-center rounded-xl px-5 py-1 transition-all duration-200 ${
+                active ? 'bg-blue-50 dark:bg-blue-950/60' : ''
+              }`}>
+                <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+              </div>
               <span className="text-[10px] font-medium">{tab.label}</span>
             </Link>
           );
@@ -48,11 +52,15 @@ export default function BottomTabBar({ onOpenMore }: Props) {
         <button
           type="button"
           onClick={onOpenMore}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition ${
-            moreActive ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+            moreActive ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'
           }`}
         >
-          <Menu size={22} strokeWidth={moreActive ? 2.5 : 2} />
+          <div className={`flex items-center justify-center rounded-xl px-5 py-1 transition-all duration-200 ${
+            moreActive ? 'bg-blue-50 dark:bg-blue-950/60' : ''
+          }`}>
+            <Menu size={22} strokeWidth={moreActive ? 2.5 : 2} />
+          </div>
           <span className="text-[10px] font-medium">{t.nav.more}</span>
         </button>
       </div>

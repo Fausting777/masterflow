@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { updateProfileAction, type ProfileFormState } from '@/app/(dashboard)/settings/actions';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 import CsrfTokenInput from '@/components/security/CsrfTokenInput';
+import Spinner from '@/components/ui/Spinner';
 
 type Props = {
   initial: {
@@ -288,7 +289,12 @@ export default function ProfileForm({ initial }: Props) {
         disabled={isPending}
         className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:bg-blue-400"
       >
-        {isPending ? t.profileForm.saving : t.profileForm.save}
+        {isPending ? (
+          <span className="flex items-center justify-center gap-2">
+            <Spinner size={15} />
+            {t.profileForm.saving}
+          </span>
+        ) : t.profileForm.save}
       </button>
     </form>
   );

@@ -7,6 +7,7 @@ import {
 } from '@/app/(dashboard)/settings/actions';
 import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 import PasswordPolicyHint from '@/components/forms/PasswordPolicyHint';
+import Spinner from '@/components/ui/Spinner';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 import { PASSWORD_POLICY } from '@/lib/validators/auth';
 
@@ -115,7 +116,12 @@ export default function PasswordChangeForm() {
         disabled={isPending}
         className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 text-sm transition"
       >
-        {isPending ? t.password.changing : t.password.change}
+        {isPending ? (
+          <span className="flex items-center justify-center gap-2">
+            <Spinner size={15} />
+            {t.password.changing}
+          </span>
+        ) : t.password.change}
       </button>
     </form>
   );

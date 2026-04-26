@@ -54,6 +54,7 @@ select {
   color: #171717;
   -webkit-appearance: none;
   appearance: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 input:-webkit-autofill {

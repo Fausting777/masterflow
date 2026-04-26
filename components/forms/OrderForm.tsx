@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Trash2 } from 'lucide-react';
+import Spinner from '@/components/ui/Spinner';
 import PostalCodeLookup from '@/components/clients/PostalCodeLookup';
 import { useI18n } from '@/components/i18n/LocaleProvider';
 import CsrfTokenInput from '@/components/security/CsrfTokenInput';
@@ -363,7 +364,12 @@ export default function OrderForm({
 
       <div className="flex gap-3 pt-4">
         <button type="submit" disabled={isPending} className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white shadow-lg shadow-blue-200 transition-transform active:scale-95 disabled:bg-blue-400 dark:shadow-none">
-          {isPending ? t.orderForm.saving : submitLabel}
+          {isPending ? (
+            <span className="flex items-center justify-center gap-2">
+              <Spinner size={16} />
+              {t.orderForm.saving}
+            </span>
+          ) : submitLabel}
         </button>
         <Link href={cancelHref} className="flex items-center justify-center rounded-xl border border-neutral-300 px-6 font-semibold hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
           {t.orderForm.cancel}

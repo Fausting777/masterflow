@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getLocale } from '@/lib/i18n/server';
 import ClientForm from '@/components/forms/ClientForm';
 import DeleteClientButton from '@/components/forms/DeleteClientButton';
+import DsgvoExportButton from '@/components/clients/DsgvoExportButton';
 import { updateClientAction } from '../actions';
 import type { Client } from '@/types/database';
 
@@ -104,7 +105,14 @@ export default async function ClientPage({
             />
           </div>
 
-          <DeleteClientButton clientId={c.id} />
+          <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+            <h2 className="mb-3 text-sm font-medium text-neutral-500">DSGVO</h2>
+            <DsgvoExportButton clientId={c.id} />
+          </div>
+
+          <div className="mt-4">
+            <DeleteClientButton clientId={c.id} />
+          </div>
         </>
       )}
     </div>

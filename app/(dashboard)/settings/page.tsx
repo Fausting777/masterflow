@@ -131,6 +131,23 @@ export default async function SettingsPage() {
         </p>
         <ExportAuditTrailButton />
       </div>
+
+      <div className="mt-8 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+        <h2 className="text-base font-semibold">
+          {locale === 'de' ? 'GoBD-Dokumentation' : 'Документация GoBD'}
+        </h2>
+        <p className="mb-4 mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          {locale === 'de'
+            ? 'Verfahrensdokumentation gemäß GoBD für Betriebsprüfungen und Steuerberater.'
+            : 'Verfahrensdokumentation по требованию GoBD для налоговых проверок.'}
+        </p>
+        <Link
+          href="/settings/verfahrensdokumentation"
+          className="inline-block rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-300"
+        >
+          {locale === 'de' ? 'Verfahrensdokumentation öffnen' : 'Открыть документацию'}
+        </Link>
+      </div>
     </div>
   );
 }

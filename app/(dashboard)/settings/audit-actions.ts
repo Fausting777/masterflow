@@ -16,11 +16,18 @@ export async function exportAuditTrailCsvAction(): Promise<{
 
   if (!user) return { ok: false, error: 'Nicht autorisiert' };
 
-  const allRows: typeof data = [];
+  const allRows: {
+    table_name: string | null;
+    record_id: string | null;
+    operation: string | null;
+    changed_fields: string[] | null;
+    old_data: Record<string, unknown> | null;
+    new_data: Record<string, unknown> | null;
+    created_at: string | null;
+  }[] = [];
   const PAGE = 1000;
   let offset = 0;
-  let done = false;
-  while (!done) {
+  while (true) {
     const { data: page, error: pageError } = await supabase
       .from('audit_trail')
       .select('table_name, record_id, operation, changed_fields, old_data, new_data, created_at')
@@ -28,15 +35,14 @@ export async function exportAuditTrailCsvAction(): Promise<{
       .order('created_at', { ascending: false })
       .range(offset, offset + PAGE - 1);
     if (pageError) return { ok: false, error: pageError.message };
-    if (!page || page.length === 0) { done = true; break; }
+    if (!page || page.length === 0) break;
     allRows.push(...page);
-    if (page.length < PAGE) done = true;
+    if (page.length < PAGE) break;
     offset += PAGE;
   }
-  const data = allRows;
-  const error = null;
 
-  if (!data || data.length === 0) return { ok: false, error: 'Keine Audit-Einträge gefunden' };
+  if (allRows.length === 0) return { ok: false, error: 'Keine Audit-Einträge gefunden' };
+  const data = allRows;
 
   const headers = ['created_at', 'table_name', 'record_id', 'operation', 'changed_fields', 'old_data', 'new_data'];
   const rows = data.map((entry) => [

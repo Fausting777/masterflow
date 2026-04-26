@@ -30,7 +30,7 @@ async function getMessages() {
   return locale === 'de'
     ? {
         missingOrder: 'Auftrag ist nicht angegeben',
-        invalidRecipient: 'Ungueltige Empfaenger-E-Mail',
+        invalidRecipient: 'Ungültige Empfänger-E-Mail',
         emptySubject: 'Betreff ist leer',
         emptyBody: 'Text ist leer',
         unauthorized: 'Nicht autorisiert',
@@ -108,10 +108,16 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
   const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer());
   const timestamp = formatFilenameTimestamp(new Date());
   const filename = order.invoice_number
-    ? `Rechnung-${order.invoice_number}-${timestamp}.pdf`
-    : `Rechnung-${order.id.slice(0, 8)}-${timestamp}.pdf`;
+    ? `Rechnung-${order.invoice_number}.pdf`
+    : `Rechnung-${order.id.slice(0, 8)}.pdf`;
   const fromName = profile?.company_name ?? profile?.full_name ?? 'MasterFlow';
-  const from = `${fromName} <onboarding@resend.dev>`;
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev';
+  const from = `${fromName} <${fromEmail}>`;
+  const replyTo = profile?.business_email ?? user.email ?? undefined;
+
+  const htmlBody = `<div style="font-family:sans-serif;font-size:14px;line-height:1.6;color:#222;max-width:600px">
+${body.split('\n').map((line) => `<p style="margin:0 0 8px">${line || '&nbsp;'}</p>`).join('\n')}
+</div>`;
 
   try {
     const resend = getResendClient();
@@ -120,7 +126,8 @@ export async function sendInvoiceEmailAction(input: SendInput): Promise<{
       to,
       subject,
       text: body,
-      replyTo: profile?.business_email ?? user.email ?? undefined,
+      html: htmlBody,
+      replyTo,
       attachments: [{ filename, content: pdfBuffer }],
     });
 

@@ -26,11 +26,11 @@ export default function SendInvoiceDialog({
     locale === 'de'
       ? {
           title: 'Rechnung per E-Mail senden',
-          close: 'Schliessen',
+          close: 'Schließen',
           success: 'E-Mail wurde gesendet',
-          recipient: 'Empfaenger (E-Mail)',
+          recipient: 'Empfänger (E-Mail)',
           missingClientEmail:
-            'Beim Kunden ist keine E-Mail hinterlegt. Fuege sie in der Kundenkarte hinzu oder trage sie hier manuell ein.',
+            'Beim Kunden ist keine E-Mail hinterlegt. Füge sie in der Kundenkarte hinzu oder trage sie hier manuell ein.',
           subjectLabel: 'Betreff',
           bodyLabel: 'Nachricht',
           attachmentHint:

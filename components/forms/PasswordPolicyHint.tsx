@@ -18,7 +18,7 @@ export default function PasswordPolicyHint({ password, intro }: Props) {
   const passwordPolicyErrors = getPasswordPolicyErrors(password);
 
   return (
-    <div className="mt-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+    <div className="mt-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
       <p>{intro}</p>
       <ul className="mt-1 space-y-1">
         <li className={password.length >= PASSWORD_POLICY.minLength ? 'text-green-700' : ''}>

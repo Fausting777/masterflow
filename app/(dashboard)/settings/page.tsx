@@ -1,5 +1,6 @@
 import ExportAuditTrailButton from '@/components/audit/ExportAuditTrailButton';
 import PasswordChangeForm from '@/components/forms/PasswordChangeForm';
+import DeleteAccountButton from '@/components/forms/DeleteAccountButton';
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
@@ -147,6 +148,18 @@ export default async function SettingsPage() {
         >
           {locale === 'de' ? 'Verfahrensdokumentation öffnen' : 'Открыть документацию'}
         </Link>
+      </div>
+
+      <div className="mt-8 rounded-xl border border-red-200 bg-white p-5 dark:border-red-900 dark:bg-neutral-900">
+        <h2 className="text-base font-semibold text-red-700 dark:text-red-400">
+          {locale === 'de' ? 'Konto löschen' : 'Удалить аккаунт'}
+        </h2>
+        <p className="mb-4 mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          {locale === 'de'
+            ? 'Löscht dieses Konto und alle zugehörigen Daten unwiderruflich.'
+            : 'Безвозвратно удаляет этот аккаунт и все связанные данные.'}
+        </p>
+        <DeleteAccountButton />
       </div>
     </div>
   );

@@ -49,7 +49,7 @@ export default function SumupConnectionForm({ action, locale }: Props) {
           type="password"
           required
           defaultValue={values.access_token}
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
           autoComplete="off"
         />
         <p className="mt-1 text-xs text-neutral-500">{text.accessTokenHelp}</p>

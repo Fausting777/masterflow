@@ -114,7 +114,7 @@ export default async function SumupSettingsPage() {
       <h1 className="mt-4 text-2xl font-semibold">{text.title}</h1>
       <p className="mt-1 text-sm text-neutral-500">{text.subtitle}</p>
 
-      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <h2 className="text-base font-semibold">{text.currentConnection}</h2>
         {savedConnection ? (
           <div className="mt-3 space-y-2 text-sm">
@@ -140,18 +140,18 @@ export default async function SumupSettingsPage() {
         )}
       </div>
 
-      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <SumupConnectionForm action={saveSumupConnectionAction} locale={locale} />
       </div>
 
-      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <h2 className="text-base font-semibold">{text.importedPayments}</h2>
         {unlinkedTransactions.length === 0 ? (
           <p className="mt-2 text-sm text-neutral-500">{text.noPayments}</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {unlinkedTransactions.map((transaction) => (
-              <li key={transaction.id} className="rounded-lg border border-neutral-200 p-3 text-sm">
+              <li key={transaction.id} className="rounded-lg border border-neutral-200 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-800">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-medium">
@@ -180,9 +180,9 @@ export default async function SumupSettingsPage() {
         )}
       </div>
 
-      <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-        <h2 className="text-sm font-semibold text-blue-900">{text.nextStepTitle}</h2>
-        <p className="mt-1 text-sm text-blue-800">{text.nextStepText}</p>
+      <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
+        <h2 className="text-sm font-semibold text-blue-900 dark:text-blue-300">{text.nextStepTitle}</h2>
+        <p className="mt-1 text-sm text-blue-800 dark:text-blue-400">{text.nextStepText}</p>
       </div>
     </div>
   );

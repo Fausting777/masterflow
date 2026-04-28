@@ -381,10 +381,10 @@ export async function generatePdfAction(orderId: string): Promise<{
     }
 
     invoiceNumber = `${year}-${String(numberData).padStart(4, '0')}`;
-    invoiceIssuedAt = new Date().toISOString();
+    invoiceIssuedAt = order.service_date ?? order.completed_at ?? order.created_at;
   }
 
-  if (!invoiceIssuedAt) invoiceIssuedAt = new Date().toISOString();
+  if (!invoiceIssuedAt) invoiceIssuedAt = order.service_date ?? order.completed_at ?? order.created_at;
 
   order.paid_at =
     order.paid_at ??

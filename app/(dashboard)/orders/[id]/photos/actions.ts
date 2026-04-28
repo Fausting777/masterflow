@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getLocale } from '@/lib/i18n/server';
 import { validateUploadedFile } from '@/lib/security/file-validation';
 import { createClient } from '@/lib/supabase/server';
+import { isInvoiceLocked } from '@/lib/orders/invoice-lock';
 import type { PhotoType } from '@/types/database';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -120,12 +121,15 @@ export async function deletePhotoAction(photoId: string): Promise<{
 
   const { data: photo } = await supabase
     .from('order_photos')
-    .select('file_path, order_id')
+    .select('file_path, order_id, orders(invoice_number, invoice_locked_at)')
     .eq('id', photoId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (!photo) return { ok: false, error: m.photoNotFound };
+
+  const order = Array.isArray(photo.orders) ? photo.orders[0] : photo.orders;
+  if (order && isInvoiceLocked(order)) return { ok: false, error: m.locked };
 
   const { error: storageError } = await supabase.storage.from('order-photos').remove([photo.file_path]);
   if (storageError) return { ok: false, error: `${m.uploadError}: ${storageError.message}` };

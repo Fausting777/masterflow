@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getLocale } from '@/lib/i18n/server';
 import { validateUploadedFile } from '@/lib/security/file-validation';
 import { createClient } from '@/lib/supabase/server';
+import { isInvoiceLocked } from '@/lib/orders/invoice-lock';
 
 const MAX_SIGNATURE_SIZE = 2 * 1024 * 1024;
 const SIGNATURE_MIME_TYPES = ['image/png'] as const;
@@ -107,12 +108,13 @@ export async function deleteSignatureAction(orderId: string): Promise<{
 
   const { data: order } = await supabase
     .from('orders')
-    .select('signature_file_path')
+    .select('signature_file_path, invoice_number, invoice_locked_at')
     .eq('id', orderId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (!order) return { ok: false, error: m.orderNotFound };
+  if (isInvoiceLocked(order)) return { ok: false, error: m.locked };
 
   if (order.signature_file_path) {
     const { error: storageError } = await supabase.storage.from('order-signatures').remove([order.signature_file_path]);

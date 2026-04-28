@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getLocale } from '@/lib/i18n/server';
-import { validateCsrfFormData } from '@/lib/csrf/server';
+import { validateCsrfFormData, validateCsrfCookie } from '@/lib/csrf/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   normalizeOrderInput,
@@ -11,6 +11,7 @@ import {
   type OrderInput,
   type OrderValidationErrors,
 } from '@/lib/validators/order';
+import { canCreateCorrection } from '@/lib/orders/policy';
 
 export type OrderFormState = {
   errors?: OrderValidationErrors;
@@ -44,7 +45,7 @@ function getMessages(locale: UiLocale) {
       movedToTrashLog: 'Auftrag in den Papierkorb verschoben',
       restoredLog: 'Auftrag aus dem Papierkorb wiederhergestellt',
       cannotDeleteInvoice: 'Endgültiges Löschen ist nicht möglich, weil für diesen Auftrag bereits eine Rechnung erstellt wurde.',
-      deleteBlockedByActivityLogs: 'Endgültiges Löschen ist blockiert, weil alte Aktivitätsprotokolle еще жестко привязаны.',
+      deleteBlockedByActivityLogs: 'Endgültiges Löschen ist blockiert, weil Aktivitätsprotokolle noch verknüpft sind.',
       moveToTrashFirst: 'Der Auftrag muss zuerst in den Papierkorb verschoben werden.',
       sumupTransactionMissing: 'SumUp Zahlung nicht gefunden',
       sumupAlreadyLinked: 'Diese SumUp Zahlung ist bereits mit einem Auftrag verknüpft',
@@ -243,7 +244,9 @@ export async function updateOrderAction(id: string, _prevState: OrderFormState, 
 }
 
 export async function linkSumupTransactionAction(orderId: string, sumupTransactionId: string, paymentMethodOverride?: 'cash' | 'ec_card'): Promise<{ ok: boolean; error?: string }> {
-  const locale = await getLocale(); const m = getMessages(locale); const supabase = await createClient();
+  const locale = await getLocale(); const m = getMessages(locale);
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser(); if (!user) return { ok: false, error: m.unauthorized };
   const { data: order } = await supabase.from('orders').select('id, invoice_number, invoice_locked_at, payment_method').eq('id', orderId).eq('user_id', user.id).maybeSingle();
   if (!order) return { ok: false, error: m.orderNotFound };
@@ -260,7 +263,9 @@ export async function linkSumupTransactionAction(orderId: string, sumupTransacti
 }
 
 export async function updateLinkedSumupPaymentMethodAction(orderId: string, paymentMethod: 'cash' | 'ec_card'): Promise<{ ok: boolean; error?: string }> {
-  const locale = await getLocale(); const m = getMessages(locale); const supabase = await createClient();
+  const locale = await getLocale(); const m = getMessages(locale);
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser(); if (!user) return { ok: false, error: m.unauthorized };
   const { data: order } = await supabase.from('orders').select('id, invoice_number, invoice_locked_at, sumup_transaction_id').eq('id', orderId).eq('user_id', user.id).maybeSingle();
   if (!order) return { ok: false, error: m.orderNotFound }; if (order.invoice_number || order.invoice_locked_at) return { ok: false, error: m.invoiceEditBlocked };
@@ -269,15 +274,17 @@ export async function updateLinkedSumupPaymentMethodAction(orderId: string, paym
   revalidatePath(`/orders/${orderId}`); return { ok: true };
 }
 
-export async function createCorrectionDraftAction(orderId: string): Promise<void> {
-  const locale = await getLocale(); const m = getMessages(locale); const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser(); if (!user) throw new Error(m.unauthorized);
+export async function createCorrectionDraftAction(orderId: string): Promise<{ ok: boolean; error?: string }> {
+  const locale = await getLocale(); const m = getMessages(locale);
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return { ok: false, error: m.unauthorized };
   const { data: src } = await supabase.from('orders').select('*').eq('id', orderId).eq('user_id', user.id).maybeSingle();
-  if (!src || !src.invoice_number) throw new Error(m.sourceOrderNotFound);
+  if (!src || !canCreateCorrection(src)) return { ok: false, error: m.sourceOrderNotFound };
   const { data: created, error } = await supabase.from('orders').insert({
     user_id: user.id, correction_of_order_id: src.id, correction_reason: `${m.correctionReasonPrefix} ${src.invoice_number}`, status: 'new', client_id: src.client_id, service_id: src.service_id, custom_service_title: src.custom_service_title, custom_price: src.custom_price, description: src.description, order_address: src.order_address, service_date: src.service_date, payment_method: src.payment_method
   }).select('id').single();
-  if (error || !created) throw new Error(m.correctionCreateError);
+  if (error || !created) return { ok: false, error: m.correctionCreateError };
   const { data: srcItems } = await supabase
     .from('order_items')
     .select('service_id, title, description, price')
@@ -299,28 +306,34 @@ export async function createCorrectionDraftAction(orderId: string): Promise<void
   revalidatePath('/orders'); redirect(`/orders/${created.id}?edit=1`);
 }
 
-export async function softDeleteOrderAction(id: string): Promise<void> {
-  const locale = await getLocale(); const m = getMessages(locale); const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser(); if (!user) throw new Error(m.unauthorized);
+export async function softDeleteOrderAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const locale = await getLocale(); const m = getMessages(locale);
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return { ok: false, error: m.unauthorized };
   await supabase.from('orders').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', user.id);
   await supabase.from('activity_logs').insert({ order_id: id, user_id: user.id, action_type: 'soft_deleted', action_text: m.movedToTrashLog });
   revalidatePath('/orders'); revalidatePath('/orders/trash'); redirect('/orders');
 }
 
-export async function restoreOrderAction(id: string): Promise<{ error: string } | void> {
-  const locale = await getLocale(); const m = getMessages(locale); const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser(); if (!user) return { error: m.unauthorized };
+export async function restoreOrderAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const locale = await getLocale(); const m = getMessages(locale);
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return { ok: false, error: m.unauthorized };
   await supabase.from('orders').update({ deleted_at: null }).eq('id', id).eq('user_id', user.id);
   await supabase.from('activity_logs').insert({ order_id: id, user_id: user.id, action_type: 'restored', action_text: m.restoredLog });
   revalidatePath('/orders'); revalidatePath('/orders/trash'); redirect(`/orders/${id}`);
 }
 
-export async function permanentDeleteOrderAction(id: string): Promise<{ error: string } | void> {
-  const locale = await getLocale(); const m = getMessages(locale); const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser(); if (!user) return { error: m.unauthorized };
+export async function permanentDeleteOrderAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const locale = await getLocale(); const m = getMessages(locale);
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser(); if (!user) return { ok: false, error: m.unauthorized };
   const { data: order } = await supabase.from('orders').select('invoice_number, deleted_at').eq('id', id).eq('user_id', user.id).maybeSingle();
-  if (!order) return { error: m.orderNotFound }; if (order.invoice_number) return { error: m.cannotDeleteInvoice }; if (!order.deleted_at) return { error: m.moveToTrashFirst };
+  if (!order) return { ok: false, error: m.orderNotFound }; if (order.invoice_number) return { ok: false, error: m.cannotDeleteInvoice }; if (!order.deleted_at) return { ok: false, error: m.moveToTrashFirst };
   const { error } = await supabase.from('orders').delete().eq('id', id).eq('user_id', user.id);
-  if (error) return { error: error.message };
+  if (error) return { ok: false, error: error.message };
   revalidatePath('/orders'); revalidatePath('/orders/trash'); redirect('/orders/trash');
 }

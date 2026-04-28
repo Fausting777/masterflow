@@ -28,7 +28,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await softDeleteExpenseAction(expenseId);
-      if (result?.error) setError(result.error);
+      if (!result.ok) setError(result.error ?? t.expenseActions.genericError);
     });
   }
 
@@ -36,7 +36,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await restoreExpenseAction(expenseId);
-      if (result?.error) setError(result.error);
+      if (!result.ok) setError(result.error ?? t.expenseActions.genericError);
     });
   }
 
@@ -45,7 +45,7 @@ export default function ExpenseActions({ expenseId, isDeleted }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await permanentDeleteExpenseAction(expenseId);
-      if (result?.error) setError(result.error);
+      if (!result.ok) setError(result.error ?? t.expenseActions.genericError);
     });
   }
 

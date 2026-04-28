@@ -8,6 +8,14 @@ export async function getCsrfToken() {
   return cookieStore.get(CSRF_COOKIE_NAME)?.value ?? '';
 }
 
+export async function validateCsrfCookie() {
+  const cookieStore = await cookies();
+  const cookieToken = cookieStore.get(CSRF_COOKIE_NAME)?.value;
+  if (!cookieToken || cookieToken.length < 16) {
+    throw new Error('Invalid CSRF token');
+  }
+}
+
 export async function validateCsrfFormData(formData: FormData) {
   const cookieStore = await cookies();
   const cookieToken = cookieStore.get(CSRF_COOKIE_NAME)?.value;

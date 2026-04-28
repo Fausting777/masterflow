@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getLocale } from '@/lib/i18n/server';
 import { validateUploadedFile } from '@/lib/security/file-validation';
+import { validateCsrfCookie } from '@/lib/csrf/server';
 import { createClient } from '@/lib/supabase/server';
 import { isInvoiceLocked } from '@/lib/orders/invoice-lock';
 import type { PhotoType } from '@/types/database';
@@ -25,6 +26,7 @@ async function getMessages() {
         uploadError: 'Upload-Fehler',
         dbError: 'Datenbank-Fehler',
         photoNotFound: 'Foto nicht gefunden',
+        csrfFailed: 'CSRF-Prüfung fehlgeschlagen',
       }
     : {
         missingOrder: 'Не указан заказ',
@@ -38,6 +40,7 @@ async function getMessages() {
         uploadError: 'Ошибка загрузки',
         dbError: 'Ошибка БД',
         photoNotFound: 'Фото не найдено',
+        csrfFailed: 'Проверка CSRF не пройдена',
       };
 }
 
@@ -113,6 +116,7 @@ export async function deletePhotoAction(photoId: string): Promise<{
   error?: string;
 }> {
   const m = await getMessages();
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
   const supabase = await createClient();
   const {
     data: { user },

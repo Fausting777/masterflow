@@ -4,6 +4,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import ExportButton from '@/components/invoices/ExportButton';
 import PeriodPicker from '@/components/stats/PeriodPicker';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
+import { resolveOrderPrice } from '@/lib/orders/pricing';
 import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { getMonthOptions, getRange, type PeriodKey } from '@/lib/utils/date-range';
@@ -188,13 +189,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
           ? serviceTitleMap.get(invoice.service_id) ?? invoice.custom_service_title ?? ''
           : invoice.custom_service_title ?? '')
       ).toLowerCase();
-      const price =
-        snapshot?.order.price ??
-        (invoice.custom_price !== null
-          ? Number(invoice.custom_price)
-          : invoice.service_id
-            ? servicePriceMap.get(invoice.service_id) ?? 0
-            : 0);
+      const price = resolveOrderPrice(invoice, servicePriceMap, new Map()) ?? 0;
       const amountText = String(price).replace('.', ',').toLowerCase();
 
       return (
@@ -207,16 +202,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
   }
 
   const total = invoices.reduce((sum, invoice) => {
-    const snapshot = isInvoiceSnapshot(invoice.invoice_snapshot_json) ? invoice.invoice_snapshot_json : null;
-    const price =
-      snapshot?.order.price ??
-      (invoice.custom_price !== null
-        ? Number(invoice.custom_price)
-        : invoice.service_id
-          ? servicePriceMap.get(invoice.service_id) ?? 0
-          : 0);
-
-    return sum + (price ?? 0);
+    return sum + (resolveOrderPrice(invoice, servicePriceMap, new Map()) ?? 0);
   }, 0);
 
   const fromIso = activePeriod === 'all' ? null : range.from.toISOString();
@@ -327,13 +313,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Sea
                 (invoice.service_id
                   ? serviceTitleMap.get(invoice.service_id) ?? invoice.custom_service_title ?? DASH
                   : invoice.custom_service_title ?? DASH);
-              const price =
-                snapshot?.order.price ??
-                (invoice.custom_price !== null
-                  ? Number(invoice.custom_price)
-                  : invoice.service_id
-                    ? servicePriceMap.get(invoice.service_id) ?? null
-                    : null);
+              const price = resolveOrderPrice(invoice, servicePriceMap, new Map());
 
               return (
                 <li key={invoice.id} className="border-b border-neutral-100 last:border-b-0 dark:border-neutral-800">

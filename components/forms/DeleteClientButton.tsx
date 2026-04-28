@@ -12,29 +12,24 @@ export default function DeleteClientButton({ clientId }: { clientId: string }) {
   const text =
     locale === 'de'
       ? {
-          confirm: 'Kunden löschen? Dieser Schritt kann nicht rueckgaengig gemacht werden.',
-          deleting: 'Wird geloescht...',
+          confirm: 'Kunden löschen? Dieser Schritt kann nicht rückgängig gemacht werden.',
+          deleting: 'Wird gelöscht...',
           delete: 'Kunden löschen',
           genericError: 'Unbekannter Fehler',
         }
       : {
-          confirm:
-            '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u043b\u0438\u0435\u043d\u0442\u0430? \u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043c\u0435\u043d\u0438\u0442\u044c.',
-          deleting: '\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435...',
-          delete: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
-          genericError: '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430\u044f \u043e\u0448\u0438\u0431\u043a\u0430',
+          confirm: 'Удалить клиента? Это действие нельзя отменить.',
+          deleting: 'Удаление...',
+          delete: 'Удалить клиента',
+          genericError: 'Неизвестная ошибка',
         };
 
   function handleDelete() {
     if (!window.confirm(text.confirm)) return;
-
     setError(null);
     startTransition(async () => {
-      try {
-        await deleteClientAction(clientId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : text.genericError);
-      }
+      const result = await deleteClientAction(clientId);
+      if (!result.ok) setError(result.error ?? text.genericError);
     });
   }
 

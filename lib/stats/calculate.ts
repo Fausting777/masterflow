@@ -1,65 +1,15 @@
 // lib/stats/calculate.ts
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { isInvoiceSnapshot } from '@/lib/invoices/snapshot';
-
-// ==================================================================
-// ВЫБОР ДАТЫ ДЛЯ АГРЕГАЦИИ
-// Приоритет: service_date → completed_at → created_at
-// ==================================================================
-
-function effectiveDate(o: {
-  service_date: string | null;
-  completed_at?: string | null;
-  created_at: string;
-}): Date {
-  return new Date(o.service_date ?? o.completed_at ?? o.created_at);
-}
+import { effectiveOrderDate, resolveOrderPrice, needsServicePriceLookup } from '@/lib/orders/pricing';
 
 function inRange(d: Date, from: Date, to: Date): boolean {
   const t = d.getTime();
   return t >= from.getTime() && t <= to.getTime();
 }
 
-// Единый приоритет цены заказа:
-// 1. snapshot.order.items[] (сумма позиций)
-// 2. snapshot.order.price
-// 3. order_items сумма (передаётся извне)
-// 4. custom_price
-// 5. service default_price
-function resolvePrice(
-  o: {
-    id: string;
-    custom_price: number | null;
-    service_id: string | null;
-    invoice_snapshot_json: unknown;
-  },
-  servicePrices: Map<string, number>,
-  orderItemsTotals: Map<string, number>
-): number | null {
-  const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
-
-  if (snap?.order.items && snap.order.items.length > 0) {
-    return snap.order.items.reduce((sum, item) => sum + Number(item.price), 0);
-  }
-  if (snap?.order.price != null) {
-    return Number(snap.order.price);
-  }
-
-  const itemsTotal = orderItemsTotals.get(o.id);
-  if (itemsTotal !== undefined && itemsTotal > 0) {
-    return itemsTotal;
-  }
-
-  if (o.custom_price !== null) {
-    return Number(o.custom_price);
-  }
-
-  if (o.service_id) {
-    return servicePrices.get(o.service_id) ?? null;
-  }
-
-  return null;
-}
+const effectiveDate = effectiveOrderDate;
+const resolvePrice = resolveOrderPrice;
 
 // Загружает order_items суммы для заказов без snapshot-цены
 async function fetchOrderItemsTotals(
@@ -130,8 +80,7 @@ export async function getRevenueStats(
   const needServiceIds = [...new Set(
     inPeriod
       .filter(o => {
-        const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
-        return !snap?.order.price && !(snap?.order.items?.length) && o.custom_price === null && o.service_id;
+        return needsServicePriceLookup(o);
       })
       .map(o => o.service_id!)
   )];
@@ -222,8 +171,7 @@ export async function getMonthlyRevenue(
   const needIds = [...new Set(
     data
       .filter(o => {
-        const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
-        return !snap?.order.price && !(snap?.order.items?.length) && o.custom_price === null && o.service_id;
+        return needsServicePriceLookup(o);
       })
       .map(o => o.service_id!)
   )];
@@ -289,8 +237,7 @@ export async function getTopClients(
   const needIds = [...new Set(
     inPeriod
       .filter(o => {
-        const snap = isInvoiceSnapshot(o.invoice_snapshot_json) ? o.invoice_snapshot_json : null;
-        return !snap?.order.price && !(snap?.order.items?.length) && o.custom_price === null && o.service_id;
+        return needsServicePriceLookup(o);
       })
       .map(o => o.service_id!)
   )];

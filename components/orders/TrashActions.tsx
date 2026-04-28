@@ -53,7 +53,7 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await restoreOrderAction(orderId);
-      if (result?.error) setError(result.error);
+      if (!result.ok) setError(result.error ?? text.genericError);
     });
   }
 
@@ -66,7 +66,7 @@ export default function TrashActions({ orderId, hasInvoice }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await permanentDeleteOrderAction(orderId);
-      if (result?.error) setError(result.error);
+      if (!result.ok) setError(result.error ?? text.genericError);
     });
   }
 

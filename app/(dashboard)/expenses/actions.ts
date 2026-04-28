@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { validateCsrfFormData } from '@/lib/csrf/server';
+import { validateCsrfFormData, validateCsrfCookie } from '@/lib/csrf/server';
 import { getLocale } from '@/lib/i18n/server';
 import { sha256Hex } from '@/lib/security/hash';
 import { validateUploadedFile } from '@/lib/security/file-validation';
@@ -53,6 +53,7 @@ async function getActionMessages() {
         uploadLog: 'Fehler beim Hochladen des Belegs:',
         receiptLarge: 'Beleg ist zu gross (max. 10 MB)',
         receiptType: 'Beleg muss JPEG, PNG, WebP, HEIC oder HEIF sein',
+        csrfFailed: 'CSRF-Prüfung fehlgeschlagen',
       }
     : {
         unauthorized: 'Не авторизован',
@@ -64,6 +65,7 @@ async function getActionMessages() {
         uploadLog: 'Ошибка загрузки чека:',
         receiptLarge: 'Чек слишком большой (макс. 10 MB)',
         receiptType: 'Чек должен быть JPEG, PNG, WebP, HEIC или HEIF',
+        csrfFailed: 'Проверка CSRF не пройдена',
       };
 }
 
@@ -152,10 +154,12 @@ export async function createExpenseAction(
   _prevState: ExpenseFormState,
   formData: FormData
 ): Promise<ExpenseFormState> {
+  const m = await getActionMessages();
+
   try {
     await validateCsrfFormData(formData);
   } catch {
-    return { formError: 'CSRF validation failed' };
+    return { formError: m.csrfFailed };
   }
 
   const raw = readFormData(formData);
@@ -163,7 +167,6 @@ export async function createExpenseAction(
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
   const supabase = await createClient();
-  const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -237,10 +240,12 @@ export async function updateExpenseAction(
   _prevState: ExpenseFormState,
   formData: FormData
 ): Promise<ExpenseFormState> {
+  const m = await getActionMessages();
+
   try {
     await validateCsrfFormData(formData);
   } catch {
-    return { formError: 'CSRF validation failed' };
+    return { formError: m.csrfFailed };
   }
 
   const raw = readFormData(formData);
@@ -248,7 +253,6 @@ export async function updateExpenseAction(
   if (Object.keys(errors).length > 0) return { errors, values: raw };
 
   const supabase = await createClient();
-  const m = await getActionMessages();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -317,14 +321,15 @@ export async function updateExpenseAction(
   redirect('/expenses');
 }
 
-export async function softDeleteExpenseAction(id: string): Promise<{ error: string } | void> {
-  const supabase = await createClient();
+export async function softDeleteExpenseAction(id: string): Promise<{ ok: boolean; error?: string }> {
   const m = await getActionMessages();
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { error: m.unauthorized };
+  if (!user) return { ok: false, error: m.unauthorized };
 
   const { error } = await supabase
     .from('expenses')
@@ -332,21 +337,22 @@ export async function softDeleteExpenseAction(id: string): Promise<{ error: stri
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath('/expenses');
   revalidatePath('/expenses/trash');
   redirect('/expenses');
 }
 
-export async function restoreExpenseAction(id: string): Promise<{ error: string } | void> {
-  const supabase = await createClient();
+export async function restoreExpenseAction(id: string): Promise<{ ok: boolean; error?: string }> {
   const m = await getActionMessages();
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { error: m.unauthorized };
+  if (!user) return { ok: false, error: m.unauthorized };
 
   const { error } = await supabase
     .from('expenses')
@@ -354,21 +360,22 @@ export async function restoreExpenseAction(id: string): Promise<{ error: string 
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath('/expenses');
   revalidatePath('/expenses/trash');
   redirect('/expenses');
 }
 
-export async function permanentDeleteExpenseAction(id: string): Promise<{ error: string } | void> {
-  const supabase = await createClient();
+export async function permanentDeleteExpenseAction(id: string): Promise<{ ok: boolean; error?: string }> {
   const m = await getActionMessages();
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { error: m.unauthorized };
+  if (!user) return { ok: false, error: m.unauthorized };
 
   const { data: expense } = await supabase
     .from('expenses')
@@ -377,13 +384,13 @@ export async function permanentDeleteExpenseAction(id: string): Promise<{ error:
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!expense) return { error: m.updateError };
+  if (!expense) return { ok: false, error: m.updateError };
 
   if (expense.receipt_file_path) {
     const { error: storageError } = await supabase.storage
       .from('receipts')
       .remove([expense.receipt_file_path]);
-    if (storageError) return { error: storageError.message };
+    if (storageError) return { ok: false, error: storageError.message };
   }
 
   const { error } = await supabase
@@ -392,7 +399,7 @@ export async function permanentDeleteExpenseAction(id: string): Promise<{ error:
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath('/expenses');
   revalidatePath('/expenses/trash');

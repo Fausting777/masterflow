@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { validateCsrfFormData } from '@/lib/csrf/server';
+import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { importableSumupTransactions, resolveSumupMerchant } from '@/lib/sumup/client';
 import { decryptSumupToken, encryptSumupToken, maskToken } from '@/lib/sumup/tokens';
@@ -20,14 +21,41 @@ export type SumupSyncState = {
   success?: boolean;
 };
 
+async function getMessages() {
+  const locale = await getLocale();
+  return locale === 'de'
+    ? {
+        csrfFailed: 'CSRF-Prüfung fehlgeschlagen',
+        unauthorized: 'Nicht autorisiert',
+        tokenRequired: 'SumUp Access Token ist erforderlich',
+        merchantError: 'SumUp Händlercode konnte nicht ermittelt werden',
+        encryptError: 'Token konnte nicht verschlüsselt werden',
+        notConnected: 'SumUp ist noch nicht verbunden',
+        decryptError: 'Token konnte nicht entschlüsselt werden',
+        importError: 'SumUp-Transaktionen konnten nicht importiert werden',
+      }
+    : {
+        csrfFailed: 'Проверка CSRF не пройдена',
+        unauthorized: 'Нет авторизации',
+        tokenRequired: 'Требуется SumUp Access Token',
+        merchantError: 'Не удалось определить код продавца SumUp',
+        encryptError: 'Не удалось зашифровать токен',
+        notConnected: 'SumUp ещё не подключён',
+        decryptError: 'Не удалось расшифровать токен',
+        importError: 'Не удалось импортировать транзакции SumUp',
+      };
+}
+
 export async function saveSumupConnectionAction(
   _prevState: SumupConnectionState,
   formData: FormData
 ): Promise<SumupConnectionState> {
+  const m = await getMessages();
+
   try {
     await validateCsrfFormData(formData);
   } catch {
-    return { formError: 'CSRF validation failed' };
+    return { formError: m.csrfFailed };
   }
 
   const raw = {
@@ -36,7 +64,7 @@ export async function saveSumupConnectionAction(
   const emptyValues = { access_token: '' };
 
   if (!raw.access_token) {
-    return { formError: 'SumUp access token is required', values: emptyValues };
+    return { formError: m.tokenRequired, values: emptyValues };
   }
 
   let merchantCode: string;
@@ -45,10 +73,9 @@ export async function saveSumupConnectionAction(
     merchantCode = merchant.merchantCode;
   } catch (error) {
     return {
-      formError:
-        error instanceof Error
-          ? `Could not detect SumUp merchant code: ${error.message}`
-          : 'Could not detect SumUp merchant code',
+      formError: error instanceof Error
+        ? `${m.merchantError}: ${error.message}`
+        : m.merchantError,
       values: emptyValues,
     };
   }
@@ -58,7 +85,7 @@ export async function saveSumupConnectionAction(
     encryptedToken = encryptSumupToken(raw.access_token);
   } catch (error) {
     return {
-      formError: error instanceof Error ? error.message : 'Could not encrypt SumUp token',
+      formError: error instanceof Error ? error.message : m.encryptError,
       values: emptyValues,
     };
   }
@@ -69,7 +96,7 @@ export async function saveSumupConnectionAction(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { formError: 'Not authorized', values: emptyValues };
+    return { formError: m.unauthorized, values: emptyValues };
   }
 
   const { error } = await supabase.from('sumup_connections').upsert(
@@ -112,10 +139,12 @@ export async function syncSumupTransactionsAction(
   _prevState: SumupSyncState,
   formData: FormData
 ): Promise<SumupSyncState> {
+  const m = await getMessages();
+
   try {
     await validateCsrfFormData(formData);
   } catch {
-    return { formError: 'CSRF validation failed' };
+    return { formError: m.csrfFailed };
   }
 
   const supabase = await createClient();
@@ -124,7 +153,7 @@ export async function syncSumupTransactionsAction(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { formError: 'Not authorized' };
+    return { formError: m.unauthorized };
   }
 
   const { data: connection, error: connectionError } = await supabase
@@ -138,7 +167,7 @@ export async function syncSumupTransactionsAction(
   }
 
   if (!connection) {
-    return { formError: 'SumUp is not connected yet' };
+    return { formError: m.notConnected };
   }
 
   let accessToken: string;
@@ -146,7 +175,7 @@ export async function syncSumupTransactionsAction(
     accessToken = decryptSumupToken(connection.access_token_encrypted);
   } catch (error) {
     return {
-      formError: error instanceof Error ? error.message : 'Could not decrypt SumUp token',
+      formError: error instanceof Error ? error.message : m.decryptError,
     };
   }
 
@@ -159,7 +188,7 @@ export async function syncSumupTransactionsAction(
     });
   } catch (error) {
     return {
-      formError: error instanceof Error ? error.message : 'Could not import SumUp transactions',
+      formError: error instanceof Error ? error.message : m.importError,
     };
   }
 

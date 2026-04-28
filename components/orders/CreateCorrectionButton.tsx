@@ -12,30 +12,24 @@ export default function CreateCorrectionButton({ orderId }: { orderId: string })
   const text =
     locale === 'de'
       ? {
-          confirm:
-            'Soll ein separater Korrekturentwurf zu dieser Rechnung erstellt werden?',
+          confirm: 'Soll ein separater Korrekturentwurf zu dieser Rechnung erstellt werden?',
           genericError: 'Fehler',
           creating: 'Wird erstellt...',
           create: 'Korrektur erstellen',
         }
       : {
-          confirm:
-            '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u0443\u044e \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0443 \u0434\u043b\u044f \u044d\u0442\u043e\u0439 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438?',
-          genericError: '\u041e\u0448\u0438\u0431\u043a\u0430',
-          creating: '\u0421\u043e\u0437\u0434\u0430\u043d\u0438\u0435...',
-          create:
-            '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0443',
+          confirm: 'Создать отдельную корректировку для этого счёта?',
+          genericError: 'Ошибка',
+          creating: 'Создание...',
+          create: 'Создать корректировку',
         };
 
   function handleClick() {
     if (!window.confirm(text.confirm)) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await createCorrectionDraftAction(orderId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : text.genericError);
-      }
+      const result = await createCorrectionDraftAction(orderId);
+      if (!result.ok) setError(result.error ?? text.genericError);
     });
   }
 

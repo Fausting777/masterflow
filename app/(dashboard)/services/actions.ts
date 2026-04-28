@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { validateCsrfFormData } from '@/lib/csrf/server';
+import { validateCsrfFormData, validateCsrfCookie } from '@/lib/csrf/server';
 import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -24,7 +24,7 @@ export type ServiceFormState = {
 function getTexts(locale: 'ru' | 'de') {
   if (locale === 'de') {
     return {
-      csrfError: 'CSRF validation failed',
+      csrfError: 'CSRF-Prüfung fehlgeschlagen',
       unauthorized: 'Nicht autorisiert',
       genericError: 'Fehler',
       deleteError: 'Fehler beim Löschen',
@@ -32,8 +32,8 @@ function getTexts(locale: 'ru' | 'de') {
   }
 
   return {
-    csrfError: 'CSRF validation failed',
-    unauthorized: 'Не авторизован',
+    csrfError: 'Проверка CSRF не пройдена',
+    unauthorized: 'Нет авторизации',
     genericError: 'Ошибка',
     deleteError: 'Ошибка удаления',
   };
@@ -124,19 +124,20 @@ export async function updateServiceAction(
   redirect(`/services/${id}`);
 }
 
-export async function deleteServiceAction(id: string): Promise<void> {
+export async function deleteServiceAction(id: string): Promise<{ ok: boolean; error?: string }> {
   const locale = await getLocale();
   const text = getTexts(locale);
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: text.csrfError }; }
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error(text.unauthorized);
+  if (!user) return { ok: false, error: text.unauthorized };
 
   const { error } = await supabase.from('services').delete().eq('id', id).eq('user_id', user.id);
 
-  if (error) throw new Error(`${text.deleteError}: ${error.message}`);
+  if (error) return { ok: false, error: `${text.deleteError}: ${error.message}` };
 
   revalidatePath('/services');
   redirect('/services');

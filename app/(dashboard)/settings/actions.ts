@@ -1,6 +1,7 @@
 'use server';
 
 import { validateCsrfFormData } from '@/lib/csrf/server';
+import { getLocale } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import {
@@ -30,26 +31,29 @@ export type ProfileFormState = {
   values?: ProfileFormValues;
 };
 
-function getInvoiceProfileMissing(raw: ProfileFormValues) {
-  const missing: string[] = [];
-
-  if (!raw.full_name) missing.push('Name');
-  if (!raw.address) missing.push('Adresse');
-  if (!raw.postal_code) missing.push('PLZ');
-  if (!raw.city) missing.push('Ort');
-  if (!raw.tax_number && !raw.vat_id) missing.push('Steuernummer / USt-IdNr.');
-
-  return missing;
+async function getProfileMessages() {
+  const locale = await getLocale();
+  return locale === 'de'
+    ? {
+        csrfFailed: 'CSRF-Prüfung fehlgeschlagen',
+        unauthorized: 'Nicht autorisiert',
+      }
+    : {
+        csrfFailed: 'Проверка CSRF не пройдена',
+        unauthorized: 'Нет авторизации',
+      };
 }
 
 export async function updateProfileAction(
   _prevState: ProfileFormState,
   formData: FormData
 ): Promise<ProfileFormState> {
+  const m = await getProfileMessages();
+
   try {
     await validateCsrfFormData(formData);
   } catch {
-    return { formError: 'CSRF validation failed' };
+    return { formError: m.csrfFailed };
   }
 
   const raw: ProfileFormValues = {
@@ -76,15 +80,7 @@ export async function updateProfileAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { formError: 'Not authorized', values: raw };
-  }
-
-  const missing = getInvoiceProfileMissing(raw);
-  if (missing.length > 0) {
-    return {
-      formError: `Bitte vervollständigen Sie die Pflichtangaben für Rechnungen: ${missing.join(', ')}`,
-      values: raw,
-    };
+    return { formError: m.unauthorized, values: raw };
   }
 
   const { error } = await supabase
@@ -118,14 +114,33 @@ export type PasswordChangeState = {
   success?: boolean;
 };
 
+async function getPasswordMessages() {
+  const locale = await getLocale();
+  return locale === 'de'
+    ? {
+        csrfFailed: 'CSRF-Prüfung fehlgeschlagen',
+        unauthorized: 'Nicht autorisiert',
+        wrongPassword: 'Aktuelles Passwort ist falsch',
+        error: 'Fehler',
+      }
+    : {
+        csrfFailed: 'Проверка CSRF не пройдена',
+        unauthorized: 'Нет авторизации',
+        wrongPassword: 'Текущий пароль неверный',
+        error: 'Ошибка',
+      };
+}
+
 export async function changePasswordAction(
   _prevState: PasswordChangeState,
   formData: FormData
 ): Promise<PasswordChangeState> {
+  const m = await getPasswordMessages();
+
   try {
     await validateCsrfFormData(formData);
   } catch {
-    return { formError: 'CSRF validation failed' };
+    return { formError: m.csrfFailed };
   }
 
   const currentPassword = String(formData.get('currentPassword') ?? '');
@@ -147,7 +162,7 @@ export async function changePasswordAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user || !user.email) {
-    return { formError: 'Not authorized' };
+    return { formError: m.unauthorized };
   }
 
   const { error: updateError } = await supabase.auth.updateUser({
@@ -158,11 +173,9 @@ export async function changePasswordAction(
   if (updateError) {
     const msg = updateError.message.toLowerCase();
     if (msg.includes('invalid') || msg.includes('incorrect') || msg.includes('wrong')) {
-      return {
-        errors: { currentPassword: 'Current password is incorrect' },
-      };
+      return { errors: { currentPassword: m.wrongPassword } };
     }
-    return { formError: `Error: ${updateError.message}` };
+    return { formError: `${m.error}: ${updateError.message}` };
   }
 
   return { success: true };

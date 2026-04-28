@@ -8,6 +8,7 @@ import {
   type InvoiceSnapshot,
 } from '@/lib/invoices/snapshot';
 import { getLocale } from '@/lib/i18n/server';
+import { validateCsrfCookie } from '@/lib/csrf/server';
 import { generateInvoicePdf } from '@/lib/pdf/invoice';
 import { sha256Hex } from '@/lib/security/hash';
 import { createClient } from '@/lib/supabase/server';
@@ -90,36 +91,31 @@ async function getMessages() {
         genericError: 'Fehler',
       }
     : {
-        missingMasterName: '\u0418\u043c\u044f \u0438\u043b\u0438 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u0438',
-        missingAddress: '\u0410\u0434\u0440\u0435\u0441',
-        missingCity: '\u0413\u043e\u0440\u043e\u0434',
-        fillSettings: '\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0432 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430\u0445',
-        clientNotFound: '\u041a\u043b\u0438\u0435\u043d\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
-        missingClientName: '\u0418\u043c\u044f \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
-        missingClientAddress: '\u0423\u043b\u0438\u0446\u0430 \u0438 \u0434\u043e\u043c \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
-        missingClientPostal: 'PLZ \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
-        missingClientCity: '\u0413\u043e\u0440\u043e\u0434 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
-        fillClient:
-          '\u0414\u043b\u044f \u0432\u044b\u0434\u0430\u0447\u0438 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438 \u0437\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
-        missingPrice: '\u041d\u0435 \u0443\u043a\u0430\u0437\u0430\u043d\u0430 \u0446\u0435\u043d\u0430 \u0437\u0430\u043a\u0430\u0437\u0430',
-        missingSourceInvoice:
-          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0439\u0442\u0438 \u0438\u0441\u0445\u043e\u0434\u043d\u0443\u044e \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044e \u0434\u043b\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0438',
-        unauthorized: '\u041d\u0435\u0442 \u0430\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u0438',
-        orderNotFound: '\u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
+        missingMasterName: 'Имя или название компании',
+        missingAddress: 'Адрес',
+        missingCity: 'Город',
+        fillSettings: 'Заполните в настройках',
+        clientNotFound: 'Клиент не найден',
+        missingClientName: 'Имя клиента',
+        missingClientAddress: 'Улица и дом клиента',
+        missingClientPostal: 'PLZ клиента',
+        missingClientCity: 'Город клиента',
+        fillClient: 'Для выдачи счёта заполните данные клиента',
+        missingPrice: 'Не указана цена заказа',
+        missingSourceInvoice: 'Не удалось найти исходный счёт для корректировки',
+        unauthorized: 'Нет авторизации',
+        orderNotFound: 'Заказ не найден',
         invoiceLocked:
-          '\u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044f \u0443\u0436\u0435 \u0432\u044b\u0434\u0430\u043d\u0430 \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u0430. \u041f\u043e\u0432\u0442\u043e\u0440\u043d\u0430\u044f \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u043f\u043e \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443 \u0437\u0430\u043f\u0440\u0435\u0449\u0435\u043d\u0430. \u0414\u043b\u044f \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0439 \u043d\u0443\u0436\u043d\u0430 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438.',
-        invoicePdfRefreshed:
-          '\u041f\u0414\u0424 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438 \u0437\u0430\u043d\u043e\u0432\u043e \u0441\u043e\u0437\u0434\u0430\u043d \u0438\u0437 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0433\u043e snapshot',
-        numberFailed:
-          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043d\u043e\u043c\u0435\u0440 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
-        snapshotFailed:
-          '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c snapshot \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
-        generationError: '\u041e\u0448\u0438\u0431\u043a\u0430 \u0433\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u0438',
-        correctionIssued: '\u041a\u043e\u0440\u0440\u0435\u043a\u0442\u0438\u0440\u043e\u0432\u043a\u0430 \u043a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u0438',
-        invoiceIssued: '\u041a\u0432\u0438\u0442\u0430\u043d\u0446\u0438\u044f',
-        wasIssued: '\u0432\u044b\u043f\u0438\u0441\u0430\u043d \u0438 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d',
-        pdfMissing: 'PDF \u0435\u0449\u0435 \u043d\u0435 \u0441\u043e\u0437\u0434\u0430\u043d',
-        genericError: '\u041e\u0448\u0438\u0431\u043a\u0430',
+          'Счёт уже выдан и зафиксирован. Повторная генерация по исходному документу запрещена. Для исправлений нужна отдельная корректировка счёта.',
+        invoicePdfRefreshed: 'PDF счёта заново создан из зафиксированного snapshot',
+        numberFailed: 'Не удалось получить номер счёта',
+        snapshotFailed: 'Не удалось сформировать snapshot счёта',
+        generationError: 'Ошибка генерации',
+        correctionIssued: 'Корректировка счёта',
+        invoiceIssued: 'Счёт',
+        wasIssued: 'выписан и зафиксирован',
+        pdfMissing: 'PDF ещё не создан',
+        genericError: 'Ошибка',
       };
 }
 
@@ -349,6 +345,7 @@ export async function generatePdfAction(orderId: string): Promise<{
   error?: string;
 }> {
   const m = await getMessages();
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.unauthorized }; }
   const supabase = await createClient();
   const {
     data: { user },

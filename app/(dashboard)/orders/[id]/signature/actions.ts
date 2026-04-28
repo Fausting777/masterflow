@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getLocale } from '@/lib/i18n/server';
 import { validateUploadedFile } from '@/lib/security/file-validation';
+import { validateCsrfCookie } from '@/lib/csrf/server';
 import { createClient } from '@/lib/supabase/server';
 import { isInvoiceLocked } from '@/lib/orders/invoice-lock';
 
@@ -21,6 +22,7 @@ async function getMessages() {
         orderNotFound: 'Auftrag nicht gefunden',
         locked: 'Nach der Rechnungsausstellung darf die Unterschrift des Archivdokuments nicht mehr geaendert werden',
         uploadError: 'Upload-Fehler',
+        csrfFailed: 'CSRF-Prüfung fehlgeschlagen',
       }
     : {
         missingOrder: 'Не указан заказ',
@@ -31,6 +33,7 @@ async function getMessages() {
         orderNotFound: 'Заказ не найден',
         locked: 'После выставления счёта нельзя менять подпись архивного документа',
         uploadError: 'Ошибка загрузки',
+        csrfFailed: 'Проверка CSRF не пройдена',
       };
 }
 
@@ -100,6 +103,7 @@ export async function deleteSignatureAction(orderId: string): Promise<{
   error?: string;
 }> {
   const m = await getMessages();
+  try { await validateCsrfCookie(); } catch { return { ok: false, error: m.csrfFailed }; }
   const supabase = await createClient();
   const {
     data: { user },

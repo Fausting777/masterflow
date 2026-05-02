@@ -1,7 +1,5 @@
-import Link from 'next/link';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import { LocaleProvider } from '@/components/i18n/LocaleProvider';
 import { getDictionary } from '@/lib/i18n/server';
 import './globals.css';
@@ -45,7 +43,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { locale, t } = await getDictionary();
+  const { locale } = await getDictionary();
 
   return (
     <html lang={locale} suppressHydrationWarning className={inter.variable}>
@@ -63,12 +61,7 @@ export default async function RootLayout({
           <footer className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 text-xs text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
             <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-center sm:text-left">MasterFlow</p>
-              <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-end">
-                <div className="rounded-full border border-neutral-200 bg-white px-2 py-1 dark:border-neutral-700 dark:bg-neutral-800">
-                  <LanguageSwitcher />
-                </div>
-                {/* legal links hidden */}
-              </div>
+              {/* legal links hidden */}
             </div>
           </footer>
         </LocaleProvider>

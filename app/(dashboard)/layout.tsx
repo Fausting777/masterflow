@@ -2,6 +2,7 @@ import MobileShell from '@/components/ui/MobileShell';
 import InstallButton from '@/components/ui/InstallButton';
 import IosInstallHint from '@/components/ui/IosInstallHint';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
 import CsrfTokenInput from '@/components/security/CsrfTokenInput';
 import { createClient } from '@/lib/supabase/server';
 import { getDictionary } from '@/lib/i18n/server';
@@ -68,7 +69,10 @@ export default async function DashboardLayout({
             </form>
           </nav>
 
-          <ThemeToggle />
+          <div className="flex shrink-0 items-center gap-2">
+            <LanguageSwitcher compact />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
